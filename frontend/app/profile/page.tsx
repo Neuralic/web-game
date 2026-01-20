@@ -21,6 +21,15 @@ import Header from "../components/Header";
 import VerifiedBadge from "../components/VerifiedBadge";
 import { usersApi } from "@/lib/api";
 
+interface UserProfile {
+  id?: string;
+  username: string;
+  display_name?: string;
+  bio?: string;
+  status_message?: string;
+  is_verified?: boolean;
+}
+
 const ProfilePage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -51,7 +60,7 @@ const ProfilePage = () => {
       try {
         const response = await usersApi.getCurrentUser();
         if (response.success && response.data) {
-          const userData = response.data.user;
+          const userData = response.data.user as UserProfile;
           setUser(userData);
           setDisplayName(userData.display_name || userData.username);
           setUsername(userData.username);
@@ -415,14 +424,12 @@ const ProfilePage = () => {
         // Refresh user data from API
         const userResponse = await usersApi.getCurrentUser();
         if (userResponse.success && userResponse.data) {
-          setUser(userResponse.data.user);
+          const refreshedUser = userResponse.data.user as UserProfile;
+          setUser(refreshedUser);
           // Update fields from fresh API data
-          setDisplayName(
-            userResponse.data.user.display_name ||
-              userResponse.data.user.username,
-          );
-          setUsername(userResponse.data.user.username);
-          setStatusMessage(userResponse.data.user.status_message || "");
+          setDisplayName(refreshedUser.display_name || refreshedUser.username);
+          setUsername(refreshedUser.username);
+          setStatusMessage(refreshedUser.status_message || "");
         }
       } else {
         setSaveError(response.message || "Failed to update profile");
