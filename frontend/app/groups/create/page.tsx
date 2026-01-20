@@ -1,33 +1,127 @@
-'use client';
+"use client";
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Search, Menu, Bell, Settings as SettingsIcon, X } from "lucide-react";
 import Footer from "../../components/Footer";
 import { ThemeToggle } from "../../components/ThemeToggle";
 import Sidebar from "../../components/Sidebar";
+import Header from "../../components/Header";
+import { groupsApi, uploadApi } from "@/lib/api";
 
 const CreateGroupPage = () => {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [groupName, setGroupName] = useState("");
   const [description, setDescription] = useState("");
-  const [emblemFile, setEmblemFile] = useState<string | null>(null);
-  const [coverPhotoFile, setCoverPhotoFile] = useState<string | null>(null);
-  const [joinSetting, setJoinSetting] = useState("anyone");
+  const [emblemFile, setEmblemFile] = useState<File | null>(null);
+  const [emblemPreview, setEmblemPreview] = useState<string | null>(null);
+  const [coverPhotoFile, setCoverPhotoFile] = useState<File | null>(null);
+  const [coverPhotoPreview, setCoverPhotoPreview] = useState<string | null>(
+    null,
+  );
+  const [joinSetting, setJoinSetting] = useState("open");
+  const [creating, setCreating] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleEmblemUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setEmblemFile(URL.createObjectURL(file));
+      setEmblemFile(file);
+      setEmblemPreview(URL.createObjectURL(file));
     }
   };
 
   const handleCoverPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setCoverPhotoFile(URL.createObjectURL(file));
+      setCoverPhotoFile(file);
+      setCoverPhotoPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    if (!groupName.trim()) {
+      setError("Group name is required");
+      return;
+    }
+
+    if (!emblemFile) {
+      setError("Group emblem is required");
+      return;
+    }
+
+    setCreating(true);
+    setUploading(true);
+
+    try {
+      // Upload emblem (icon) first
+      const emblemUploadResponse = await uploadApi.uploadImage(
+        emblemFile,
+        "icon",
+      );
+
+      if (!emblemUploadResponse.success || !emblemUploadResponse.data) {
+        setError(
+          emblemUploadResponse.message || "Failed to upload emblem image",
+        );
+        setCreating(false);
+        setUploading(false);
+        return;
+      }
+
+      const iconUrl = emblemUploadResponse.data.url;
+
+      // Upload cover photo if provided
+      let coverPhotoUrl: string | undefined = undefined;
+      if (coverPhotoFile) {
+        const coverUploadResponse = await uploadApi.uploadImage(
+          coverPhotoFile,
+          "cover",
+        );
+
+        if (!coverUploadResponse.success || !coverUploadResponse.data) {
+          setError(
+            coverUploadResponse.message || "Failed to upload cover photo",
+          );
+          setCreating(false);
+          setUploading(false);
+          return;
+        }
+
+        coverPhotoUrl = coverUploadResponse.data.url;
+      }
+
+      setUploading(false);
+
+      // Create the group with uploaded image URLs
+      const response = await groupsApi.createGroup({
+        name: groupName,
+        description: description || undefined,
+        iconUrl: iconUrl,
+        coverPhotoUrl: coverPhotoUrl,
+        joinSetting: joinSetting,
+      });
+
+      if (response.success && response.data) {
+        const groupId = (response.data.group as any).id;
+        router.push(`/groups/${groupId}`);
+      } else {
+        setError(response.message || "Failed to create group");
+      }
+    } catch (err) {
+      console.error("Create group error:", err);
+      setError("An error occurred while creating the group");
+    } finally {
+      setCreating(false);
+      setUploading(false);
     }
   };
 
@@ -36,96 +130,26 @@ const CreateGroupPage = () => {
       {/* Sidebar */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      {/* Top Navigation Bar */}
-      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-4">
-            <button onClick={() => setSidebarOpen(true)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
-              <Menu className="w-6 h-6 text-gray-700 dark:text-gray-300" />
-            </button>
-            
-            <Link href="/home" className="flex items-center">
-              <div className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">◈</span>
-              </div>
-            </Link>
-          </div>
-
-          <nav className="hidden md:flex items-center gap-6">
-            <Link href="/games" className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white font-semibold text-sm">
-              Games
-            </Link>
-            <Link href="/catalog" className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white font-semibold text-sm">
-              Catalog
-            </Link>
-            <Link href="/create" className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white font-semibold text-sm">
-              Create
-            </Link>
-            <Link href="/adventurebux" className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white font-semibold text-sm">
-              AdventureBux
-            </Link>
-          </nav>
-
-          <div className="flex items-center gap-3">
-            <div className="hidden md:flex items-center gap-2 bg-gray-100 dark:bg-gray-800 rounded-lg px-4 py-2 w-64">
-              <Search className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-transparent text-gray-700 dark:text-gray-300 placeholder:text-gray-500 dark:placeholder:text-gray-400 text-sm focus:outline-none w-full"
-              />
-            </div>
-            
-            <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg relative">
-              <Bell className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-            </button>
-            
-            <ThemeToggle />
-            
-            <div className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg">
-              <div className="w-5 h-5 bg-gray-800 dark:bg-gray-200 rounded-full flex items-center justify-center">
-                <span className="text-white dark:text-gray-900 text-xs font-bold">◈</span>
-              </div>
-              <span className="text-gray-900 dark:text-gray-100 font-semibold text-sm">0</span>
-            </div>
-            
-            <div className="relative">
-              <button 
-                onClick={() => setSettingsOpen(!settingsOpen)}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
-              >
-                <SettingsIcon className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              </button>
-              
-              {settingsOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50">
-                  <Link 
-                    href="/settings" 
-                    className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    onClick={() => setSettingsOpen(false)}
-                  >
-                    Settings
-                  </Link>
-                </div>
-              )}
-            </div>
-            
-            <Link href="/profile" className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg px-2 py-1">
-              <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
-              <span className="text-gray-900 dark:text-gray-100 font-semibold text-sm hidden md:block">reahan00R</span>
-            </Link>
-          </div>
-        </div>
-      </header>
+      {/* Header */}
+      <Header
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        setSidebarOpen={setSidebarOpen}
+      />
 
       {/* Main Content */}
       <main className="flex-1 w-full px-4 py-8">
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-8">Create Group</h1>
+        <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-8">
+          Create Group
+        </h1>
 
-        <form className="space-y-8">
+        {error && (
+          <div className="mb-6 p-4 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg text-red-800 dark:text-red-200">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-8">
           {/* Name */}
           <div>
             <label className="block text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
@@ -170,21 +194,31 @@ const CreateGroupPage = () => {
                 {/* Preview */}
                 <div className="flex-shrink-0">
                   <div className="w-48 h-48 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden flex items-center justify-center border border-gray-200 dark:border-gray-700">
-                    {emblemFile ? (
-                      <img src={emblemFile} alt="Emblem preview" className="w-full h-full object-cover" />
+                    {emblemPreview ? (
+                      <img
+                        src={emblemPreview}
+                        alt="Emblem preview"
+                        className="w-full h-full object-cover"
+                      />
                     ) : (
                       <span className="text-gray-400 text-sm">Preview</span>
                     )}
                   </div>
                   {emblemFile && (
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 text-center">group emblem.jpg</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 text-center">
+                      {emblemFile.name}
+                    </p>
                   )}
                 </div>
 
                 {/* Upload area */}
                 <div className="flex-1 text-center">
-                  <p className="text-gray-700 dark:text-gray-300 mb-2">Drag a file here</p>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">- Or -</p>
+                  <p className="text-gray-700 dark:text-gray-300 mb-2">
+                    Drag a file here
+                  </p>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">
+                    - Or -
+                  </p>
                   <label className="inline-block">
                     <input
                       type="file"
@@ -207,28 +241,39 @@ const CreateGroupPage = () => {
               Cover Photo
             </label>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-              Cover photo must be one of the available dimensions: 720x228, 1440x456
+              Cover photo must be one of the available dimensions: 720x228,
+              1440x456
             </p>
             <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-8">
               <div className="flex items-start gap-6">
                 {/* Preview */}
                 <div className="flex-shrink-0">
                   <div className="w-48 h-32 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden flex items-center justify-center border border-gray-200 dark:border-gray-700">
-                    {coverPhotoFile ? (
-                      <img src={coverPhotoFile} alt="Cover photo preview" className="w-full h-full object-cover" />
+                    {coverPhotoPreview ? (
+                      <img
+                        src={coverPhotoPreview}
+                        alt="Cover photo preview"
+                        className="w-full h-full object-cover"
+                      />
                     ) : (
                       <span className="text-gray-400 text-sm">Preview</span>
                     )}
                   </div>
                   {coverPhotoFile && (
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 text-center">group cover.jpg</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 text-center">
+                      {coverPhotoFile.name}
+                    </p>
                   )}
                 </div>
 
                 {/* Upload area */}
                 <div className="flex-1 text-center">
-                  <p className="text-gray-700 dark:text-gray-300 mb-2">Drag a file here</p>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">- Or -</p>
+                  <p className="text-gray-700 dark:text-gray-300 mb-2">
+                    Drag a file here
+                  </p>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">
+                    - Or -
+                  </p>
                   <label className="inline-block">
                     <input
                       type="file"
@@ -247,29 +292,35 @@ const CreateGroupPage = () => {
 
           {/* Settings */}
           <div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Settings</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+              Settings
+            </h2>
             <div className="space-y-3">
               <label className="flex items-center gap-3 cursor-pointer">
                 <input
                   type="radio"
                   name="joinSetting"
-                  value="anyone"
-                  checked={joinSetting === "anyone"}
+                  value="open"
+                  checked={joinSetting === "open"}
                   onChange={(e) => setJoinSetting(e.target.value)}
                   className="w-5 h-5 text-blue-600"
                 />
-                <span className="text-gray-900 dark:text-gray-100 font-medium">Anyone Can Join</span>
+                <span className="text-gray-900 dark:text-gray-100 font-medium">
+                  Anyone Can Join
+                </span>
               </label>
               <label className="flex items-center gap-3 cursor-pointer">
                 <input
                   type="radio"
                   name="joinSetting"
-                  value="manual"
-                  checked={joinSetting === "manual"}
+                  value="approval"
+                  checked={joinSetting === "approval"}
                   onChange={(e) => setJoinSetting(e.target.value)}
                   className="w-5 h-5 text-blue-600"
                 />
-                <span className="text-gray-900 dark:text-gray-100 font-medium">Manual Approval</span>
+                <span className="text-gray-900 dark:text-gray-100 font-medium">
+                  Manual Approval
+                </span>
               </label>
             </div>
           </div>
@@ -279,16 +330,22 @@ const CreateGroupPage = () => {
             <Link href="/groups">
               <button
                 type="button"
-                className="px-8 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-semibold rounded-lg"
+                disabled={creating}
+                className="px-8 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
             </Link>
             <button
               type="submit"
-              className="px-8 py-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg flex items-center gap-2"
+              disabled={creating || !groupName.trim() || !emblemFile}
+              className="px-8 py-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Create Free
+              {uploading
+                ? "Uploading images..."
+                : creating
+                  ? "Creating group..."
+                  : "Create Free"}
             </button>
           </div>
         </form>
@@ -301,4 +358,3 @@ const CreateGroupPage = () => {
 };
 
 export default CreateGroupPage;
-

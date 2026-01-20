@@ -19,6 +19,7 @@ import Footer from "../components/Footer";
 import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
 import VerifiedBadge from "../components/VerifiedBadge";
+import { usersApi } from "@/lib/api";
 
 const ProfilePage = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -33,11 +34,44 @@ const ProfilePage = () => {
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const menuRef = useRef<HTMLDivElement>(null);
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
-  const [displayName, setDisplayName] = useState("sumail_00");
-  const [username, setUsername] = useState("@sumail_00");
-  const [editedDisplayName, setEditedDisplayName] = useState("sumail_00");
-  const [editedUsername, setEditedUsername] = useState("sumail_00");
+  const [user, setUser] = useState<any>(null);
+  const [displayName, setDisplayName] = useState("");
+  const [username, setUsername] = useState("");
+  const [editedDisplayName, setEditedDisplayName] = useState("");
+  const [editedUsername, setEditedUsername] = useState("");
+  const [statusMessage, setStatusMessage] = useState("Playing with AdventureBlox Studio 2.0");
+  const [editedStatusMessage, setEditedStatusMessage] = useState("Playing with AdventureBlox Studio 2.0");
   const [showAdvertisement, setShowAdvertisement] = useState(true); // Toggle to show/hide ad
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [saveError, setSaveError] = useState("");
+
+  // Fetch user data from API
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const response = await usersApi.getCurrentUser();
+        if (response.success && response.data) {
+          const userData = response.data.user;
+          setUser(userData);
+          setDisplayName(userData.display_name || userData.username);
+          setUsername(userData.username);
+          setEditedDisplayName(userData.display_name || userData.username);
+          setEditedUsername(userData.username);
+          setBio(userData.bio || "");
+          setEditedBio(userData.bio || "");
+          // Keep dummy status if API returns empty (for demo purposes)
+          if (userData.status_message) {
+            setStatusMessage(userData.status_message);
+            setEditedStatusMessage(userData.status_message);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
+    };
+
+    fetchUserData();
+  }, []);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -135,8 +169,8 @@ const ProfilePage = () => {
     }, // Green - Playing game
     {
       id: 6,
-      name: "reahan00R",
-      username: "@reahan00R",
+      name: displayName || "User",
+      username: `@${username}` || "@User",
       avatar: "https://robohash.org/reahan00r?set=set3",
       status: "online",
     }, // Blue - Online
@@ -247,7 +281,7 @@ const ProfilePage = () => {
   const experiences = [
     {
       id: "1",
-      title: "reahan00R's Place",
+      title: `${displayName || "User"}'s Place`,
       description:
         "This is your very first AdventureBlox creation. Check it out, then make it your own with AdventureBlox Studio!",
       imageUrl: "",
@@ -274,9 +308,131 @@ const ProfilePage = () => {
     setIsEditingBio(false);
   };
 
-  const handleSaveBio = () => {
-    setBio(editedBio);
-    setIsEditingBio(false);
+  const handleSaveBio = async () => {
+    try {
+      const response = await usersApi.updateProfile({
+        bio: editedBio,
+      });
+
+      if (response.success) {
+        setBio(editedBio);
+        setIsEditingBio(false);
+      } else {
+        console.error("Failed to save bio:", response.message);
+        alert("Failed to save bio. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error saving bio:", error);
+      alert("An error occurred while saving bio.");
+    }
+  };
+
+  // Handle save profile changes
+  const handleSaveProfile = async () => {
+    setSaveError("");
+    setIsSavingProfile(true);
+
+    try {
+      // Check what actually changed
+      const displayNameChanged = editedDisplayName !== displayName;
+      const usernameChanged = editedUsername !== username;
+      const statusMessageChanged = editedStatusMessage !== statusMessage;
+
+      // If nothing changed, just close modal
+      if (!displayNameChanged && !usernameChanged && !statusMessageChanged) {
+        setShowEditProfileModal(false);
+        setIsSavingProfile(false);
+        return;
+      }
+
+      // Validate display name if it changed
+      if (displayNameChanged) {
+        if (!editedDisplayName.trim()) {
+          setSaveError("Display name cannot be empty");
+          setIsSavingProfile(false);
+          return;
+        }
+
+        if (editedDisplayName.length < 3 || editedDisplayName.length > 50) {
+          setSaveError("Display name must be between 3 and 50 characters");
+          setIsSavingProfile(false);
+          return;
+        }
+      }
+
+      // Validate username if it changed
+      if (usernameChanged) {
+        if (!editedUsername.trim()) {
+          setSaveError("Username cannot be empty");
+          setIsSavingProfile(false);
+          return;
+        }
+
+        if (editedUsername.length < 3 || editedUsername.length > 20) {
+          setSaveError("Username must be between 3 and 20 characters");
+          setIsSavingProfile(false);
+          return;
+        }
+
+        if (!/^[a-zA-Z0-9_]+$/.test(editedUsername)) {
+          setSaveError(
+            "Username can only contain letters, numbers, and underscores",
+          );
+          setIsSavingProfile(false);
+          return;
+        }
+      }
+
+      // Build update object with only changed fields
+      const updateData: any = {};
+      if (displayNameChanged) {
+        updateData.displayName = editedDisplayName;
+      }
+      if (usernameChanged) {
+        updateData.username = editedUsername;
+      }
+      if (statusMessageChanged) {
+        updateData.statusMessage = editedStatusMessage;
+      }
+
+      // Call API to update profile
+      const response = await usersApi.updateProfile(updateData);
+
+      if (response.success) {
+        // Update local state with new values
+        if (displayNameChanged) {
+          setDisplayName(editedDisplayName);
+        }
+        if (usernameChanged) {
+          setUsername(editedUsername);
+        }
+        if (statusMessageChanged) {
+          setStatusMessage(editedStatusMessage);
+        }
+
+        setShowEditProfileModal(false);
+
+        // Refresh user data from API
+        const userResponse = await usersApi.getCurrentUser();
+        if (userResponse.success && userResponse.data) {
+          setUser(userResponse.data.user);
+          // Update fields from fresh API data
+          setDisplayName(
+            userResponse.data.user.display_name ||
+              userResponse.data.user.username,
+          );
+          setUsername(userResponse.data.user.username);
+          setStatusMessage(userResponse.data.user.status_message || "");
+        }
+      } else {
+        setSaveError(response.message || "Failed to update profile");
+      }
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      setSaveError("An error occurred. Please try again.");
+    } finally {
+      setIsSavingProfile(false);
+    }
   };
 
   return (
@@ -330,7 +486,7 @@ const ProfilePage = () => {
               <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700">
                 <Image
                   src="https://tr.rbxcdn.com/30DAY-AvatarHeadshot-903254C5702EE154B5EA564D1D4CB860-Png/150/150/AvatarHeadshot/Webp/noFilter"
-                  alt="reahan00R"
+                  alt={username || "User Avatar"}
                   fill
                   className="object-cover"
                 />
@@ -352,12 +508,17 @@ const ProfilePage = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                    reahan00R
-                    <VerifiedBadge size="md" />
+                    {displayName || "User"}
+                    {user?.is_verified && <VerifiedBadge size="md" />}
                   </h1>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    @reahan00R
+                    @{username || "user"}
                   </p>
+                  {statusMessage && (
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 italic">
+                      "{statusMessage}"
+                    </p>
+                  )}
                 </div>
 
                 {/* Action Buttons */}
@@ -1210,9 +1371,10 @@ const ProfilePage = () => {
             {/* Close button */}
             <button
               onClick={() => {
-                setShowEditProfileModal(false);
+              setShowEditProfileModal(false);
                 setEditedDisplayName(displayName);
                 setEditedUsername(username.replace("@", ""));
+                setEditedStatusMessage(statusMessage);
               }}
               className="absolute top-4 right-4 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
             >
@@ -1276,6 +1438,31 @@ const ProfilePage = () => {
               </div>
             </div>
 
+            {/* Status Message Input */}
+            <div className="mb-6">
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Status Message
+              </label>
+              <input
+                type="text"
+                value={editedStatusMessage}
+                onChange={(e) => setEditedStatusMessage(e.target.value)}
+                maxLength={50}
+                className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-4 py-2.5 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="What's on your mind?"
+              />
+              <div className="text-right text-sm text-gray-600 dark:text-gray-400 mt-1">
+                {editedStatusMessage.length}/50
+              </div>
+            </div>
+
+            {/* Error Message */}
+            {saveError && (
+              <div className="mb-4 bg-red-500/10 border border-red-500 text-red-500 px-4 py-3 rounded text-sm">
+                {saveError}
+              </div>
+            )}
+
             {/* Action buttons */}
             <div className="flex items-center gap-3 justify-end">
               <button
@@ -1283,20 +1470,18 @@ const ProfilePage = () => {
                   setShowEditProfileModal(false);
                   setEditedDisplayName(displayName);
                   setEditedUsername(username.replace("@", ""));
+                  setEditedStatusMessage(statusMessage);
                 }}
                 className="px-6 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium rounded transition-colors"
               >
                 Cancel
               </button>
               <button
-                onClick={() => {
-                  setDisplayName(editedDisplayName);
-                  setUsername("@" + editedUsername);
-                  setShowEditProfileModal(false);
-                }}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded transition-colors"
+                onClick={handleSaveProfile}
+                disabled={isSavingProfile}
+                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Save
+                {isSavingProfile ? "Saving..." : "Save"}
               </button>
             </div>
           </div>

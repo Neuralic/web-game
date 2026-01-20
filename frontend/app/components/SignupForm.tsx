@@ -1,13 +1,25 @@
-'use client';
+"use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown } from "lucide-react";
-import { authApi, storage } from "@/lib/api";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faMars, faVenus } from "@fortawesome/free-solid-svg-icons";
+import { authApi, storage, accountsApi } from "@/lib/api";
 
 const months = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December"
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
 const days = Array.from({ length: 31 }, (_, i) => i + 1);
@@ -24,6 +36,17 @@ const SignupForm = () => {
   const [gender, setGender] = useState<"male" | "female" | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isAddingAccount, setIsAddingAccount] = useState(false);
+
+  // Check if we're adding an account on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const addingAccount = localStorage.getItem("addingAccount");
+      if (addingAccount === "true") {
+        setIsAddingAccount(true);
+      }
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,24 +64,61 @@ const SignupForm = () => {
       });
 
       if (response.success && response.data) {
-        // Store tokens and user data
-        storage.setTokens(response.data.accessToken, response.data.refreshToken);
-        storage.setUser(response.data.user);
-        
-        // Redirect to home
-        router.push('/home');
+        // Check if we're adding an account
+        if (isAddingAccount) {
+          // Add the account via API
+          const addAccountResponse = await accountsApi.addAccount(
+            response.data.user.id,
+            response.data.accessToken,
+            response.data.refreshToken,
+          );
+
+          // Clear the flag
+          localStorage.removeItem("addingAccount");
+
+          if (addAccountResponse.success) {
+            // Switch to the new account
+            storage.setTokens(
+              response.data.accessToken,
+              response.data.refreshToken,
+            );
+
+            // Redirect to home
+            router.push("/home");
+          } else {
+            setErrors([addAccountResponse.error || "Failed to add account"]);
+          }
+        } else {
+          // Normal signup flow
+          storage.setTokens(
+            response.data.accessToken,
+            response.data.refreshToken,
+          );
+
+          // Redirect to home
+          router.push("/home");
+        }
       } else {
         // Handle validation errors from backend
-        if (response.errors && Array.isArray(response.errors) && response.errors.length > 0) {
-          setErrors(response.errors.map((err: any) => err.msg || err.message || String(err)));
+        if (
+          response.errors &&
+          Array.isArray(response.errors) &&
+          response.errors.length > 0
+        ) {
+          setErrors(
+            response.errors.map(
+              (err: { msg?: string; message?: string }) =>
+                err.msg || err.message || String(err),
+            ),
+          );
         } else if (response.message) {
           setErrors([response.message]);
         } else {
-          setErrors(['Signup failed. Please try again.']);
+          setErrors(["Signup failed. Please try again."]);
         }
       }
-    } catch (err) {
-      setErrors(['An error occurred. Please try again.']);
+    } catch {
+      setErrors(["An error occurred. Please try again."]);
     } finally {
       setLoading(false);
     }
@@ -83,9 +143,13 @@ const SignupForm = () => {
                 onChange={(e) => setMonth(e.target.value)}
                 className="w-full bg-input text-foreground rounded px-3 py-2.5 appearance-none cursor-pointer border border-border focus:outline-none focus:ring-1 focus:ring-ring text-sm"
               >
-                <option value="" disabled>Month</option>
+                <option value="" disabled>
+                  Month
+                </option>
                 {months.map((m) => (
-                  <option key={m} value={m}>{m}</option>
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
                 ))}
               </select>
               <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
@@ -96,9 +160,13 @@ const SignupForm = () => {
                 onChange={(e) => setDay(e.target.value)}
                 className="w-full bg-input text-foreground rounded px-3 py-2.5 appearance-none cursor-pointer border border-border focus:outline-none focus:ring-1 focus:ring-ring text-sm"
               >
-                <option value="" disabled>Day</option>
+                <option value="" disabled>
+                  Day
+                </option>
                 {days.map((d) => (
-                  <option key={d} value={d}>{d}</option>
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
                 ))}
               </select>
               <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
@@ -109,9 +177,13 @@ const SignupForm = () => {
                 onChange={(e) => setYear(e.target.value)}
                 className="w-full bg-input text-foreground rounded px-3 py-2.5 appearance-none cursor-pointer border border-border focus:outline-none focus:ring-1 focus:ring-ring text-sm"
               >
-                <option value="" disabled>Year</option>
+                <option value="" disabled>
+                  Year
+                </option>
                 {years.map((y) => (
-                  <option key={y} value={y}>{y}</option>
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
                 ))}
               </select>
               <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
@@ -150,36 +222,38 @@ const SignupForm = () => {
         {/* Gender */}
         <div>
           <label className="block text-sm font-semibold text-foreground mb-2">
-            Gender <span className="text-muted-foreground font-normal">(optional)</span>
+            Gender{" "}
+            <span className="text-muted-foreground font-normal">
+              (optional)
+            </span>
           </label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-3">
+            {/* Male Button */}
             <button
               type="button"
               onClick={() => setGender("male")}
-              className={`py-3 rounded border transition-all ${
+              className={`flex items-center justify-center gap-2 py-3 px-4 rounded border transition-all ${
                 gender === "male"
-                  ? "bg-secondary border-ring"
-                  : "bg-input border-border hover:border-muted-foreground"
+                  ? "bg-blue-500/20 border-blue-500 text-blue-500 dark:bg-blue-500/30"
+                  : "bg-input border-border hover:border-muted-foreground text-foreground"
               }`}
             >
-              <svg className="w-6 h-6 mx-auto text-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <circle cx="10" cy="8" r="5" strokeWidth="2" />
-                <path strokeWidth="2" d="M10 13v8M6 17h8" />
-              </svg>
+              <FontAwesomeIcon icon={faMars} className="w-5 h-5" />
+              <span className="font-medium text-sm">Male</span>
             </button>
+
+            {/* Female Button */}
             <button
               type="button"
               onClick={() => setGender("female")}
-              className={`py-3 rounded border transition-all ${
+              className={`flex items-center justify-center gap-2 py-3 px-4 rounded border transition-all ${
                 gender === "female"
-                  ? "bg-secondary border-ring"
-                  : "bg-input border-border hover:border-muted-foreground"
+                  ? "bg-pink-500/20 border-pink-500 text-pink-500 dark:bg-pink-500/30"
+                  : "bg-input border-border hover:border-muted-foreground text-foreground"
               }`}
             >
-              <svg className="w-6 h-6 mx-auto text-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <circle cx="12" cy="10" r="5" strokeWidth="2" />
-                <path strokeWidth="2" d="M12 15v6M9 18h6" />
-              </svg>
+              <FontAwesomeIcon icon={faVenus} className="w-5 h-5" />
+              <span className="font-medium text-sm">Female</span>
             </button>
           </div>
         </div>
@@ -187,10 +261,15 @@ const SignupForm = () => {
         {/* Terms */}
         <p className="text-xs text-muted-foreground leading-relaxed">
           By clicking Sign Up, you are agreeing to our{" "}
-          <a href="#" className="text-foreground underline hover:text-accent">Terms of Use</a>{" "}
+          <a href="#" className="text-foreground underline hover:text-accent">
+            Terms of Use
+          </a>{" "}
           (including arbitration) and acknowledge our{" "}
-          <a href="#" className="text-foreground underline hover:text-accent">Privacy Policy</a>.
-          If you are under 18, you agree that your parent/guardian permits you to create this account and agrees to our Terms of Use.
+          <a href="#" className="text-foreground underline hover:text-accent">
+            Privacy Policy
+          </a>
+          . If you are under 18, you agree that your parent/guardian permits you
+          to create this account and agrees to our Terms of Use.
         </p>
 
         {/* Error Messages */}
@@ -214,7 +293,7 @@ const SignupForm = () => {
           disabled={loading}
           className="w-full bg-muted hover:bg-muted/80 text-foreground font-bold py-3 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? 'Creating Account...' : 'Sign Up'}
+          {loading ? "Creating Account..." : "Sign Up"}
         </button>
       </form>
     </div>
@@ -222,4 +301,3 @@ const SignupForm = () => {
 };
 
 export default SignupForm;
-

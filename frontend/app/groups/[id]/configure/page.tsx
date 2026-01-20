@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams, useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -13,11 +13,16 @@ import {
   Settings,
   TrendingUp,
   BarChart3,
+  MoreHorizontal,
 } from "lucide-react";
 import Footer from "../../../components/Footer";
 import Sidebar from "../../../components/Sidebar";
 
 import { ThemeToggle } from "../../../components/ThemeToggle";
+import { groupsApi, uploadApi } from "@/lib/api";
+import ConfirmModal from "@/components/modals/ConfirmModal";
+import SuccessModal from "@/components/modals/SuccessModal";
+import { Loader2 } from "lucide-react";
 
 // Toggle Switch Component
 const ToggleSwitch = ({
@@ -45,9 +50,27 @@ const ToggleSwitch = ({
 
 const ConfigureGroupPage = () => {
   const searchParams = useSearchParams();
+  const params = useParams();
+  const router = useRouter();
+  const groupId = params.id as string;
+
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Loading states
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  // Group data
+  const [groupData, setGroupData] = useState<any>(null);
+
+  // Modal states
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState({
+    title: "",
+    message: "",
+  });
 
   // Settings states
   const [manualApproval, setManualApproval] = useState(false);
@@ -57,6 +80,24 @@ const ConfigureGroupPage = () => {
   const [accountAge, setAccountAge] = useState<
     "none" | "1day" | "3days" | "7days" | "30days" | "90days"
   >("none");
+
+  // Social Links states
+  const [discord, setDiscord] = useState("");
+  const [twitter, setTwitter] = useState("");
+  const [youtube, setYoutube] = useState("");
+  const [twitch, setTwitch] = useState("");
+  const [facebook, setFacebook] = useState("");
+  const [instagram, setInstagram] = useState("");
+  const [tiktok, setTiktok] = useState("");
+  const [website, setWebsite] = useState("");
+
+  // Members states
+  const [membersTab, setMembersTab] = useState<"members" | "requests">("members");
+  const [memberSearch, setMemberSearch] = useState("");
+  const [memberRoleFilter, setMemberRoleFilter] = useState("All");
+  const [members, setMembers] = useState<any[]>([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+  const [openMemberMenu, setOpenMemberMenu] = useState<string | null>(null);
 
   // Roles states
   const [selectedRole, setSelectedRole] = useState<string | null>("Owner");
@@ -99,11 +140,15 @@ const ConfigureGroupPage = () => {
   };
 
   const [activeSection, setActiveSection] = useState(getInitialSection);
-  const [groupName, setGroupName] = useState("Spiked Clothing");
-  const [groupDescription, setGroupDescription] = useState(
-    "A group of friends that play games together for fun.",
-  );
+  const [groupName, setGroupName] = useState("");
+  const [groupDescription, setGroupDescription] = useState("");
+  const [iconUrl, setIconUrl] = useState("");
+  const [coverPhotoUrl, setCoverPhotoUrl] = useState("");
+  const [joinSetting, setJoinSetting] = useState("open");
   const [emblemPreview, setEmblemPreview] = useState<string | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [uploadingIcon, setUploadingIcon] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
   const [shoutTitle, setShoutTitle] = useState("");
   const [shoutContent, setShoutContent] = useState("");
 
@@ -137,14 +182,285 @@ const ConfigureGroupPage = () => {
     [],
   );
 
-  const handleEmblemUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Fetch group data
+  useEffect(() => {
+    const fetchGroupData = async () => {
+      if (!groupId) return;
+      setLoading(true);
+      try {
+        const response = await groupsApi.getGroupById(groupId);
+        if (response.success && response.data) {
+          const group = response.data.group as any;
+          setGroupData(group);
+          setGroupName(group.name || "");
+          setGroupDescription(group.description || "");
+          setIconUrl(group.icon_url || "");
+          setCoverPhotoUrl(group.cover_photo_url || "");
+          setJoinSetting(group.join_setting || "open");
+          setEmblemPreview(group.icon_url || null);
+          setCoverPreview(group.cover_photo_url || null);
+        }
+
+        // Fetch group settings
+        const settingsResponse = await groupsApi.getGroupSettings(groupId);
+        if (settingsResponse.success && settingsResponse.data) {
+          const settings = settingsResponse.data.settings as any;
+          setManualApproval(settings.manual_approval || false);
+          setVerificationLevel(settings.verification_level || "none");
+          setAccountAge(settings.account_age_requirement || "none");
+        }
+
+        // Fetch social links
+        const socialResponse = await groupsApi.getGroupSocialLinks(groupId);
+        if (socialResponse.success && socialResponse.data) {
+          const links = socialResponse.data.socialLinks as any;
+          setDiscord(links.discord || "");
+          setTwitter(links.twitter || "");
+          setYoutube(links.youtube || "");
+          setTwitch(links.twitch || "");
+          setFacebook(links.facebook || "");
+          setInstagram(links.instagram || "");
+          setTiktok(links.tiktok || "");
+          setWebsite(links.website || "");
+        }
+
+        // Fetch members
+        const membersResponse = await groupsApi.getGroupMembers(groupId);
+        if (membersResponse.success && membersResponse.data) {
+          setMembers((membersResponse.data.members as any[]) || []);
+        }
+      } catch (error) {
+        console.error("Error fetching group data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGroupData();
+  }, [groupId]);
+
+  // Check if user is owner
+  const isOwner = groupData?.role === "Owner";
+
+  const handleEmblemUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setEmblemPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    // Show preview immediately
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setEmblemPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    // Upload to server
+    setUploadingIcon(true);
+    try {
+      const response = await uploadApi.uploadImage(file, "group-images");
+      if (response.success && response.data) {
+        setIconUrl(response.data.url as string);
+        setSuccessMessage({
+          title: "Success",
+          message: "Icon uploaded successfully! Don't forget to save changes.",
+        });
+        setShowSuccessModal(true);
+      } else {
+        setSuccessMessage({
+          title: "Error",
+          message: response.error || "Failed to upload icon",
+        });
+        setShowSuccessModal(true);
+      }
+    } catch (error) {
+      console.error("Error uploading icon:", error);
+      setSuccessMessage({
+        title: "Error",
+        message: "An error occurred while uploading icon",
+      });
+      setShowSuccessModal(true);
+    } finally {
+      setUploadingIcon(false);
+    }
+  };
+
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Show preview immediately
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setCoverPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    // Upload to server
+    setUploadingCover(true);
+    try {
+      const response = await uploadApi.uploadImage(file, "group-images");
+      if (response.success && response.data) {
+        setCoverPhotoUrl(response.data.url as string);
+        setSuccessMessage({
+          title: "Success",
+          message:
+            "Cover photo uploaded successfully! Don't forget to save changes.",
+        });
+        setShowSuccessModal(true);
+      } else {
+        setSuccessMessage({
+          title: "Error",
+          message: response.error || "Failed to upload cover photo",
+        });
+        setShowSuccessModal(true);
+      }
+    } catch (error) {
+      console.error("Error uploading cover photo:", error);
+      setSuccessMessage({
+        title: "Error",
+        message: "An error occurred while uploading cover photo",
+      });
+      setShowSuccessModal(true);
+    } finally {
+      setUploadingCover(false);
+    }
+  };
+
+  const handleSaveInformation = async () => {
+    if (!groupId) return;
+
+    if (!groupName.trim()) {
+      setSuccessMessage({
+        title: "Error",
+        message: "Group name is required",
+      });
+      setShowSuccessModal(true);
+      return;
+    }
+
+    if (!iconUrl) {
+      setSuccessMessage({
+        title: "Error",
+        message: "Group icon is required",
+      });
+      setShowSuccessModal(true);
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const response = await groupsApi.updateGroup(groupId, {
+        name: groupName,
+        description: groupDescription,
+        iconUrl: iconUrl,
+        coverPhotoUrl: coverPhotoUrl || undefined,
+        joinSetting: joinSetting,
+      });
+
+      if (response.success) {
+        setSuccessMessage({
+          title: "Success",
+          message: "Group information updated successfully!",
+        });
+        setShowSuccessModal(true);
+        // Refresh group data
+        const groupResponse = await groupsApi.getGroupById(groupId);
+        if (groupResponse.success && groupResponse.data) {
+          const group = groupResponse.data.group as any;
+          setGroupData(group);
+        }
+      } else {
+        setSuccessMessage({
+          title: "Error",
+          message: response.error || "Failed to update group information",
+        });
+        setShowSuccessModal(true);
+      }
+    } catch (error) {
+      console.error("Error updating group:", error);
+      setSuccessMessage({
+        title: "Error",
+        message: "An error occurred while updating group information",
+      });
+      setShowSuccessModal(true);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveSettings = async () => {
+    if (!groupId) return;
+
+    setSaving(true);
+    try {
+      const response = await groupsApi.updateGroupSettings(groupId, {
+        manualApproval,
+        verificationLevel,
+        accountAgeRequirement: accountAge,
+      });
+
+      if (response.success) {
+        setSuccessMessage({
+          title: "Success",
+          message: "Group settings updated successfully!",
+        });
+        setShowSuccessModal(true);
+      } else {
+        setSuccessMessage({
+          title: "Error",
+          message: response.error || "Failed to update group settings",
+        });
+        setShowSuccessModal(true);
+      }
+    } catch (error) {
+      console.error("Error updating settings:", error);
+      setSuccessMessage({
+        title: "Error",
+        message: "An error occurred while updating settings",
+      });
+      setShowSuccessModal(true);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveSocialLinks = async () => {
+    if (!groupId) return;
+
+    setSaving(true);
+    try {
+      const response = await groupsApi.updateGroupSocialLinks(groupId, {
+        discord,
+        twitter,
+        youtube,
+        twitch,
+        facebook,
+        instagram,
+        tiktok,
+        website,
+      });
+
+      if (response.success) {
+        setSuccessMessage({
+          title: "Success",
+          message: "Social links updated successfully!",
+        });
+        setShowSuccessModal(true);
+      } else {
+        setSuccessMessage({
+          title: "Error",
+          message: response.error || "Failed to update social links",
+        });
+        setShowSuccessModal(true);
+      }
+    } catch (error) {
+      console.error("Error updating social links:", error);
+      setSuccessMessage({
+        title: "Error",
+        message: "An error occurred while updating social links",
+      });
+      setShowSuccessModal(true);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -336,7 +652,7 @@ const ConfigureGroupPage = () => {
                 By Modern_Chris · Group Funds: ◈ 0
               </p>
             </div>
-            <Link href="/groups/8">
+            <Link href={`/groups/${groupId}`}>
               <button className="px-4 py-2 text-sm bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
                 Back to Group →
               </button>
@@ -369,184 +685,223 @@ const ConfigureGroupPage = () => {
               </div>
             </div>
 
-            {/* Right Content Area */}
+            {/* Main Content Area */}
             <div className="flex-1">
               <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
-                {activeSection === "Information" && (
-                  <div className="space-y-8">
-                    {/* Group Name */}
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                        Name
-                      </label>
-                      <input
-                        type="text"
-                        value={groupName}
-                        onChange={(e) =>
-                          setGroupName(e.target.value.slice(0, 50))
-                        }
-                        maxLength={50}
-                        className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Name your group"
-                      />
-                      <div className="text-right text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        {groupName.length} / 50
-                      </div>
-                    </div>
-
-                    {/* Description */}
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                        Description
-                      </label>
-                      <textarea
-                        value={groupDescription}
-                        onChange={(e) =>
-                          setGroupDescription(e.target.value.slice(0, 1000))
-                        }
-                        rows={6}
-                        className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                        placeholder="Describe your group"
-                      />
-                      <div className="text-right text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        {groupDescription.length} / 1000
-                      </div>
-                    </div>
-
-                    {/* Emblem */}
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                        Emblem
-                      </label>
-                      <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-8">
-                        <div className="flex items-start gap-6">
-                          {/* Preview */}
-                          <div className="flex-shrink-0">
-                            <div className="w-48 h-48 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden flex items-center justify-center border border-gray-200 dark:border-gray-700">
-                              {emblemPreview ? (
-                                <Image
-                                  src={emblemPreview}
-                                  alt="Preview"
-                                  fill
-                                  className="object-cover"
-                                />
-                              ) : (
-                                <div className="w-32 h-32 bg-gradient-to-br from-purple-400 via-blue-400 to-blue-600 rounded-lg"></div>
-                              )}
-                            </div>
-                            {emblemPreview && (
-                              <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 text-center">
-                                group emblem.jpg
-                              </p>
-                            )}
-                          </div>
-
-                          {/* Upload area */}
-                          <div className="flex-1 text-center">
-                            <p className="text-gray-700 dark:text-gray-300 mb-2">
-                              Drag a file here
-                            </p>
-                            <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">
-                              - Or -
-                            </p>
-                            <label className="inline-block">
-                              <input
-                                type="file"
-                                accept="image/*"
-                                onChange={handleEmblemUpload}
-                                className="hidden"
-                              />
-                              <span className="px-6 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 rounded-lg cursor-pointer inline-block text-sm font-medium">
-                                Select an image from your computer
-                              </span>
-                            </label>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Cover Photo */}
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                        Cover Photo
-                      </label>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                        Cover photo must be one of the available dimensions:
-                        720x228, 1440x456
-                      </p>
-                      <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-8">
-                        <div className="flex items-start gap-6">
-                          {/* Preview */}
-                          <div className="flex-shrink-0">
-                            <div className="w-48 h-32 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden flex items-center justify-center border border-gray-200 dark:border-gray-700 relative">
-                              {emblemPreview ? (
-                                <Image
-                                  src={emblemPreview}
-                                  alt="Cover photo preview"
-                                  fill
-                                  className="object-cover"
-                                />
-                              ) : (
-                                <span className="text-gray-400 text-sm">
-                                  Preview
-                                </span>
-                              )}
-                            </div>
-                            {emblemPreview && (
-                              <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 text-center">
-                                group cover.jpg
-                              </p>
-                            )}
-                          </div>
-
-                          {/* Upload area */}
-                          <div className="flex-1 text-center">
-                            <p className="text-gray-700 dark:text-gray-300 mb-2">
-                              Drag a file here
-                            </p>
-                            <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">
-                              - Or -
-                            </p>
-                            <label className="inline-block">
-                              <input
-                                type="file"
-                                accept="image/*"
-                                onChange={handleEmblemUpload}
-                                className="hidden"
-                              />
-                              <span className="px-6 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 rounded-lg cursor-pointer inline-block text-sm font-medium">
-                                Select an image from your computer
-                              </span>
-                            </label>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Join Settings */}
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                        Who can join this group?
-                      </label>
-                      <select className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="anyone">Anyone can join</option>
-                        <option value="approval">Manual Approval</option>
-                        <option value="closed">No one can join</option>
-                      </select>
-                    </div>
-
-                    {/* Save Button */}
-                    <div className="flex gap-3 pt-4">
-                      <button className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors">
-                        Save Changes
-                      </button>
-                      <Link href={`/groups/${8}`}>
-                        <button className="px-6 py-2.5 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg text-sm font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
-                          Cancel
-                        </button>
-                      </Link>
-                    </div>
+                {loading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
                   </div>
+                ) : !isOwner ? (
+                  <div className="text-center py-12">
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                      Access Denied
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400 mb-4">
+                      Only the group owner can configure group settings.
+                    </p>
+                    <Link href={`/groups/${groupId}`}>
+                      <button className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">
+                        Back to Group
+                      </button>
+                    </Link>
+                  </div>
+                ) : (
+                  activeSection === "Information" && (
+                    <div className="space-y-8">
+                      {/* Group Name */}
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                          Name
+                        </label>
+                        <input
+                          type="text"
+                          value={groupName}
+                          onChange={(e) =>
+                            setGroupName(e.target.value.slice(0, 50))
+                          }
+                          maxLength={50}
+                          className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Name your group"
+                        />
+                        <div className="text-right text-sm text-gray-600 dark:text-gray-400 mt-1">
+                          {groupName.length} / 50
+                        </div>
+                      </div>
+
+                      {/* Description */}
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                          Description
+                        </label>
+                        <textarea
+                          value={groupDescription}
+                          onChange={(e) =>
+                            setGroupDescription(e.target.value.slice(0, 1000))
+                          }
+                          rows={6}
+                          className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                          placeholder="Describe your group"
+                        />
+                        <div className="text-right text-sm text-gray-600 dark:text-gray-400 mt-1">
+                          {groupDescription.length} / 1000
+                        </div>
+                      </div>
+
+                      {/* Emblem */}
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                          Emblem
+                        </label>
+                        <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-8">
+                          <div className="flex items-start gap-6">
+                            {/* Preview */}
+                            <div className="flex-shrink-0">
+                              <div className="w-48 h-48 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden flex items-center justify-center border border-gray-200 dark:border-gray-700">
+                                {uploadingIcon ? (
+                                  <Loader2 className="w-12 h-12 animate-spin text-blue-500" />
+                                ) : emblemPreview ? (
+                                  <Image
+                                    src={emblemPreview}
+                                    alt="Preview"
+                                    width={192}
+                                    height={192}
+                                    className="object-cover w-full h-full"
+                                  />
+                                ) : (
+                                  <div className="w-32 h-32 bg-gradient-to-br from-purple-400 via-blue-400 to-blue-600 rounded-lg"></div>
+                                )}
+                              </div>
+                              {emblemPreview && (
+                                <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 text-center">
+                                  group emblem.jpg
+                                </p>
+                              )}
+                            </div>
+
+                            {/* Upload area */}
+                            <div className="flex-1 text-center">
+                              <p className="text-gray-700 dark:text-gray-300 mb-2">
+                                Drag a file here
+                              </p>
+                              <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">
+                                - Or -
+                              </p>
+                              <label className="inline-block">
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={handleEmblemUpload}
+                                  className="hidden"
+                                  disabled={uploadingIcon}
+                                />
+                                <span className="px-6 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 rounded-lg cursor-pointer inline-block text-sm font-medium">
+                                  Select an image from your computer
+                                </span>
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Cover Photo */}
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                          Cover Photo
+                        </label>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                          Cover photo must be one of the available dimensions:
+                          720x228, 1440x456
+                        </p>
+                        <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-8">
+                          <div className="flex items-start gap-6">
+                            {/* Preview */}
+                            <div className="flex-shrink-0">
+                              <div className="w-48 h-32 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden flex items-center justify-center border border-gray-200 dark:border-gray-700 relative">
+                                {uploadingCover ? (
+                                  <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                                ) : coverPreview ? (
+                                  <Image
+                                    src={coverPreview}
+                                    alt="Cover photo preview"
+                                    width={192}
+                                    height={128}
+                                    className="object-cover w-full h-full"
+                                  />
+                                ) : (
+                                  <span className="text-gray-400 text-sm">
+                                    Preview
+                                  </span>
+                                )}
+                              </div>
+                              {emblemPreview && (
+                                <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 text-center">
+                                  group cover.jpg
+                                </p>
+                              )}
+                            </div>
+
+                            {/* Upload area */}
+                            <div className="flex-1 text-center">
+                              <p className="text-gray-700 dark:text-gray-300 mb-2">
+                                Drag a file here
+                              </p>
+                              <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">
+                                - Or -
+                              </p>
+                              <label className="inline-block">
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={handleCoverUpload}
+                                  className="hidden"
+                                  disabled={uploadingCover}
+                                />
+                                <span className="px-6 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 rounded-lg cursor-pointer inline-block text-sm font-medium">
+                                  Select an image from your computer
+                                </span>
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Join Settings */}
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                          Who can join this group?
+                        </label>
+                        <select
+                          value={joinSetting}
+                          onChange={(e) => setJoinSetting(e.target.value)}
+                          className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="open">Anyone can join</option>
+                          <option value="approval">Manual Approval</option>
+                          <option value="closed">No one can join</option>
+                        </select>
+                      </div>
+
+                      {/* Save Button */}
+                      <div className="flex gap-3 pt-4">
+                        <button
+                          onClick={handleSaveInformation}
+                          disabled={saving || uploadingIcon || uploadingCover}
+                          className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        >
+                          {saving && (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          )}
+                          {saving ? "Saving..." : "Save Changes"}
+                        </button>
+                        <Link href={`/groups/${groupId}`}>
+                          <button className="px-6 py-2.5 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg text-sm font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                            Cancel
+                          </button>
+                        </Link>
+                      </div>
+                    </div>
+                  )
                 )}
 
                 {activeSection === "Settings" && (
@@ -746,8 +1101,12 @@ const ConfigureGroupPage = () => {
                       </div>
                     </div>
 
-                    <button className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium">
-                      Save Settings
+                    <button 
+                      onClick={handleSaveSettings}
+                      disabled={saving}
+                      className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {saving ? "Saving..." : "Save Settings"}
                     </button>
                   </div>
                 )}
@@ -764,6 +1123,8 @@ const ConfigureGroupPage = () => {
                       </label>
                       <input
                         type="text"
+                        value={discord}
+                        onChange={(e) => setDiscord(e.target.value)}
                         placeholder="https://discord.gg/..."
                         className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       />
@@ -775,6 +1136,8 @@ const ConfigureGroupPage = () => {
                       </label>
                       <input
                         type="text"
+                        value={twitter}
+                        onChange={(e) => setTwitter(e.target.value)}
                         placeholder="https://twitter.com/..."
                         className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       />
@@ -786,6 +1149,8 @@ const ConfigureGroupPage = () => {
                       </label>
                       <input
                         type="text"
+                        value={youtube}
+                        onChange={(e) => setYoutube(e.target.value)}
                         placeholder="https://youtube.com/..."
                         className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       />
@@ -797,13 +1162,72 @@ const ConfigureGroupPage = () => {
                       </label>
                       <input
                         type="text"
+                        value={twitch}
+                        onChange={(e) => setTwitch(e.target.value)}
                         placeholder="https://twitch.tv/..."
                         className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       />
                     </div>
 
-                    <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
-                      Save Social Links
+                    <div>
+                      <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                        Facebook
+                      </label>
+                      <input
+                        type="text"
+                        value={facebook}
+                        onChange={(e) => setFacebook(e.target.value)}
+                        placeholder="https://facebook.com/..."
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                        Instagram
+                      </label>
+                      <input
+                        type="text"
+                        value={instagram}
+                        onChange={(e) => setInstagram(e.target.value)}
+                        placeholder="https://instagram.com/..."
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                        TikTok
+                      </label>
+                      <input
+                        type="text"
+                        value={tiktok}
+                        onChange={(e) => setTiktok(e.target.value)}
+                        placeholder="https://tiktok.com/@..."
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                        Website
+                      </label>
+                      <input
+                        type="text"
+                        value={website}
+                        onChange={(e) => setWebsite(e.target.value)}
+                        placeholder="https://yourwebsite.com"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      />
+                    </div>
+
+                    <button 
+                      onClick={handleSaveSocialLinks}
+                      disabled={saving}
+                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                      {saving ? "Saving..." : "Save Social Links"}
                     </button>
                   </div>
                 )}
@@ -880,53 +1304,240 @@ const ConfigureGroupPage = () => {
 
                 {activeSection === "Members" && (
                   <div className="space-y-6">
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                      Manage Members
-                    </h2>
-
-                    <div className="flex gap-3">
-                      <input
-                        type="text"
-                        placeholder="Search members..."
-                        className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                      />
-                      <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
-                        Search
+                    {/* Tabs */}
+                    <div className="flex border-b border-gray-300 dark:border-gray-600">
+                      <button
+                        onClick={() => setMembersTab("members")}
+                        className={`px-6 py-3 text-sm font-semibold transition-colors relative ${
+                          membersTab === "members"
+                            ? "text-gray-900 dark:text-gray-100"
+                            : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                        }`}
+                      >
+                        Members
+                        {membersTab === "members" && (
+                          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></div>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => setMembersTab("requests")}
+                        className={`px-6 py-3 text-sm font-semibold transition-colors relative ${
+                          membersTab === "requests"
+                            ? "text-gray-900 dark:text-gray-100"
+                            : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                        }`}
+                      >
+                        Requests
+                        {membersTab === "requests" && (
+                          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></div>
+                        )}
                       </button>
                     </div>
 
-                    <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
-                      <table className="w-full">
-                        <thead className="bg-gray-100 dark:bg-gray-700">
-                          <tr>
-                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">
-                              Member
-                            </th>
-                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">
-                              Rank
-                            </th>
-                            <th className="px-4 py-3 text-right text-sm font-semibold text-gray-900 dark:text-gray-100">
-                              Actions
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr className="border-t border-gray-200 dark:border-gray-700">
-                            <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                              L_Kryptex
-                            </td>
-                            <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
-                              Owner
-                            </td>
-                            <td className="px-4 py-3 text-right">
-                              <button className="text-sm text-blue-600 dark:text-blue-400 hover:underline">
-                                Manage
-                              </button>
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
+                    {/* Members Tab */}
+                    {membersTab === "members" && (
+                      <div className="space-y-4">
+                        {/* Search and Filter */}
+                        <div className="flex gap-3">
+                          <div className="flex-1 relative">
+                            <input
+                              type="text"
+                              value={memberSearch}
+                              onChange={(e) => setMemberSearch(e.target.value)}
+                              placeholder="Search Members"
+                              className="w-full px-4 py-2 pl-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
+                          </div>
+                          <select
+                            value={memberRoleFilter}
+                            onChange={(e) => setMemberRoleFilter(e.target.value)}
+                            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value="All">All</option>
+                            <option value="Owner">Owner</option>
+                            <option value="Admin">Admin</option>
+                            <option value="Member">Member</option>
+                          </select>
+                        </div>
+
+                        {/* Members Grid */}
+                        {loadingMembers ? (
+                          <div className="flex items-center justify-center py-12">
+                            <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                          </div>
+                        ) : members.length === 0 ? (
+                          <div className="text-center py-12">
+                            <p className="text-gray-600 dark:text-gray-400">No members found</p>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {members
+                              .filter((member) => {
+                                const matchesSearch = member.username
+                                  ?.toLowerCase()
+                                  .includes(memberSearch.toLowerCase());
+                                const matchesRole =
+                                  memberRoleFilter === "All" ||
+                                  member.role === memberRoleFilter;
+                                return matchesSearch && matchesRole;
+                              })
+                              .map((member) => (
+                                <div
+                                  key={member.user_id}
+                                  className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4"
+                                >
+                                  {/* Member Header */}
+                                  <div className="flex items-start gap-3 mb-3">
+                                    <div className="w-12 h-12 rounded-full bg-gray-300 dark:bg-gray-600 flex-shrink-0 overflow-hidden relative">
+                                      <Image
+                                        src={`https://robohash.org/${member.username}?set=set3`}
+                                        alt={member.username}
+                                        fill
+                                        className="object-cover"
+                                        sizes="48px"
+                                      />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                                        {member.username}
+                                      </h3>
+                                    </div>
+                                    {/* Three-dot menu */}
+                                    <div className="relative">
+                                      <button
+                                        onClick={() =>
+                                          setOpenMemberMenu(
+                                            openMemberMenu === member.user_id
+                                              ? null
+                                              : member.user_id
+                                          )
+                                        }
+                                        className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
+                                      >
+                                        <MoreHorizontal className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                                      </button>
+
+                                      {openMemberMenu === member.user_id && (
+                                        <>
+                                          <div
+                                            className="fixed inset-0 z-10"
+                                            onClick={() => setOpenMemberMenu(null)}
+                                          />
+                                          <div className="absolute right-0 top-full mt-1 w-32 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-lg z-20 py-1">
+                                            <button
+                                              onClick={async () => {
+                                                setOpenMemberMenu(null);
+                                                if (
+                                                  confirm(
+                                                    `Kick ${member.username} from the group?`
+                                                  )
+                                                ) {
+                                                  const response =
+                                                    await groupsApi.removeMember(
+                                                      groupId,
+                                                      member.user_id
+                                                    );
+                                                  if (response.success) {
+                                                    setMembers(
+                                                      members.filter(
+                                                        (m) =>
+                                                          m.user_id !== member.user_id
+                                                      )
+                                                    );
+                                                    setSuccessMessage({
+                                                      title: "Success",
+                                                      message: "Member removed successfully",
+                                                    });
+                                                    setShowSuccessModal(true);
+                                                  } else {
+                                                    setSuccessMessage({
+                                                      title: "Error",
+                                                      message:
+                                                        response.error ||
+                                                        "Failed to remove member",
+                                                    });
+                                                    setShowSuccessModal(true);
+                                                  }
+                                                }
+                                              }}
+                                              className="w-full px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                            >
+                                              Kick
+                                            </button>
+                                            <button
+                                              onClick={() => {
+                                                setOpenMemberMenu(null);
+                                                alert("Ban functionality coming soon");
+                                              }}
+                                              className="w-full px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                            >
+                                              Ban
+                                            </button>
+                                          </div>
+                                        </>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Role Dropdown */}
+                                  <select
+                                    value={member.role_id || ""}
+                                    onChange={async (e) => {
+                                      const newRoleId = e.target.value || null;
+                                      const response = await groupsApi.updateMemberRole(
+                                        groupId,
+                                        member.user_id,
+                                        newRoleId
+                                      );
+                                      if (response.success) {
+                                        setMembers(
+                                          members.map((m) =>
+                                            m.user_id === member.user_id
+                                              ? { ...m, role_id: newRoleId }
+                                              : m
+                                          )
+                                        );
+                                        setSuccessMessage({
+                                          title: "Success",
+                                          message: "Member role updated successfully",
+                                        });
+                                        setShowSuccessModal(true);
+                                      } else {
+                                        setSuccessMessage({
+                                          title: "Error",
+                                          message:
+                                            response.error || "Failed to update role",
+                                        });
+                                        setShowSuccessModal(true);
+                                      }
+                                    }}
+                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  >
+                                    <option value="">Member</option>
+                                    <option value="admin">Admin</option>
+                                    <option value="moderator">Moderator</option>
+                                  </select>
+                                </div>
+                              ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Requests Tab */}
+                    {membersTab === "requests" && (
+                      <div className="space-y-4">
+                        <div className="text-center py-12">
+                          <p className="text-gray-600 dark:text-gray-400">
+                            No pending requests
+                          </p>
+                          <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
+                            Join requests will appear here when manual approval is enabled
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1946,6 +2557,16 @@ const ConfigureGroupPage = () => {
 
       {/* Sidebar Overlay */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+      {/* Modals */}
+      <SuccessModal
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        title={successMessage.title}
+        message={successMessage.message}
+        autoClose={true}
+        autoCloseDelay={2000}
+      />
     </div>
   );
 };

@@ -1,13 +1,14 @@
 // API Configuration
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
 // API Response types
-interface ApiResponse<T = any> {
+interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   message?: string;
   error?: string;
-  errors?: any[];
+  errors?: Array<{ msg?: string; message?: string }>;
 }
 
 // Auth types
@@ -29,6 +30,7 @@ interface AuthResponse {
   user: {
     id: string;
     username: string;
+    displayName: string;
     isVerified: boolean;
     createdAt: string;
   };
@@ -39,13 +41,13 @@ interface AuthResponse {
 // Helper function to handle API calls
 async function apiCall<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
 ): Promise<ApiResponse<T>> {
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         ...options.headers,
       },
     });
@@ -53,10 +55,10 @@ async function apiCall<T>(
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error('API call error:', error);
+    console.error("API call error:", error);
     return {
       success: false,
-      error: 'Network error. Please try again.',
+      error: "Network error. Please try again.",
     };
   }
 }
@@ -64,90 +66,814 @@ async function apiCall<T>(
 // Auth API
 export const authApi = {
   signup: async (data: SignupData): Promise<ApiResponse<AuthResponse>> => {
-    return apiCall<AuthResponse>('/auth/signup', {
-      method: 'POST',
+    return apiCall<AuthResponse>("/auth/signup", {
+      method: "POST",
       body: JSON.stringify(data),
     });
   },
 
   login: async (data: LoginData): Promise<ApiResponse<AuthResponse>> => {
-    return apiCall<AuthResponse>('/auth/login', {
-      method: 'POST',
+    return apiCall<AuthResponse>("/auth/login", {
+      method: "POST",
       body: JSON.stringify(data),
     });
   },
 
   logout: async (token: string): Promise<ApiResponse> => {
-    return apiCall('/auth/logout', {
-      method: 'POST',
+    return apiCall("/auth/logout", {
+      method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
   },
 
-  refreshToken: async (refreshToken: string): Promise<ApiResponse<AuthResponse>> => {
-    return apiCall<AuthResponse>('/auth/refresh', {
-      method: 'POST',
+  refreshToken: async (
+    refreshToken: string,
+  ): Promise<ApiResponse<AuthResponse>> => {
+    return apiCall<AuthResponse>("/auth/refresh", {
+      method: "POST",
       body: JSON.stringify({ refreshToken }),
     });
   },
 
   verifyEmail: async (token: string): Promise<ApiResponse> => {
     return apiCall(`/auth/verify-email/${token}`, {
-      method: 'GET',
+      method: "GET",
     });
   },
 };
 
-// Storage helpers for tokens
+// Users API
+export const usersApi = {
+  // Get current user's profile from database
+  getCurrentUser: async (): Promise<ApiResponse<{ user: unknown }>> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall("/users/profile", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  // Get user profile by username
+  getUserByUsername: async (
+    username: string,
+  ): Promise<ApiResponse<unknown>> => {
+    return apiCall(`/users/${username}`, {
+      method: "GET",
+    });
+  },
+
+  // Update profile (displayName, bio, status)
+  updateProfile: async (data: {
+    displayName?: string;
+    bio?: string;
+    status?: string;
+  }): Promise<ApiResponse<unknown>> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall("/users/profile", {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Update profile settings (privacy)
+  updateProfileSettings: async (data: {
+    profileVisibility?: string;
+    canReceiveFriendRequests?: string;
+    canReceiveMessages?: string;
+    showOnlineStatus?: boolean;
+    showLastSeen?: boolean;
+    profileTheme?: string;
+  }): Promise<ApiResponse<unknown>> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall("/users/profile/settings", {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+  },
+};
+
+// Accounts API
+export const accountsApi = {
+  // Get all accounts for current user
+  getAccounts: async (): Promise<ApiResponse<{ accounts: unknown[] }>> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall("/accounts", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  // Add a new account
+  addAccount: async (
+    accountUserId: string,
+    accessToken: string,
+    refreshToken: string,
+  ): Promise<ApiResponse<unknown>> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall("/accounts/add", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        accountUserId,
+        accessToken,
+        refreshToken,
+      }),
+    });
+  },
+
+  // Switch to a different account
+  switchAccount: async (accountId: string): Promise<ApiResponse<unknown>> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall(`/accounts/switch/${accountId}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  // Remove an account
+  removeAccount: async (accountId: string): Promise<ApiResponse<unknown>> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall(`/accounts/${accountId}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  // Get active account
+  getActiveAccount: async (): Promise<ApiResponse<{ account: unknown }>> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall("/accounts/active", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+};
+
+// Groups API
+export const groupsApi = {
+  // Create a new group
+  createGroup: async (data: {
+    name: string;
+    description?: string;
+    iconUrl: string;
+    coverPhotoUrl?: string;
+    joinSetting?: string;
+  }): Promise<ApiResponse<{ group: unknown }>> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall("/groups", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Get all groups
+  getAllGroups: async (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  }): Promise<ApiResponse<{ groups: unknown[]; pagination: unknown }>> => {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append("page", params.page.toString());
+    if (params?.limit) queryParams.append("limit", params.limit.toString());
+    if (params?.search) queryParams.append("search", params.search);
+
+    return apiCall(`/groups?${queryParams.toString()}`, {
+      method: "GET",
+    });
+  },
+
+  // Get group by ID
+  getGroupById: async (
+    id: string,
+  ): Promise<ApiResponse<{ group: unknown }>> => {
+    const token = storage.getAccessToken();
+    const headers: Record<string, string> = {};
+
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    return apiCall(`/groups/${id}`, {
+      method: "GET",
+      headers: headers,
+    });
+  },
+
+  // Update group
+  updateGroup: async (
+    id: string,
+    data: {
+      name?: string;
+      description?: string;
+      iconUrl?: string;
+      coverPhotoUrl?: string;
+      joinSetting?: string;
+    },
+  ): Promise<ApiResponse<{ group: unknown }>> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall(`/groups/${id}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Delete group
+  deleteGroup: async (id: string): Promise<ApiResponse> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall(`/groups/${id}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  // Join a group
+  joinGroup: async (id: string): Promise<ApiResponse> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall(`/groups/${id}/join`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  // Leave a group
+  leaveGroup: async (id: string): Promise<ApiResponse> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall(`/groups/${id}/leave`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  // Get group members
+  getGroupMembers: async (
+    id: string,
+  ): Promise<ApiResponse<{ members: unknown[] }>> => {
+    return apiCall(`/groups/${id}/members`, {
+      method: "GET",
+    });
+  },
+
+  // Get user's groups (current authenticated user)
+  getUserGroups: async (): Promise<ApiResponse<{ groups: unknown[] }>> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall(`/groups/user/me`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  // Get group games
+  getGroupGames: async (
+    id: string,
+  ): Promise<ApiResponse<{ games: unknown[] }>> => {
+    return apiCall(`/groups/${id}/games`, {
+      method: "GET",
+    });
+  },
+
+  // Get group wall posts
+  getGroupWallPosts: async (
+    id: string,
+    page?: number,
+    limit?: number,
+  ): Promise<ApiResponse<{ posts: unknown[]; pagination: unknown }>> => {
+    const queryParams = new URLSearchParams();
+    if (page) queryParams.append("page", page.toString());
+    if (limit) queryParams.append("limit", limit.toString());
+
+    return apiCall(`/groups/${id}/wall?${queryParams.toString()}`, {
+      method: "GET",
+    });
+  },
+
+  // Create group wall post
+  createGroupWallPost: async (
+    id: string,
+    content: string,
+  ): Promise<ApiResponse<{ post: unknown }>> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall(`/groups/${id}/wall`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ content }),
+    });
+  },
+
+  // Make group primary
+  makePrimaryGroup: async (id: string): Promise<ApiResponse> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall(`/groups/${id}/primary`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  // Remove member from group
+  removeMember: async (id: string, userId: string): Promise<ApiResponse> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall(`/groups/${id}/members/${userId}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  // Update member role
+  updateMemberRole: async (
+    id: string,
+    userId: string,
+    roleId: string | null,
+  ): Promise<ApiResponse> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall(`/groups/${id}/members/${userId}/role`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ roleId }),
+    });
+  },
+
+  // Report group
+  reportGroup: async (
+    id: string,
+    category: string,
+    description?: string,
+  ): Promise<ApiResponse> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall(`/groups/${id}/report`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ category, description }),
+    });
+  },
+
+  // Get group roles
+  getGroupRoles: async (
+    id: string,
+  ): Promise<ApiResponse<{ roles: unknown[] }>> => {
+    return apiCall(`/groups/${id}/roles`, {
+      method: "GET",
+    });
+  },
+
+  // Get group settings
+  getGroupSettings: async (
+    id: string,
+  ): Promise<ApiResponse<{ settings: unknown }>> => {
+    return apiCall(`/groups/${id}/settings`, {
+      method: "GET",
+    });
+  },
+
+  // Update group settings
+  updateGroupSettings: async (
+    id: string,
+    data: {
+      manualApproval?: boolean;
+      verificationLevel?: string;
+      accountAgeRequirement?: string;
+      wallEnabled?: boolean;
+      wallPostPermission?: string;
+    },
+  ): Promise<ApiResponse<{ settings: unknown }>> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall(`/groups/${id}/settings`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Get group social links
+  getGroupSocialLinks: async (
+    id: string,
+  ): Promise<ApiResponse<{ socialLinks: unknown }>> => {
+    return apiCall(`/groups/${id}/social-links`, {
+      method: "GET",
+    });
+  },
+
+  // Update group social links
+  updateGroupSocialLinks: async (
+    id: string,
+    data: {
+      discord?: string;
+      twitter?: string;
+      youtube?: string;
+      twitch?: string;
+      facebook?: string;
+      instagram?: string;
+      tiktok?: string;
+      website?: string;
+    },
+  ): Promise<ApiResponse<{ socialLinks: unknown }>> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall(`/groups/${id}/social-links`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Create group role
+  createGroupRole: async (
+    id: string,
+    data: {
+      name: string;
+      rank?: number;
+      canManageMembers?: boolean;
+      canManageRoles?: boolean;
+      canPostOnWall?: boolean;
+      canDeleteWallPosts?: boolean;
+      canPostShout?: boolean;
+      canManageStore?: boolean;
+      canManageGames?: boolean;
+      canViewAuditLogs?: boolean;
+      canManageAlliances?: boolean;
+    },
+  ): Promise<ApiResponse<{ role: unknown }>> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall(`/groups/${id}/roles`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Update group role
+  updateGroupRole: async (
+    id: string,
+    roleId: string,
+    data: {
+      name?: string;
+      rank?: number;
+      canManageMembers?: boolean;
+      canManageRoles?: boolean;
+      canPostOnWall?: boolean;
+      canDeleteWallPosts?: boolean;
+      canPostShout?: boolean;
+      canManageStore?: boolean;
+      canManageGames?: boolean;
+      canViewAuditLogs?: boolean;
+      canManageAlliances?: boolean;
+    },
+  ): Promise<ApiResponse<{ role: unknown }>> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall(`/groups/${id}/roles/${roleId}`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Delete group role
+  deleteGroupRole: async (id: string, roleId: string): Promise<ApiResponse> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall(`/groups/${id}/roles/${roleId}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+};
+
+// Upload API
+export const uploadApi = {
+  // Upload a single image
+  uploadImage: async (
+    file: File,
+    type: string,
+  ): Promise<
+    ApiResponse<{ url: string; filename: string; type: string; size: number }>
+  > => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("type", type);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/upload/image`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Upload error:", error);
+      return {
+        success: false,
+        error: "Network error. Please try again.",
+      };
+    }
+  },
+
+  // Upload multiple images
+  uploadMultipleImages: async (
+    files: File[],
+    type: string,
+  ): Promise<
+    ApiResponse<{
+      files: Array<{
+        url: string;
+        filename: string;
+        type: string;
+        size: number;
+      }>;
+    }>
+  > => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    const formData = new FormData();
+    files.forEach((file) => {
+      formData.append("files", file);
+    });
+    formData.append("type", type);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/upload/multiple`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Upload multiple error:", error);
+      return {
+        success: false,
+        error: "Network error. Please try again.",
+      };
+    }
+  },
+};
+
+// Storage helpers for tokens ONLY
+// User data should ALWAYS be fetched from API, never stored in localStorage
 export const storage = {
   setTokens: (accessToken: string, refreshToken: string) => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('accessToken', accessToken);
-      localStorage.setItem('refreshToken', refreshToken);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("refreshToken", refreshToken);
     }
   },
 
   getAccessToken: (): string | null => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('accessToken');
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("accessToken");
     }
     return null;
   },
 
   getRefreshToken: (): string | null => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('refreshToken');
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("refreshToken");
     }
     return null;
   },
 
   clearTokens: () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-    }
-  },
-
-  setUser: (user: any) => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('user', JSON.stringify(user));
-    }
-  },
-
-  getUser: (): any | null => {
-    if (typeof window !== 'undefined') {
-      const user = localStorage.getItem('user');
-      return user ? JSON.parse(user) : null;
-    }
-    return null;
-  },
-
-  clearUser: () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('user');
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
     }
   },
 };
-

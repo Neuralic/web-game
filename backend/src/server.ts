@@ -5,7 +5,12 @@ import morgan from "morgan";
 import dotenv from "dotenv";
 import { createServer } from "http";
 import { Server as SocketIOServer } from "socket.io";
+import { apiRateLimiter } from "./middleware/rateLimit.middleware";
 import authRoutes from "./modules/auth/auth.routes";
+import usersRoutes from "./modules/users/users.routes";
+import accountsRoutes from "./modules/accounts/accounts.routes";
+import groupsRoutes from "./modules/groups/groups.routes";
+import uploadRoutes from "./modules/upload/upload.routes";
 
 // Load environment variables
 dotenv.config();
@@ -37,9 +42,10 @@ app.use(
 app.use(morgan("dev")); // Logging
 app.use(express.json()); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
+app.use(apiRateLimiter); // Rate limiting
 
 // Health check route
-app.get("/health", (req: Request, res: Response) => {
+app.get("/health", (_req: Request, res: Response) => {
   res.status(200).json({
     success: true,
     message: "AdventureBlox API is running!",
@@ -49,7 +55,7 @@ app.get("/health", (req: Request, res: Response) => {
 });
 
 // API Routes
-app.get("/api/v1", (req: Request, res: Response) => {
+app.get("/api/v1", (_req: Request, res: Response) => {
   res.status(200).json({
     success: true,
     message: "Welcome to AdventureBlox API v1",
@@ -60,6 +66,18 @@ app.get("/api/v1", (req: Request, res: Response) => {
 
 // Auth routes
 app.use("/api/v1/auth", authRoutes);
+
+// Users routes
+app.use("/api/v1/users", usersRoutes);
+
+// Accounts routes
+app.use("/api/v1/accounts", accountsRoutes);
+
+// Groups routes
+app.use("/api/v1/groups", groupsRoutes);
+
+// Upload routes
+app.use("/api/v1/upload", uploadRoutes);
 
 // Socket.IO connection handling
 io.on("connection", (socket) => {
@@ -99,7 +117,7 @@ app.use((req: Request, res: Response) => {
 });
 
 // Global error handler
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   console.error("Error:", err);
   res.status(500).json({
     success: false,

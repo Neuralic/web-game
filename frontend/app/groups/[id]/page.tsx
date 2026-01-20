@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, Loader2 } from "lucide-react";
 import Footer from "../../components/Footer";
 import Sidebar from "../../components/Sidebar";
 import Header from "../../components/Header";
@@ -11,143 +12,162 @@ import GamesSection from "../../components/groups/GamesSection";
 import MembersSection from "../../components/groups/MembersSection";
 import SocialLinksSection from "../../components/groups/SocialLinksSection";
 import DescriptionSection from "../../components/groups/DescriptionSection";
+import ConfirmModal from "@/components/modals/ConfirmModal";
+import ReportModal from "@/components/modals/ReportModal";
+import SuccessModal from "@/components/modals/SuccessModal";
+import { groupsApi } from "@/lib/api";
+
+interface Group {
+  id: string;
+  name: string;
+  description?: string;
+  icon_url?: string;
+  cover_photo_url?: string;
+  owner_id: string;
+  member_count: number;
+  is_verified: boolean;
+  role?: string;
+  owner_username?: string;
+  owner_display_name?: string;
+  shout_text?: string;
+  shout_image_url?: string;
+  shout_posted_at?: string;
+  shout_posted_by?: string;
+  join_setting?: string;
+  created_at?: string;
+}
 
 const GroupDetailPage = () => {
+  const params = useParams();
+  const router = useRouter();
+  const groupId = params.id as string;
+
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [selectedGroup, setSelectedGroup] = useState(8);
   const [activeTab, setActiveTab] = useState("About");
   const [groupMenuOpen, setGroupMenuOpen] = useState(false);
   const [newPost, setNewPost] = useState("");
   const [shoutText, setShoutText] = useState("");
-  const [currentShout, setCurrentShout] = useState("");
   const [groupSearch, setGroupSearch] = useState("");
-  const [openPostMenu, setOpenPostMenu] = useState<number | null>(null);
+  const [openPostMenu, setOpenPostMenu] = useState<string | null>(null);
+  const [userGroups, setUserGroups] = useState<Group[]>([]);
+  const [currentGroupDetails, setCurrentGroupDetails] = useState<Group | null>(
+    null,
+  );
+  const [loading, setLoading] = useState(true);
+  const [wallPosts, setWallPosts] = useState<
+    Array<{
+      id: string;
+      content: string;
+      likes: number;
+      created_at: string;
+      author_id: string;
+      author_username: string;
+      author_display_name?: string;
+      author_is_verified: boolean;
+    }>
+  >([]);
+  const [loadingWallPosts, setLoadingWallPosts] = useState(true);
+  const [postingWall, setPostingWall] = useState(false);
 
-  // Mock user's groups with full details
-  const userGroups = [
-    {
-      id: 1,
-      name: "[QA] Qant...",
-      fullName: "QA Quantum Gaming",
-      avatar: "https://robohash.org/qant?set=set3",
-      owner: "QuantumDev",
-      members: 245,
-      rank: "Member",
-    },
-    {
-      id: 2,
-      name: "Bakiez",
-      fullName: "Bakiez Studio",
-      avatar: "https://robohash.org/bakiez?set=set3",
-      owner: "BakieMaster",
-      members: 1203,
-      rank: "Admin",
-    },
-    {
-      id: 3,
-      name: "Fizze",
-      fullName: "Fizze Games",
-      avatar: "https://robohash.org/fizze?set=set3",
-      owner: "FizzeDev",
-      members: 567,
-      rank: "Moderator",
-    },
-    {
-      id: 4,
-      name: "Ito's Cafe",
-      fullName: "Ito's Cafe & Lounge",
-      avatar: "https://robohash.org/itocafe?set=set3",
-      owner: "ItoChef",
-      members: 892,
-      rank: "VIP Member",
-    },
-    {
-      id: 5,
-      name: "Mango Cl...",
-      fullName: "Mango Clothing Co.",
-      avatar: "https://robohash.org/mango?set=set3",
-      owner: "MangoDesigner",
-      members: 3421,
-      rank: "Member",
-    },
-    {
-      id: 6,
-      name: "Modern Cl...",
-      fullName: "Modern Clothing Studio",
-      avatar: "https://robohash.org/modern?set=set3",
-      owner: "ModernChris",
-      members: 156,
-      rank: "Owner",
-    },
-    {
-      id: 7,
-      name: "Modern_...",
-      fullName: "Modern Gaming Hub",
-      avatar: "https://robohash.org/modernx?set=set3",
-      owner: "ModernGamer",
-      members: 678,
-      rank: "Member",
-    },
-    {
-      id: 8,
-      name: "Spiked Cl...",
-      fullName: "Spiked Clothing",
-      avatar: "https://robohash.org/spiked?set=set3",
-      owner: "Modern_Chris",
-      members: 142,
-      rank: "Chairman",
-    },
-    {
-      id: 9,
-      name: "State of Fl...",
-      fullName: "State of Florida RP",
-      avatar: "https://robohash.org/statefl?set=set3",
-      owner: "FloridaGov",
-      members: 5234,
-      rank: "Citizen",
-    },
-    {
-      id: 10,
-      name: "Sushi Mazi",
-      fullName: "Sushi Mazi Restaurant",
-      avatar: "https://robohash.org/sushimazi?set=set3",
-      owner: "SushiChef",
-      members: 423,
-      rank: "Staff",
-    },
-  ];
+  // Modal states
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState({
+    title: "",
+    message: "",
+  });
+  const [actionLoading, setActionLoading] = useState(false);
 
-  // Get current group details
+  // Fetch user's groups for sidebar
+  useEffect(() => {
+    const fetchUserGroups = async () => {
+      setLoading(true);
+      try {
+        const response = await groupsApi.getUserGroups();
+        if (response.success && response.data) {
+          const groups = (response.data.groups as Group[]) || [];
+          setUserGroups(groups);
+        }
+      } catch (error) {
+        console.error("Error fetching user groups:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserGroups();
+  }, [groupId]);
+
+  // Fetch full details of the current group
+  useEffect(() => {
+    const fetchGroupDetails = async () => {
+      if (!groupId) return;
+
+      try {
+        const response = await groupsApi.getGroupById(groupId);
+        if (response.success && response.data) {
+          setCurrentGroupDetails(response.data.group as Group);
+        }
+      } catch (error) {
+        console.error("Error fetching group details:", error);
+      }
+    };
+
+    fetchGroupDetails();
+  }, [groupId]);
+
+  // Get current group - prefer detailed data, fallback to sidebar data
   const currentGroup =
-    userGroups.find((g) => g.id === selectedGroup) || userGroups[7];
+    currentGroupDetails || userGroups.find((g) => g.id === groupId);
 
-  // Mock wall posts
-  const wallPosts = [
-    {
-      id: 1,
-      author: "GamerDude65",
-      avatar: "https://robohash.org/gamer65?set=set3",
-      message:
-        "Hey everyone! Just joined this awesome group. Looking forward to checking out the store! 🎮🎮",
-      date: "Jan 14, 2019 | 7:14 PM",
-    },
-    {
-      id: 2,
-      author: "Modern_Chris",
-      avatar: "https://robohash.org/modchris?set=set3",
-      message: "Welcome to the group!",
-      date: "Nov 28, 2019 | 4:36 PM",
-    },
-    {
-      id: 3,
-      author: "PixelMaster",
-      avatar: "https://robohash.org/pixelm?set=set3",
-      message:
-        "Hey Chris is it ok if I join your group I kinda ran out of group ideas! I love this community!",
-      date: "Nov 28, 2019 | 5:36 PM",
-    },
-  ];
+  // Fetch wall posts
+  useEffect(() => {
+    const fetchWallPosts = async () => {
+      if (!groupId) return;
+
+      setLoadingWallPosts(true);
+      try {
+        const response = await groupsApi.getGroupWallPosts(groupId, 1, 20);
+        if (response.success && response.data) {
+          setWallPosts((response.data.posts as typeof wallPosts) || []);
+        }
+      } catch (error) {
+        console.error("Error fetching wall posts:", error);
+      } finally {
+        setLoadingWallPosts(false);
+      }
+    };
+
+    fetchWallPosts();
+  }, [groupId]);
+
+  // Handle wall post submission
+  const handlePostSubmit = async () => {
+    if (!groupId || !newPost.trim()) return;
+
+    setPostingWall(true);
+    try {
+      const response = await groupsApi.createGroupWallPost(
+        groupId,
+        newPost.trim(),
+      );
+      if (response.success && response.data) {
+        // Add new post to the beginning of the list
+        setWallPosts([
+          response.data.post as (typeof wallPosts)[0],
+          ...wallPosts,
+        ]);
+        setNewPost("");
+      }
+    } catch (error) {
+      console.error("Error posting to wall:", error);
+      alert("Failed to post. Please try again.");
+    } finally {
+      setPostingWall(false);
+    }
+  };
 
   // Mock allies/alliances communities
   const allies = [
@@ -318,35 +338,56 @@ const GroupDetailPage = () => {
 
           {/* Groups List */}
           <div className="py-2">
-            {userGroups
-              .filter((group) =>
-                group.fullName
-                  .toLowerCase()
-                  .includes(groupSearch.toLowerCase()),
-              )
-              .map((group) => (
-                <button
-                  key={group.id}
-                  onClick={() => setSelectedGroup(group.id)}
-                  className={`w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                    selectedGroup === group.id
-                      ? "bg-gray-100 dark:bg-gray-700"
-                      : ""
-                  }`}
+            {loading ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="w-5 h-5 animate-spin text-gray-600 dark:text-gray-400" />
+              </div>
+            ) : userGroups.length === 0 ? (
+              <div className="px-3 py-4 text-center">
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  No groups yet
+                </p>
+                <Link
+                  href="/groups/create"
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-1 inline-block"
                 >
-                  <div className="w-8 h-8 rounded overflow-hidden bg-gray-200 dark:bg-gray-600 flex-shrink-0 relative">
-                    <Image
-                      src={group.avatar}
-                      alt={group.name}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                  <span className="text-sm text-gray-900 dark:text-gray-100 truncate">
-                    {group.name}
-                  </span>
-                </button>
-              ))}
+                  Create one
+                </Link>
+              </div>
+            ) : (
+              userGroups
+                .filter((group) =>
+                  group.name.toLowerCase().includes(groupSearch.toLowerCase()),
+                )
+                .map((group) => (
+                  <Link
+                    key={group.id}
+                    href={`/groups/${group.id}`}
+                    className={`w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
+                      groupId === group.id ? "bg-gray-100 dark:bg-gray-700" : ""
+                    }`}
+                  >
+                    <div className="w-8 h-8 rounded overflow-hidden bg-gray-200 dark:bg-gray-600 flex-shrink-0 relative">
+                      {group.icon_url ? (
+                        <Image
+                          src={group.icon_url}
+                          alt={group.name}
+                          fill
+                          className="object-cover"
+                          sizes="32px"
+                        />
+                      ) : (
+                        <span className="text-sm flex items-center justify-center w-full h-full">
+                          🎮
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-sm text-gray-900 dark:text-gray-100 truncate">
+                      {group.name}
+                    </span>
+                  </Link>
+                ))
+            )}
           </div>
         </div>
 
@@ -354,48 +395,58 @@ const GroupDetailPage = () => {
         <div className="flex-1 min-w-0 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
           {/* Group Header */}
           <div className="flex items-start gap-4 p-4 border-b border-gray-200 dark:border-gray-700">
-            <div className="w-[100px] h-[100px] border border-gray-200 dark:border-gray-700 rounded overflow-hidden flex-shrink-0 bg-gray-100 dark:bg-gray-700 relative">
-              <Image
-                src={currentGroup.avatar}
-                alt={currentGroup.fullName}
-                fill
-                className="object-cover"
-              />
-            </div>
-
-            <div className="flex-1 min-w-0">
-              <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                {currentGroup.fullName}
-              </h1>
-              <p className="text-sm">
-                <span className="text-gray-600 dark:text-gray-400">By </span>
-                <a
-                  href="#"
-                  className="text-blue-600 dark:text-blue-400 hover:underline"
-                >
-                  {currentGroup.owner}
-                </a>
-              </p>
-
-              <div className="flex gap-6 mt-3">
-                <div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 uppercase">
-                    Members
-                  </p>
-                  <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                    {currentGroup.members}
-                  </p>
+            {currentGroup ? (
+              <>
+                <div className="w-[100px] h-[100px] border border-gray-200 dark:border-gray-700 rounded overflow-hidden flex-shrink-0 bg-gray-100 dark:bg-gray-700 relative">
+                  {currentGroup.icon_url ? (
+                    <Image
+                      src={currentGroup.icon_url}
+                      alt={currentGroup.name}
+                      fill
+                      className="object-cover"
+                      sizes="100px"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-4xl">
+                      🎮
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 uppercase">
-                    Rank
-                  </p>
-                  <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                    {currentGroup.rank}
-                  </p>
+
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                    {currentGroup.name}
+                  </h1>
+
+                  <div className="flex gap-6 mt-3">
+                    <div>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 uppercase">
+                        Members
+                      </p>
+                      <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                        {currentGroup.member_count}
+                      </p>
+                    </div>
+                    {currentGroup.role && (
+                      <div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 uppercase">
+                          Rank
+                        </p>
+                        <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                          {currentGroup.role}
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
+              </>
+            ) : (
+              <div className="flex-1 text-center py-8">
+                <p className="text-gray-600 dark:text-gray-400">
+                  Group not found
+                </p>
               </div>
-            </div>
+            )}
 
             {/* Group Menu */}
             <div className="relative">
@@ -417,10 +468,9 @@ const GroupDetailPage = () => {
                   {/* Dropdown Menu */}
                   <div className="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-lg z-20 py-1">
                     {/* Admin Options - Only show if user is Admin or Owner */}
-                    {(currentGroup.rank === "Admin" ||
-                      currentGroup.rank === "Owner") && (
+                    {currentGroup && currentGroup.role === "Owner" && (
                       <>
-                        <Link href={`/groups/${selectedGroup}/configure`}>
+                        <Link href={`/groups/${groupId}/configure`}>
                           <button
                             onClick={() => setGroupMenuOpen(false)}
                             className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
@@ -438,7 +488,7 @@ const GroupDetailPage = () => {
                           Group Admin
                         </button>
                         <Link
-                          href={`/groups/${selectedGroup}/configure?section=Advertise Group`}
+                          href={`/groups/${groupId}/configure?section=Advertise Group`}
                         >
                           <button
                             onClick={() => setGroupMenuOpen(false)}
@@ -447,15 +497,33 @@ const GroupDetailPage = () => {
                             Advertise Group
                           </button>
                         </Link>
-                        <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
                       </>
                     )}
 
                     {/* Regular Options */}
                     <button
-                      onClick={() => {
-                        alert("Make Primary");
+                      onClick={async () => {
                         setGroupMenuOpen(false);
+                        if (groupId) {
+                          setActionLoading(true);
+                          const response =
+                            await groupsApi.makePrimaryGroup(groupId);
+                          setActionLoading(false);
+                          if (response.success) {
+                            setSuccessMessage({
+                              title: "Success",
+                              message: "Group set as primary!",
+                            });
+                            setShowSuccessModal(true);
+                          } else {
+                            setSuccessMessage({
+                              title: "Error",
+                              message:
+                                response.error || "Failed to set primary group",
+                            });
+                            setShowSuccessModal(true);
+                          }
+                        }
                       }}
                       className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                     >
@@ -463,8 +531,8 @@ const GroupDetailPage = () => {
                     </button>
                     <button
                       onClick={() => {
-                        alert("Leave Group");
                         setGroupMenuOpen(false);
+                        setShowLeaveConfirm(true);
                       }}
                       className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                     >
@@ -472,7 +540,7 @@ const GroupDetailPage = () => {
                     </button>
 
                     {/* Owner Only Option */}
-                    {currentGroup.rank === "Owner" && (
+                    {currentGroup && currentGroup.role === "Owner" && (
                       <button
                         onClick={() => {
                           alert("Change Owner");
@@ -488,8 +556,8 @@ const GroupDetailPage = () => {
 
                     <button
                       onClick={() => {
-                        alert("Report Abuse");
                         setGroupMenuOpen(false);
+                        setShowReportModal(true);
                       }}
                       className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                     >
@@ -502,12 +570,13 @@ const GroupDetailPage = () => {
           </div>
 
           {/* Tabs */}
-          <div className="flex border-b border-gray-200 dark:border-gray-700">
+          {/* Tab Navigation */}
+          <div className="flex gap-2 px-4 border-b border-gray-200 dark:border-gray-700">
             {tabs.map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`flex-1 px-6 py-3 text-sm font-medium transition-colors relative ${
+                className={`px-4 py-3 text-sm font-semibold transition-colors relative ${
                   activeTab === tab
                     ? "text-gray-900 dark:text-gray-100"
                     : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
@@ -515,7 +584,7 @@ const GroupDetailPage = () => {
               >
                 {tab}
                 {activeTab === tab && (
-                  <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-600 dark:bg-blue-400" />
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400"></div>
                 )}
               </button>
             ))}
@@ -525,32 +594,37 @@ const GroupDetailPage = () => {
           {activeTab === "About" && (
             <>
               {/* Description Section */}
-              <DescriptionSection />
+              <DescriptionSection description={currentGroup?.description} />
 
               {/* Shout Section */}
-              <div className="p-4 bg-white dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
-                <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-3">
+              <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-3">
                   Shout
-                </h2>
+                </h3>
 
                 {/* Current Shout Display */}
-                {currentShout ? (
-                  <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
+                {currentGroup?.shout_text ? (
+                  <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 mb-3">
                     <p className="text-sm text-gray-900 dark:text-gray-100">
-                      {currentShout}
+                      {currentGroup.shout_text}
                     </p>
+                    {currentGroup.shout_posted_at && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                        Posted{" "}
+                        {new Date(
+                          currentGroup.shout_posted_at,
+                        ).toLocaleString()}
+                      </p>
+                    )}
                   </div>
                 ) : (
-                  <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
-                    <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-                      No shout yet
-                    </p>
-                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                    Nothing has been said yet.
+                  </p>
                 )}
 
                 {/* Shout Input - Only for Admin/Owner */}
-                {(currentGroup.rank === "Admin" ||
-                  currentGroup.rank === "Owner") && (
+                {currentGroup && currentGroup.role === "Owner" && (
                   <div className="space-y-3">
                     <div className="flex gap-2">
                       <input
@@ -564,7 +638,8 @@ const GroupDetailPage = () => {
                       <button
                         onClick={() => {
                           if (shoutText.trim()) {
-                            setCurrentShout(shoutText);
+                            // TODO: Implement actual shout posting API call
+                            alert("Shout posting will be implemented");
                             setShoutText("");
                           }
                         }}
@@ -581,16 +656,16 @@ const GroupDetailPage = () => {
               </div>
 
               {/* Games Section */}
-              <GamesSection />
+              <GamesSection groupId={currentGroup?.id} />
 
               {/* Members Section */}
-              <MembersSection />
+              <MembersSection groupId={currentGroup?.id} />
 
-              {/* Social Links Section */}
-              <SocialLinksSection />
+              {/* Social Links */}
+              <SocialLinksSection groupId={currentGroup?.id} />
 
               {/* Wall Section */}
-              <div className="p-4">
+              <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
                 <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-3">
                   Wall
                 </h2>
@@ -603,76 +678,91 @@ const GroupDetailPage = () => {
                     rows={2}
                     className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                   />
-                  <button className="px-4 py-2 h-fit bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded transition-colors">
-                    Post
+                  <button
+                    onClick={handlePostSubmit}
+                    disabled={!newPost.trim() || postingWall}
+                    className="px-4 py-2 h-fit bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {postingWall ? "Posting..." : "Post"}
                   </button>
                 </div>
 
-                <div className="space-y-3">
-                  {wallPosts.map((post) => (
-                    <div key={post.id} className="flex gap-3">
-                      <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-600 flex-shrink-0 relative">
-                        <Image
-                          src={post.avatar}
-                          alt={post.author}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <a
-                          href="#"
-                          className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
-                        >
-                          {post.author}
-                        </a>
-                        <p className="text-sm text-gray-900 dark:text-gray-100 mt-0.5">
-                          {post.message}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          {post.date}
-                        </p>
-                      </div>
+                {wallPosts.length > 0 ? (
+                  <div className="space-y-3">
+                    {wallPosts.map((post) => (
+                      <div key={post.id} className="flex gap-3">
+                        <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-600 flex-shrink-0 relative">
+                          <Image
+                            src={`https://robohash.org/${post.author_username}?set=set3`}
+                            alt={
+                              post.author_display_name || post.author_username
+                            }
+                            fill
+                            className="object-cover"
+                            sizes="40px"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <a
+                            href={`/profile/${post.author_username}`}
+                            className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                          >
+                            {post.author_display_name || post.author_username}
+                          </a>
+                          <p className="text-sm text-gray-900 dark:text-gray-100 mt-0.5">
+                            {post.content}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {new Date(post.created_at).toLocaleString()}
+                          </p>
+                        </div>
 
-                      {/* Three-dot menu */}
-                      <div className="relative">
-                        <button
-                          onClick={() =>
-                            setOpenPostMenu(
-                              openPostMenu === post.id ? null : post.id,
-                            )
-                          }
-                          className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors h-fit"
-                        >
-                          <MoreHorizontal className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                        </button>
+                        {/* Three-dot menu */}
+                        <div className="relative">
+                          <button
+                            onClick={() =>
+                              setOpenPostMenu(
+                                openPostMenu === post.id ? null : post.id,
+                              )
+                            }
+                            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors h-fit"
+                          >
+                            <MoreHorizontal className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                          </button>
 
-                        {openPostMenu === post.id && (
-                          <>
-                            {/* Backdrop to close dropdown */}
-                            <div
-                              className="fixed inset-0 z-10"
-                              onClick={() => setOpenPostMenu(null)}
-                            />
+                          {openPostMenu === post.id && (
+                            <>
+                              {/* Backdrop to close dropdown */}
+                              <div
+                                className="fixed inset-0 z-10"
+                                onClick={() => setOpenPostMenu(null)}
+                              />
 
-                            {/* Dropdown Menu */}
-                            <div className="absolute right-0 top-full mt-1 w-full min-w-[120px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-lg z-20 py-1 max-h-[300px] overflow-y-auto">
-                              <button
-                                onClick={() => {
-                                  alert("Report Abuse functionality");
-                                  setOpenPostMenu(null);
-                                }}
-                                className="w-full px-3 py-2 text-left text-sm transition-colors text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
-                              >
-                                Report Abuse
-                              </button>
-                            </div>
-                          </>
-                        )}
+                              {/* Dropdown Menu */}
+                              <div className="absolute right-0 top-full mt-1 w-full min-w-[120px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-lg z-20 py-1 max-h-[300px] overflow-y-auto">
+                                <button
+                                  onClick={() => {
+                                    alert("Report Abuse functionality");
+                                    setOpenPostMenu(null);
+                                  }}
+                                  className="w-full px-3 py-2 text-left text-sm transition-colors text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                >
+                                  Report Abuse
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      No wall posts yet. Be the first to post!
+                    </p>
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -793,6 +883,109 @@ const GroupDetailPage = () => {
       <div className="mt-8">
         <Footer />
       </div>
+      {/* Modals */}
+      <ConfirmModal
+        isOpen={showLeaveConfirm}
+        onClose={() => setShowLeaveConfirm(false)}
+        onConfirm={async () => {
+          if (groupId) {
+            setActionLoading(true);
+            const response = await groupsApi.leaveGroup(groupId);
+            setActionLoading(false);
+            setShowLeaveConfirm(false);
+            if (response.success) {
+              const isGroupDeleted = response.message?.includes("deleted");
+              setSuccessMessage({
+                title: "Success",
+                message: isGroupDeleted
+                  ? "Group deleted successfully! You were the last member."
+                  : "Left group successfully!",
+              });
+              setShowSuccessModal(true);
+              setTimeout(() => {
+                router.push("/groups");
+              }, 2000);
+            } else {
+              setSuccessMessage({
+                title: "Error",
+                message: response.error || "Failed to leave group",
+              });
+              setShowSuccessModal(true);
+            }
+          }
+        }}
+        title={
+          currentGroupDetails?.role === "Owner"
+            ? "Leave Group / Delete Group"
+            : "Leave Group"
+        }
+        message={
+          currentGroupDetails?.role === "Owner"
+            ? currentGroupDetails.member_count > 1
+              ? "As the owner, you cannot leave while there are other members. Remove all members first, then you can leave to delete the group."
+              : "You are the last member and the owner. Leaving will permanently delete this group. This action cannot be undone."
+            : "Are you sure you want to leave this group? This action cannot be undone."
+        }
+        confirmText={
+          currentGroupDetails?.role === "Owner" &&
+          currentGroupDetails.member_count === 1
+            ? "Delete Group"
+            : "Leave Group"
+        }
+        cancelText={
+          currentGroupDetails?.role === "Owner" &&
+          currentGroupDetails.member_count > 1
+            ? "Close"
+            : "Cancel"
+        }
+        variant="danger"
+        loading={actionLoading}
+        disabled={
+          currentGroupDetails?.role === "Owner" &&
+          currentGroupDetails.member_count > 1
+        }
+      />
+
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        onSubmit={async (category, description) => {
+          if (groupId) {
+            setActionLoading(true);
+            const response = await groupsApi.reportGroup(
+              groupId,
+              category,
+              description || undefined,
+            );
+            setActionLoading(false);
+            setShowReportModal(false);
+            if (response.success) {
+              setSuccessMessage({
+                title: "Success",
+                message:
+                  "Report submitted successfully! Our moderation team will review it.",
+              });
+              setShowSuccessModal(true);
+            } else {
+              setSuccessMessage({
+                title: "Error",
+                message: response.error || "Failed to submit report",
+              });
+              setShowSuccessModal(true);
+            }
+          }
+        }}
+        loading={actionLoading}
+      />
+
+      <SuccessModal
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        title={successMessage.title}
+        message={successMessage.message}
+        autoClose={true}
+        autoCloseDelay={2000}
+      />
     </div>
   );
 };

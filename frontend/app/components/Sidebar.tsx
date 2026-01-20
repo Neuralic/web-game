@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -12,6 +13,8 @@ import {
   Gift,
 } from "lucide-react";
 import VerifiedBadge from "./VerifiedBadge";
+import { usersApi } from "@/lib/api";
+import { isAuthenticated } from "@/lib/auth";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -24,7 +27,49 @@ export default function Sidebar({
   onClose,
   isVerified = true,
 }: SidebarProps) {
+  const [user, setUser] = useState<{
+    username?: string;
+    display_name?: string;
+    is_verified?: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    // Only fetch user data if authenticated
+    if (!isAuthenticated()) {
+      return;
+    }
+
+    const fetchUserData = async () => {
+      try {
+        const response = await usersApi.getCurrentUser();
+        if (response.success && response.data) {
+          setUser(
+            response.data.user as {
+              username?: string;
+              display_name?: string;
+              is_verified?: boolean;
+            },
+          );
+        }
+      } catch {
+        // Silently fail if not authenticated
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
   if (!isOpen) return null;
+
+  // Show loading or fallback if user data not loaded yet
+  const isLoggedIn = isAuthenticated();
+  const displayUsername =
+    user?.username ?? (isLoggedIn ? "Loading..." : "Guest");
+  const displayName =
+    user?.display_name ??
+    user?.username ??
+    (isLoggedIn ? "Loading..." : "Guest");
+  const userIsVerified = user?.is_verified ?? isVerified;
 
   return (
     <>
@@ -33,178 +78,217 @@ export default function Sidebar({
 
       {/* Sidebar Panel */}
       <div className="fixed left-0 top-0 bottom-0 w-64 bg-white dark:bg-gray-900 z-[70] shadow-xl overflow-y-auto scrollbar-hide">
-        {/* User Info Section */}
-        <div className="p-3 border-b border-gray-200 dark:border-gray-800">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-gray-300 dark:bg-gray-600 rounded-full overflow-hidden relative">
-              <Image
-                src="https://tr.rbxcdn.com/30DAY-AvatarHeadshot-903254C5702EE154B5EA564D1D4CB860-Png/150/150/AvatarHeadshot/Webp/noFilter"
-                alt="reahan00R"
-                fill
-                className="object-cover"
-              />
+        {!isLoggedIn ? (
+          // Guest View - Show Login Prompt
+          <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+            <div className="w-20 h-20 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
+              <span className="text-4xl">👤</span>
             </div>
-            <div>
-              <div className="font-bold text-sm text-gray-900 dark:text-gray-100 flex items-center gap-1">
-                reahan00R
-                {isVerified && <VerifiedBadge size="sm" />}
-              </div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+              Welcome to AdventureBlox!
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+              Sign up or log in to access your profile, friends, messages, and
+              more.
+            </p>
+            <div className="flex flex-col gap-3 w-full">
+              <Link
+                href="/signup"
+                onClick={onClose}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+              >
+                Sign Up
+              </Link>
+              <Link
+                href="/login"
+                onClick={onClose}
+                className="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-bold py-3 px-6 rounded-lg transition-colors"
+              >
+                Log In
+              </Link>
             </div>
           </div>
-        </div>
-
-        {/* Navigation Links */}
-        <nav className="py-1">
-          <Link
-            href="/home"
-            className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-            onClick={onClose}
-          >
-            <Home className="w-4 h-4" />
-            <span className="font-medium text-sm">Home</span>
-          </Link>
-
-          <Link
-            href="/profile"
-            className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-            onClick={onClose}
-          >
-            <User className="w-4 h-4" />
-            <span className="font-medium text-sm">Profile</span>
-          </Link>
-
-          <Link
-            href="/messages"
-            className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-            onClick={onClose}
-          >
-            <MessageSquare className="w-4 h-4" />
-            <span className="font-medium text-sm">Messages</span>
-          </Link>
-
-          <Link
-            href="/connect"
-            className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-            onClick={onClose}
-          >
-            <Users className="w-4 h-4" />
-            <span className="font-medium text-sm">Friends</span>
-          </Link>
-
-          <Link
-            href="/avatar"
-            className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-            onClick={onClose}
-          >
-            <User className="w-4 h-4" />
-            <span className="font-medium text-sm">Avatar</span>
-          </Link>
-
-          <Link
-            href="/inventory"
-            className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-            onClick={onClose}
-          >
-            <Package className="w-4 h-4" />
-            <span className="font-medium text-sm">Inventory</span>
-          </Link>
-
-          <Link
-            href="/trade"
-            className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-            onClick={onClose}
-          >
-            <TrendingUp className="w-4 h-4" />
-            <span className="font-medium text-sm">Trade</span>
-          </Link>
-
-          <Link
-            href="/groups/8"
-            className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-            onClick={onClose}
-          >
-            <Users className="w-4 h-4" />
-            <span className="font-medium text-sm">Groups</span>
-          </Link>
-
-          <Link
-            href="/blog"
-            className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-            onClick={onClose}
-          >
-            <MessageSquare className="w-4 h-4" />
-            <span className="font-medium text-sm">Blog</span>
-          </Link>
-
-          <Link
-            href="/gift-cards"
-            className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-            onClick={onClose}
-          >
-            <Gift className="w-4 h-4" />
-            <span className="font-medium text-sm">Buy Gift Cards</span>
-          </Link>
-        </nav>
-
-        {/* Get Membership Button */}
-        <div className="px-4 py-3">
-          <button className="w-full bg-gray-900 dark:bg-gray-100 hover:bg-gray-800 dark:hover:bg-gray-200 text-white dark:text-gray-900 font-bold py-2 text-sm rounded-lg transition-colors">
-            Get Membership
-          </button>
-        </div>
-
-        {/* Events Section */}
-        <div className="px-4 pb-4">
-          <h3 className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase mb-2">
-            Events
-          </h3>
-          <div className="space-y-2">
-            {/* Event Card 1 */}
-            <Link
-              href="/events/1"
-              className="block rounded-lg overflow-hidden hover:opacity-80 transition-opacity"
-              onClick={onClose}
-            >
-              <div className="relative aspect-[2/1] bg-gradient-to-br from-red-500 to-pink-600">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-white font-bold text-xs">
-                    ❤️ iHeart LAND
-                  </span>
+        ) : (
+          // Logged In View - Show Full Sidebar
+          <>
+            {/* User Info Section */}
+            <div className="p-3 border-b border-gray-200 dark:border-gray-800">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 bg-gray-300 dark:bg-gray-600 rounded-full overflow-hidden relative">
+                  <Image
+                    src="https://tr.rbxcdn.com/30DAY-AvatarHeadshot-903254C5702EE154B5EA564D1D4CB860-Png/150/150/AvatarHeadshot/Webp/noFilter"
+                    alt={displayUsername}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                <div>
+                  <div className="font-bold text-sm text-gray-900 dark:text-gray-100 flex items-center gap-1">
+                    {displayName}
+                    {userIsVerified && <VerifiedBadge size="sm" />}
+                  </div>
                 </div>
               </div>
-            </Link>
+            </div>
 
-            {/* Event Card 2 */}
-            <Link
-              href="/events/2"
-              className="block rounded-lg overflow-hidden hover:opacity-80 transition-opacity"
-              onClick={onClose}
-            >
-              <div className="relative aspect-[2/1] bg-gradient-to-br from-orange-500 to-yellow-500">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-white font-bold text-xs">
-                    🎮 MORE TYCOON
-                  </span>
-                </div>
-              </div>
-            </Link>
+            {/* Navigation Links */}
+            <nav className="py-1">
+              <Link
+                href="/home"
+                className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                onClick={onClose}
+              >
+                <Home className="w-4 h-4" />
+                <span className="font-medium text-sm">Home</span>
+              </Link>
 
-            {/* Event Card 3 */}
-            <Link
-              href="/events/3"
-              className="block rounded-lg overflow-hidden hover:opacity-80 transition-opacity"
-              onClick={onClose}
-            >
-              <div className="relative aspect-[2/1] bg-gradient-to-br from-purple-600 to-blue-600">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-white font-bold text-xs">
-                    ⚔️ ANIME MARATHON
-                  </span>
-                </div>
+              <Link
+                href="/profile"
+                className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                onClick={onClose}
+              >
+                <User className="w-4 h-4" />
+                <span className="font-medium text-sm">Profile</span>
+              </Link>
+
+              <Link
+                href="/messages"
+                className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                onClick={onClose}
+              >
+                <MessageSquare className="w-4 h-4" />
+                <span className="font-medium text-sm">Messages</span>
+              </Link>
+
+              <Link
+                href="/connect"
+                className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                onClick={onClose}
+              >
+                <Users className="w-4 h-4" />
+                <span className="font-medium text-sm">Friends</span>
+              </Link>
+
+              <Link
+                href="/avatar"
+                className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                onClick={onClose}
+              >
+                <User className="w-4 h-4" />
+                <span className="font-medium text-sm">Avatar</span>
+              </Link>
+
+              <Link
+                href="/inventory"
+                className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                onClick={onClose}
+              >
+                <Package className="w-4 h-4" />
+                <span className="font-medium text-sm">Inventory</span>
+              </Link>
+
+              <Link
+                href="/trade"
+                className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                onClick={onClose}
+              >
+                <TrendingUp className="w-4 h-4" />
+                <span className="font-medium text-sm">Trade</span>
+              </Link>
+
+              <Link
+                href="/groups/8"
+                className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                onClick={onClose}
+              >
+                <Users className="w-4 h-4" />
+                <span className="font-medium text-sm">Groups</span>
+              </Link>
+
+              <Link
+                href="/blog"
+                className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                onClick={onClose}
+              >
+                <MessageSquare className="w-4 h-4" />
+                <span className="font-medium text-sm">Blog</span>
+              </Link>
+
+              <Link
+                href="/gift-cards"
+                className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                onClick={onClose}
+              >
+                <Gift className="w-4 h-4" />
+                <span className="font-medium text-sm">Buy Gift Cards</span>
+              </Link>
+            </nav>
+
+            {/* Get Membership Button */}
+            <div className="px-4 py-3">
+              <Link
+                href="/membership"
+                onClick={onClose}
+                className="block w-full bg-gray-900 dark:bg-gray-100 hover:bg-gray-800 dark:hover:bg-gray-200 text-white dark:text-gray-900 font-bold py-2 text-sm rounded-lg transition-colors text-center"
+              >
+                Get Membership
+              </Link>
+            </div>
+
+            {/* Events Section */}
+            <div className="px-4 pb-4">
+              <h3 className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase mb-2">
+                Events
+              </h3>
+              <div className="space-y-2">
+                {/* Event Card 1 */}
+                <Link
+                  href="/events/1"
+                  className="block rounded-lg overflow-hidden hover:opacity-80 transition-opacity"
+                  onClick={onClose}
+                >
+                  <div className="relative aspect-[2/1] bg-gradient-to-br from-red-500 to-pink-600">
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-white font-bold text-xs">
+                        ❤️ iHeart LAND
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+
+                {/* Event Card 2 */}
+                <Link
+                  href="/events/2"
+                  className="block rounded-lg overflow-hidden hover:opacity-80 transition-opacity"
+                  onClick={onClose}
+                >
+                  <div className="relative aspect-[2/1] bg-gradient-to-br from-orange-500 to-yellow-500">
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-white font-bold text-xs">
+                        🎮 MORE TYCOON
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+
+                {/* Event Card 3 */}
+                <Link
+                  href="/events/3"
+                  className="block rounded-lg overflow-hidden hover:opacity-80 transition-opacity"
+                  onClick={onClose}
+                >
+                  <div className="relative aspect-[2/1] bg-gradient-to-br from-purple-600 to-blue-600">
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-white font-bold text-xs">
+                        ⚔️ ANIME MARATHON
+                      </span>
+                    </div>
+                  </div>
+                </Link>
               </div>
-            </Link>
-          </div>
-        </div>
+            </div>
+          </>
+        )}
       </div>
     </>
   );
