@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { X } from "lucide-react";
 
 interface SuccessModalProps {
@@ -7,6 +8,8 @@ interface SuccessModalProps {
   onClose: () => void;
   title: string;
   message: string;
+  autoClose?: boolean;
+  autoCloseDelay?: number;
 }
 
 const SuccessModal = ({
@@ -14,7 +17,19 @@ const SuccessModal = ({
   onClose,
   title,
   message,
+  autoClose,
+  autoCloseDelay = 2000,
 }: SuccessModalProps) => {
+  useEffect(() => {
+    if (isOpen && autoClose) {
+      const timer = setTimeout(() => {
+        onClose();
+      }, autoCloseDelay);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, autoClose, autoCloseDelay, onClose]);
+
   if (!isOpen) return null;
 
   return (
