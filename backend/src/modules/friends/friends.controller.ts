@@ -172,9 +172,14 @@ export const acceptFriendRequest = async (req: AuthRequest, res: Response) => {
     const friendship1Id = uuidv4();
     const friendship2Id = uuidv4();
 
-    await db.query(
+    console.log("Creating bidirectional friendship:");
+    console.log("- Row 1: userId =", request.sender_id, ", friendId =", request.receiver_id);
+    console.log("- Row 2: userId =", request.receiver_id, ", friendId =", request.sender_id);
+
+    const insertResult = await db.query(
       `INSERT INTO friendships ("id", "userId", "friendId", "createdAt")
-       VALUES ($1, $2, $3, NOW()), ($4, $5, $6, NOW())`,
+       VALUES ($1, $2, $3, NOW()), ($4, $5, $6, NOW())
+       RETURNING *`,
       [
         friendship1Id,
         request.sender_id,
@@ -184,6 +189,8 @@ export const acceptFriendRequest = async (req: AuthRequest, res: Response) => {
         request.sender_id,
       ]
     );
+
+    console.log("Friendships created:", insertResult.rows);
 
     // TODO: Create notification for sender
 
@@ -346,6 +353,8 @@ export const getFriends = async (req: AuthRequest, res: Response) => {
       });
     }
 
+    console.log("getFriends called for userId:", userId);
+
     const result = await db.query(
       `SELECT 
         u.id,
@@ -367,6 +376,8 @@ export const getFriends = async (req: AuthRequest, res: Response) => {
          u."displayName" ASC`,
       [userId]
     );
+
+    console.log(`Found ${result.rows.length} friends for user ${userId}:`, result.rows);
 
     res.status(200).json({
       success: true,

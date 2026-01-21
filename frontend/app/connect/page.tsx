@@ -209,7 +209,7 @@ const ConnectPage = () => {
             // Normalize API data to match mock data format
             const realRequests = (response.data.received || []).map((req: any) => ({
               id: req.sender_id,
-              request_id: req.request_id,
+              request_id: req.id,  // fr.id from the API
               name: req.sender_display_name || req.sender_username,
               username: `@${req.sender_username}`,
               status: "Offline",
@@ -250,7 +250,7 @@ const ConnectPage = () => {
         if (requestsResponse.success && requestsResponse.data) {
           const realRequests = (requestsResponse.data.received || []).map((req: any) => ({
             id: req.sender_id,
-            request_id: req.request_id,
+            request_id: req.id,  // fr.id from the API
             name: req.sender_display_name || req.sender_username,
             username: `@${req.sender_username}`,
             status: "Offline",
@@ -289,7 +289,7 @@ const ConnectPage = () => {
           // Normalize API data
           const realRequests = (requestsResponse.data.received || []).map((req: any) => ({
             id: req.sender_id,
-            request_id: req.request_id,
+            request_id: req.id,  // fr.id from the API
             name: req.sender_display_name || req.sender_username,
             username: `@${req.sender_username}`,
             status: "Offline",
@@ -484,13 +484,27 @@ const ConnectPage = () => {
                 {activeTab === "Requests" && (
                   <div className="flex gap-2 mt-4 w-full">
                     <button 
-                      onClick={() => user.request_id && handleDeclineRequest(user.request_id)}
+                      onClick={() => {
+                        console.log("Decline clicked, user:", user);
+                        if (user.request_id) {
+                          handleDeclineRequest(user.request_id);
+                        } else {
+                          console.error("No request_id found for user:", user);
+                        }
+                      }}
                       className="flex-1 p-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 rounded transition-colors flex items-center justify-center"
                     >
                       <X className="w-5 h-5" />
                     </button>
                     <button 
-                      onClick={() => user.request_id && handleAcceptRequest(user.request_id)}
+                      onClick={() => {
+                        console.log("Accept clicked, user:", user);
+                        if (user.request_id) {
+                          handleAcceptRequest(user.request_id);
+                        } else {
+                          console.error("No request_id found for user:", user);
+                        }
+                      }}
                       className="flex-1 p-2 bg-gray-900 dark:bg-gray-100 hover:bg-gray-800 dark:hover:bg-gray-200 text-white dark:text-gray-900 rounded transition-colors flex items-center justify-center"
                     >
                       <Check className="w-5 h-5" />
