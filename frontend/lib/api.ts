@@ -754,6 +754,98 @@ export const groupsApi = {
       },
     });
   },
+
+  // Get group alliances
+  getGroupAlliances: async (
+    id: string,
+  ): Promise<ApiResponse<{ alliances: unknown[] }>> => {
+    return apiCall(`/groups/${id}/alliances`, {
+      method: "GET",
+    });
+  },
+
+  // Get alliance requests (owner only)
+  getAllianceRequests: async (
+    id: string,
+  ): Promise<ApiResponse<{ requests: unknown[] }>> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall(`/groups/${id}/alliances/requests`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  // Send alliance request
+  sendAllianceRequest: async (
+    id: string,
+    alliedGroupId: string,
+  ): Promise<ApiResponse> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall(`/groups/${id}/alliances`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ alliedGroupId }),
+    });
+  },
+
+  // Respond to alliance request
+  respondToAllianceRequest: async (
+    id: string,
+    allianceId: string,
+    action: "accept" | "decline",
+  ): Promise<ApiResponse> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall(`/groups/${id}/alliances/${allianceId}`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ action }),
+    });
+  },
+
+  // Remove alliance
+  removeAlliance: async (id: string, allianceId: string): Promise<ApiResponse> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall(`/groups/${id}/alliances/${allianceId}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
 };
 
 // Upload API
@@ -843,6 +935,233 @@ export const uploadApi = {
         error: "Network error. Please try again.",
       };
     }
+  },
+};
+
+// Friends API
+export const friendsApi = {
+  // Send friend request
+  sendFriendRequest: async (receiverId: string): Promise<ApiResponse> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall("/friends/request", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ receiverId }),
+    });
+  },
+
+  // Accept friend request
+  acceptFriendRequest: async (requestId: string): Promise<ApiResponse> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall(`/friends/accept/${requestId}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  // Decline friend request
+  declineFriendRequest: async (requestId: string): Promise<ApiResponse> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall(`/friends/decline/${requestId}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  // Remove friend
+  removeFriend: async (friendId: string): Promise<ApiResponse> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall(`/friends/${friendId}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  // Get friends list
+  getFriends: async (): Promise<ApiResponse<{ friends: unknown[]; count: number }>> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall("/friends", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  // Get friend requests
+  getFriendRequests: async (): Promise<ApiResponse<{ received: unknown[]; sent: unknown[] }>> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall("/friends/requests", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  // Add to best friends
+  addBestFriend: async (friendId: string): Promise<ApiResponse> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall(`/friends/best/${friendId}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  // Remove from best friends
+  removeBestFriend: async (friendId: string): Promise<ApiResponse> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall(`/friends/best/${friendId}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  // Block user
+  blockUser: async (userId: string): Promise<ApiResponse> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall(`/friends/block/${userId}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  // Unblock user
+  unblockUser: async (userId: string): Promise<ApiResponse> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall(`/friends/unblock/${userId}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  // Get blocked users
+  getBlockedUsers: async (): Promise<ApiResponse<{ blocked: unknown[] }>> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall("/friends/blocked", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+};
+
+// Search API
+export const searchApi = {
+  // Search users
+  searchUsers: async (query: string, limit = 10): Promise<ApiResponse<{ users: unknown[]; query: string }>> => {
+    const token = storage.getAccessToken();
+    const headers: Record<string, string> = {};
+
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    return apiCall(`/search/users?q=${encodeURIComponent(query)}&limit=${limit}`, {
+      method: "GET",
+      headers,
+    });
+  },
+
+  // Quick search for autocomplete
+  quickSearch: async (query: string): Promise<ApiResponse<{ users: unknown[] }>> => {
+    return apiCall(`/search/quick?q=${encodeURIComponent(query)}`, {
+      method: "GET",
+    });
   },
 };
 

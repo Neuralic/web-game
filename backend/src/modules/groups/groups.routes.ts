@@ -31,6 +31,13 @@ import {
   getGroupSocialLinks,
   updateGroupSocialLinks,
 } from "./groups.social.controller";
+import {
+  getGroupAlliances,
+  getAllianceRequests,
+  sendAllianceRequest,
+  respondToAllianceRequest,
+  removeAlliance,
+} from "./groups.alliances.controller";
 import { authMiddleware, optionalAuth } from "../../middleware/auth.middleware";
 
 const router = Router();
@@ -44,6 +51,8 @@ router.get("/:id/wall", getGroupWallPosts);
 router.get("/:id/roles", getGroupRoles);
 router.get("/:id/settings", getGroupSettings);
 router.get("/:id/social-links", getGroupSocialLinks);
+router.get("/:id/alliances", getGroupAlliances);
+router.get("/:id/alliances/requests", authMiddleware, getAllianceRequests);
 
 // Protected routes - Group management
 router.get("/user/me", authMiddleware, getUserGroups);
@@ -66,5 +75,10 @@ router.post("/:id/report", authMiddleware, reportGroup);
 router.post("/:id/roles", authMiddleware, createGroupRole);
 router.patch("/:id/roles/:roleId", authMiddleware, updateGroupRole);
 router.delete("/:id/roles/:roleId", authMiddleware, deleteGroupRole);
+
+// Protected routes - Alliance management
+router.post("/:id/alliances", authMiddleware, sendAllianceRequest);
+router.patch("/:id/alliances/:allianceId", authMiddleware, respondToAllianceRequest);
+router.delete("/:id/alliances/:allianceId", authMiddleware, removeAlliance);
 
 export default router;

@@ -11,6 +11,8 @@ import usersRoutes from "./modules/users/users.routes";
 import accountsRoutes from "./modules/accounts/accounts.routes";
 import groupsRoutes from "./modules/groups/groups.routes";
 import uploadRoutes from "./modules/upload/upload.routes";
+import friendsRoutes from "./modules/friends/friends.routes";
+import searchRoutes from "./modules/search/search.routes";
 
 // Load environment variables
 dotenv.config();
@@ -78,6 +80,12 @@ app.use("/api/v1/groups", groupsRoutes);
 
 // Upload routes
 app.use("/api/v1/upload", uploadRoutes);
+
+// Friends routes
+app.use("/api/v1/friends", friendsRoutes);
+
+// Search routes
+app.use("/api/v1/search", searchRoutes);
 
 // Socket.IO connection handling
 io.on("connection", (socket) => {
