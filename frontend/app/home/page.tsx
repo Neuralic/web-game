@@ -9,7 +9,7 @@ import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
 import ProtectedRoute from "../components/ProtectedRoute";
 import VerifiedBadge from "../components/VerifiedBadge";
-import { usersApi } from "@/lib/api";
+import { usersApi, friendsApi } from "@/lib/api";
 
 const HomePage = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -17,20 +17,36 @@ const HomePage = () => {
   const [showLeftAd, setShowLeftAd] = useState(true);
   const [showRightAd, setShowRightAd] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [friends, setFriends] = useState<any[]>([]);
 
-  // Fetch user data
+  // Fetch user data and friends
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchData = async () => {
       try {
-        const response = await usersApi.getCurrentUser();
-        if (response.success && response.data) {
-          setUser(response.data.user);
+        const [userResponse, friendsResponse] = await Promise.all([
+          usersApi.getCurrentUser(),
+          friendsApi.getFriends()
+        ]);
+        
+        if (userResponse.success && userResponse.data) {
+          setUser(userResponse.data.user);
+        }
+        
+        if (friendsResponse.success && friendsResponse.data) {
+          const realFriends = (friendsResponse.data.friends || []).map((friend: any) => ({
+            id: friend.id,
+            name: friend.display_name || friend.username,
+            username: friend.username,
+            avatar: friend.avatar_url || `https://robohash.org/${friend.username}?set=set3`,
+            status: "offline", // TODO: Add real-time presence
+          }));
+          setFriends(realFriends);
         }
       } catch (error) {
-        console.error("Error fetching user:", error);
+        console.error("Error fetching data:", error);
       }
     };
-    fetchUser();
+    fetchData();
   }, []);
 
   // Placeholder game data
@@ -45,58 +61,6 @@ const HomePage = () => {
     { id: 8, title: "Parkour Master", rating: "56% Rating" },
   ];
 
-  // Mock friends
-  const connections = [
-    {
-      id: 1,
-      name: "reahan007",
-      avatar: "https://robohash.org/reahan007?set=set3",
-      hasPremium: true,
-      status: "online-game",
-    },
-    {
-      id: 2,
-      name: "nass4",
-      avatar: "https://robohash.org/nass4?set=set3",
-      hasPremium: false,
-      status: "online",
-    },
-    {
-      id: 3,
-      name: "pcobilaa",
-      avatar: "https://robohash.org/pcobilaa?set=set3",
-      hasPremium: false,
-      status: "studio",
-    },
-    {
-      id: 4,
-      name: "JayJayElmi",
-      avatar: "https://robohash.org/jayjay?set=set3",
-      hasPremium: false,
-      status: "offline",
-    },
-    {
-      id: 5,
-      name: "intann_bil",
-      avatar: "https://robohash.org/intann?set=set3",
-      hasPremium: false,
-      status: "online-game",
-    },
-    {
-      id: 6,
-      name: "reahan000R",
-      avatar: "https://robohash.org/reahan00r?set=set3",
-      hasPremium: false,
-      status: "online",
-    },
-    {
-      id: 7,
-      name: "Rfgzxgfdd",
-      avatar: "https://robohash.org/rfg?set=set3",
-      hasPremium: false,
-      status: "studio",
-    },
-  ];
 
   // Mock feed data
   const feedPosts = [
@@ -202,7 +166,7 @@ const HomePage = () => {
             <section className="mb-12">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  Friends (7)
+                  Friends ({friends.length})
                 </h2>
                 <Link
                   href="/connect"
@@ -213,11 +177,11 @@ const HomePage = () => {
                 </Link>
               </div>
 
-              <div className="flex gap-4 overflow-x-auto pb-2">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-4">
                 {/* Add Friend Button */}
                 <Link
                   href="/connect"
-                  className="flex-shrink-0 flex flex-col items-center gap-2 cursor-pointer hover:opacity-80"
+                  className="flex flex-col items-center gap-2 cursor-pointer hover:opacity-80"
                 >
                   <div className="w-20 h-20 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center border-2 border-gray-300 dark:border-gray-600">
                     <Plus className="w-8 h-8 text-gray-600 dark:text-gray-400" />
@@ -228,38 +192,39 @@ const HomePage = () => {
                 </Link>
 
                 {/* Friends */}
-                {connections.map((connection) => (
+                {friends.map((friend) => (
                   <Link
-                    key={connection.id}
-                    href={`/profile/${connection.name}`}
-                    className="flex-shrink-0 flex flex-col items-center gap-2 cursor-pointer hover:opacity-80"
+                    key={friend.id}
+                    href={`/profile/${friend.username}`}
+                    className="flex flex-col items-center gap-2 cursor-pointer hover:opacity-80"
                   >
                     <div className="relative">
                       <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-700 relative">
                         <Image
-                          src={connection.avatar}
-                          alt={connection.name}
+                          src={friend.avatar}
+                          alt={friend.name}
                           fill
                           className="object-cover"
                         />
                       </div>
                       {/* Status Dot - 50% overlap positioned outside */}
-                      {connection.status && connection.status !== "offline" && (
+                      {friend.status && friend.status !== "offline" && (
                         <div
-                          className={`absolute w-5 h-5 rounded-full border-2 border-white dark:border-gray-900 ${connection.status === "online-game"
+                          className={`absolute w-5 h-5 rounded-full border-2 border-white dark:border-gray-900 ${
+                            friend.status === "online-game"
                               ? "bg-green-500"
-                              : connection.status === "online"
+                              : friend.status === "online"
                                 ? "bg-blue-500"
-                                : connection.status === "studio"
+                                : friend.status === "studio"
                                   ? "bg-orange-500"
                                   : "bg-gray-400"
-                            }`}
+                          }`}
                           style={{ bottom: "-2.5px", right: "-2.5px" }}
                         />
                       )}
                     </div>
                     <p className="text-xs font-semibold text-gray-900 dark:text-gray-100">
-                      {connection.name}
+                      {friend.name}
                     </p>
                   </Link>
                 ))}

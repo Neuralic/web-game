@@ -21,57 +21,6 @@ const ConnectPage = () => {
   const [receivedRequests, setReceivedRequests] = useState<any[]>([]);
   const [sentRequests, setSentRequests] = useState<any[]>([]);
 
-  // Mock friends data for demonstration
-  const mockConnections = [
-    {
-      id: 1,
-      name: "nass4",
-      username: "@accamellow",
-      status: "Playing",
-      statusType: "online-game",
-      avatar: "https://robohash.org/nass4?set=set3",
-    },
-    {
-      id: 2,
-      name: "pcobilaa",
-      username: "@labilaa02",
-      status: "Online",
-      statusType: "online",
-      avatar: "https://robohash.org/pcobilaa?set=set3",
-    },
-    {
-      id: 3,
-      name: "JayJayElmi",
-      username: "@JayJayElmi",
-      status: "In Studio",
-      statusType: "studio",
-      avatar: "https://robohash.org/jayjay?set=set3",
-    },
-    {
-      id: 4,
-      name: "intann_bil",
-      username: "@intann_bil",
-      status: "Offline",
-      statusType: "offline",
-      avatar: "https://robohash.org/intann?set=set3",
-    },
-    {
-      id: 5,
-      name: "reahan00R",
-      username: "@reahan00R",
-      status: "Playing",
-      statusType: "online-game",
-      avatar: "https://robohash.org/reahan?set=set3",
-    },
-    {
-      id: 6,
-      name: "Rfgzxgfdd",
-      username: "@Rfgzxgfdd",
-      status: "Online",
-      statusType: "online",
-      avatar: "https://robohash.org/rfg?set=set3",
-    },
-  ];
 
   const following = [
     {
@@ -151,32 +100,6 @@ const ConnectPage = () => {
     },
   ];
 
-  const mockRequests = [
-    {
-      id: 1,
-      name: "NewUser1",
-      username: "@newuser1",
-      status: "Offline",
-      statusType: "offline",
-      avatar: "https://robohash.org/new1?set=set3",
-    },
-    {
-      id: 2,
-      name: "NewUser2",
-      username: "@newuser2",
-      status: "Online",
-      statusType: "online",
-      avatar: "https://robohash.org/new2?set=set3",
-    },
-    {
-      id: 3,
-      name: "NewUser3",
-      username: "@newuser3",
-      status: "Playing",
-      statusType: "online-game",
-      avatar: "https://robohash.org/new3?set=set3",
-    },
-  ];
 
   const tabs = ["Friends", "Following", "Followers", "Requests"];
 
@@ -188,8 +111,7 @@ const ConnectPage = () => {
         if (activeTab === "Friends") {
           const response = await friendsApi.getFriends();
           if (response.success && response.data) {
-            // Show BOTH mock and real data together
-            // Normalize API data to match mock data format
+            // Normalize API data to match UI format
             const realFriends = (response.data.friends || []).map((friend: any) => ({
               id: friend.id,
               name: friend.display_name || friend.username,
@@ -198,18 +120,17 @@ const ConnectPage = () => {
               statusType: "offline",
               avatar: friend.avatar_url || `https://robohash.org/${friend.username}?set=set3`,
             }));
-            setFriends([...mockConnections, ...realFriends]);
+            setFriends(realFriends);
           } else {
-            setFriends(mockConnections);
+            setFriends([]);
           }
         } else if (activeTab === "Requests") {
           const response = await friendsApi.getFriendRequests();
           if (response.success && response.data) {
-            // Show ONLY real requests (no mock data)
-            // Normalize API data to match mock data format
+            // Normalize API data to match UI format
             const realRequests = (response.data.received || []).map((req: any) => ({
               id: req.sender_id,
-              request_id: req.id,  // fr.id from the API
+              request_id: req.id,
               name: req.sender_display_name || req.sender_username,
               username: `@${req.sender_username}`,
               status: "Offline",
@@ -224,9 +145,9 @@ const ConnectPage = () => {
         }
       } catch (error) {
         console.error("Error fetching data:", error);
-        // Fallback to mock data
-        if (activeTab === "Friends") setFriends(mockConnections);
-        if (activeTab === "Requests") setReceivedRequests(mockRequests);
+        // Set empty arrays on error
+        if (activeTab === "Friends") setFriends([]);
+        if (activeTab === "Requests") setReceivedRequests([]);
       } finally {
         setIsLoading(false);
       }
@@ -270,7 +191,7 @@ const ConnectPage = () => {
             statusType: "offline",
             avatar: friend.avatar_url || `https://robohash.org/${friend.username}?set=set3`,
           }));
-          setFriends([...mockConnections, ...realFriends]);
+          setFriends(realFriends);
         }
       }
     } catch (error) {
@@ -307,7 +228,7 @@ const ConnectPage = () => {
   const getCurrentData = () => {
     switch (activeTab) {
       case "Friends":
-        return friends.length > 0 ? friends : mockConnections;
+        return friends;
       case "Following":
         return following;
       case "Followers":
@@ -315,7 +236,7 @@ const ConnectPage = () => {
       case "Requests":
         return receivedRequests;
       default:
-        return friends.length > 0 ? friends : mockConnections;
+        return friends;
     }
   };
 
