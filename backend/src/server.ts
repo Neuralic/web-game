@@ -5,14 +5,14 @@ import morgan from "morgan";
 import dotenv from "dotenv";
 import { createServer } from "http";
 import { Server as SocketIOServer } from "socket.io";
-import { apiRateLimiter } from "./middleware/rateLimit.middleware";
-import authRoutes from "./modules/auth/auth.routes";
-import usersRoutes from "./modules/users/users.routes";
-import accountsRoutes from "./modules/accounts/accounts.routes";
-import groupsRoutes from "./modules/groups/groups.routes";
-import uploadRoutes from "./modules/upload/upload.routes";
-import friendsRoutes from "./modules/friends/friends.routes";
-import searchRoutes from "./modules/search/search.routes";
+import { apiRateLimiter } from "./middleware/rateLimit.middleware.js";
+import authRoutes from "./modules/auth/auth.routes.js";
+import usersRoutes from "./modules/users/users.routes.js";
+import accountsRoutes from "./modules/accounts/accounts.routes.js";
+import groupsRoutes from "./modules/groups/groups.routes.js";
+import uploadRoutes from "./modules/upload/upload.routes.js";
+import friendsRoutes from "./modules/friends/friends.routes.js";
+import searchRoutes from "./modules/search/search.routes.js";
 
 // Load environment variables
 dotenv.config();
