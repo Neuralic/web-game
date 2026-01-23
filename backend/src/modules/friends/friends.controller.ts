@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import db from "../../lib/db";
 import { AuthRequest } from "../../middleware/auth.middleware";
 import { v4 as uuidv4 } from "uuid";
@@ -93,7 +93,7 @@ export const sendFriendRequest = async (req: AuthRequest, res: Response) => {
 
     // TODO: Create notification for receiver
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Friend request sent successfully",
       data: {
@@ -102,7 +102,7 @@ export const sendFriendRequest = async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     console.error("Send friend request error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
       error: process.env.NODE_ENV === "development" ? error : undefined,
@@ -194,13 +194,13 @@ export const acceptFriendRequest = async (req: AuthRequest, res: Response) => {
 
     // TODO: Create notification for sender
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Friend request accepted",
     });
   } catch (error) {
     console.error("Accept friend request error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
       error: process.env.NODE_ENV === "development" ? error : undefined,
@@ -269,13 +269,13 @@ export const declineFriendRequest = async (
       ["declined", requestId]
     );
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Friend request declined",
     });
   } catch (error) {
     console.error("Decline friend request error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
       error: process.env.NODE_ENV === "development" ? error : undefined,
@@ -323,13 +323,13 @@ export const removeFriend = async (req: AuthRequest, res: Response) => {
       [userId, friendId]
     );
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Friend removed successfully",
     });
   } catch (error) {
     console.error("Remove friend error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
       error: process.env.NODE_ENV === "development" ? error : undefined,
@@ -379,7 +379,7 @@ export const getFriends = async (req: AuthRequest, res: Response) => {
 
     console.log(`Found ${result.rows.length} friends for user ${userId}:`, result.rows);
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: {
         friends: result.rows,
@@ -388,7 +388,7 @@ export const getFriends = async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     console.error("Get friends error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
       error: process.env.NODE_ENV === "development" ? error : undefined,
@@ -446,7 +446,7 @@ export const getFriendRequests = async (req: AuthRequest, res: Response) => {
       [userId]
     );
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: {
         received: receivedResult.rows,
@@ -455,7 +455,7 @@ export const getFriendRequests = async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     console.error("Get friend requests error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
       error: process.env.NODE_ENV === "development" ? error : undefined,
@@ -515,13 +515,13 @@ export const addBestFriend = async (req: AuthRequest, res: Response) => {
       [bestFriendId, userId, friendId]
     );
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Added to best friends",
     });
   } catch (error) {
     console.error("Add best friend error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
       error: process.env.NODE_ENV === "development" ? error : undefined,
@@ -551,13 +551,13 @@ export const removeBestFriend = async (req: AuthRequest, res: Response) => {
       [userId, friendId]
     );
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Removed from best friends",
     });
   } catch (error) {
     console.error("Remove best friend error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
       error: process.env.NODE_ENV === "development" ? error : undefined,
@@ -622,13 +622,13 @@ export const blockUser = async (req: AuthRequest, res: Response) => {
       [blockId, userId, blockedUserId]
     );
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "User blocked successfully",
     });
   } catch (error) {
     console.error("Block user error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
       error: process.env.NODE_ENV === "development" ? error : undefined,
@@ -658,13 +658,13 @@ export const unblockUser = async (req: AuthRequest, res: Response) => {
       [userId, blockedUserId]
     );
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "User unblocked successfully",
     });
   } catch (error) {
     console.error("Unblock user error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
       error: process.env.NODE_ENV === "development" ? error : undefined,
@@ -701,7 +701,7 @@ export const getBlockedUsers = async (req: AuthRequest, res: Response) => {
       [userId]
     );
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: {
         blocked: result.rows,
@@ -709,7 +709,7 @@ export const getBlockedUsers = async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     console.error("Get blocked users error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
       error: process.env.NODE_ENV === "development" ? error : undefined,

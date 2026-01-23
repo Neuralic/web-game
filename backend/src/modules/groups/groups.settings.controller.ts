@@ -53,7 +53,7 @@ export const getGroupSettings = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: {
         settings: settingsResult.rows[0],
@@ -61,7 +61,7 @@ export const getGroupSettings = async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     console.error("Get group settings error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
       error: process.env.NODE_ENV === "development" ? error : undefined,
@@ -217,7 +217,7 @@ export const updateGroupSettings = async (req: AuthRequest, res: Response) => {
       );
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Group settings updated successfully",
       data: {
@@ -226,7 +226,7 @@ export const updateGroupSettings = async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     console.error("Update group settings error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
       error: process.env.NODE_ENV === "development" ? error : undefined,

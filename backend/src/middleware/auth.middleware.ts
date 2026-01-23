@@ -8,7 +8,7 @@ interface JWTPayload {
   username: string;
 }
 
-interface AuthRequest extends Request {
+export interface AuthRequest extends Request {
   userId?: string;
   username?: string;
 }

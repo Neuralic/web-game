@@ -98,7 +98,7 @@ export const createGroup = async (req: AuthRequest, res: Response) => {
       [memberId, group.id, userId, null],
     );
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Group created successfully",
       data: {
@@ -107,7 +107,7 @@ export const createGroup = async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     console.error("Create group error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
       error: process.env.NODE_ENV === "development" ? error : undefined,
@@ -179,7 +179,7 @@ export const getGroupById = async (req: Request, res: Response) => {
       }
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: {
         group,
@@ -187,7 +187,7 @@ export const getGroupById = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Get group error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
       error: process.env.NODE_ENV === "development" ? error : undefined,
@@ -250,7 +250,7 @@ export const getAllGroups = async (req: Request, res: Response) => {
     const countResult = await db.query(countQuery, countParams);
     const totalCount = parseInt(countResult.rows[0].count);
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: {
         groups: groupsResult.rows,
@@ -264,7 +264,7 @@ export const getAllGroups = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Get all groups error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
       error: process.env.NODE_ENV === "development" ? error : undefined,
@@ -384,7 +384,7 @@ export const updateGroup = async (req: AuthRequest, res: Response) => {
       values,
     );
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Group updated successfully",
       data: {
@@ -393,7 +393,7 @@ export const updateGroup = async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     console.error("Update group error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
       error: process.env.NODE_ENV === "development" ? error : undefined,
@@ -444,13 +444,13 @@ export const deleteGroup = async (req: AuthRequest, res: Response) => {
     // Delete the group
     await db.query("DELETE FROM groups WHERE id = $1", [id]);
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Group deleted successfully",
     });
   } catch (error) {
     console.error("Delete group error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
       error: process.env.NODE_ENV === "development" ? error : undefined,
@@ -488,8 +488,6 @@ export const joinGroup = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    const group = groupResult.rows[0];
-
     // Check if user is already a member
     const memberResult = await db.query(
       'SELECT id FROM group_members WHERE "groupId" = $1 AND "userId" = $2',
@@ -522,13 +520,13 @@ export const joinGroup = async (req: AuthRequest, res: Response) => {
       [id],
     );
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Successfully joined the group",
     });
   } catch (error) {
     console.error("Join group error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
       error: process.env.NODE_ENV === "development" ? error : undefined,
@@ -600,13 +598,13 @@ export const leaveGroup = async (req: AuthRequest, res: Response) => {
       [id],
     );
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Successfully left the group",
     });
   } catch (error) {
     console.error("Leave group error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
       error: process.env.NODE_ENV === "development" ? error : undefined,
@@ -639,7 +637,7 @@ export const getGroupMembers = async (req: Request, res: Response) => {
       [id],
     );
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: {
         members: membersResult.rows,
@@ -647,7 +645,7 @@ export const getGroupMembers = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Get group members error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
       error: process.env.NODE_ENV === "development" ? error : undefined,
@@ -694,7 +692,7 @@ export const getUserGroups = async (req: AuthRequest, res: Response) => {
       [userId],
     );
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: {
         groups: groupsResult.rows,
@@ -702,7 +700,7 @@ export const getUserGroups = async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     console.error("Get user groups error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
       error: process.env.NODE_ENV === "development" ? error : undefined,
@@ -737,7 +735,7 @@ export const getGroupGames = async (req: Request, res: Response) => {
       [id],
     );
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: {
         games: gamesResult.rows,
@@ -745,7 +743,7 @@ export const getGroupGames = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Get group games error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
       error: process.env.NODE_ENV === "development" ? error : undefined,
@@ -791,7 +789,7 @@ export const getGroupWallPosts = async (req: Request, res: Response) => {
     const totalCount = parseInt(countResult.rows[0].total);
     const totalPages = Math.ceil(totalCount / limit);
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: {
         posts: postsResult.rows,
@@ -805,7 +803,7 @@ export const getGroupWallPosts = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Get group wall posts error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
       error: process.env.NODE_ENV === "development" ? error : undefined,
@@ -874,7 +872,7 @@ export const createGroupWallPost = async (req: AuthRequest, res: Response) => {
       [postId],
     );
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Wall post created successfully",
       data: {
@@ -883,7 +881,7 @@ export const createGroupWallPost = async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     console.error("Create group wall post error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
       error: process.env.NODE_ENV === "development" ? error : undefined,

@@ -63,7 +63,7 @@ export const getGroupSocialLinks = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: {
         socialLinks: linksResult.rows[0],
@@ -71,7 +71,7 @@ export const getGroupSocialLinks = async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     console.error("Get group social links error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
       error: process.env.NODE_ENV === "development" ? error : undefined,
@@ -263,7 +263,7 @@ export const updateGroupSocialLinks = async (
       );
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Social links updated successfully",
       data: {
@@ -272,7 +272,7 @@ export const updateGroupSocialLinks = async (
     });
   } catch (error) {
     console.error("Update group social links error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
       error: process.env.NODE_ENV === "development" ? error : undefined,

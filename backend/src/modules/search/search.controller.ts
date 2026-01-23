@@ -100,7 +100,7 @@ export const searchUsers = async (req: Request, res: Response) => {
       }
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: {
         users: usersWithStatus,
@@ -109,7 +109,7 @@ export const searchUsers = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Search users error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
       error: process.env.NODE_ENV === "development" ? error : undefined,
@@ -152,7 +152,7 @@ export const quickSearch = async (req: Request, res: Response) => {
       [`${searchQuery}%`]
     );
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: {
         users: result.rows,
@@ -160,7 +160,7 @@ export const quickSearch = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Quick search error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
       error: process.env.NODE_ENV === "development" ? error : undefined,

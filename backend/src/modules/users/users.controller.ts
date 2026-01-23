@@ -63,7 +63,7 @@ export const getProfile = async (req: Request, res: Response) => {
 
     const user = userResult.rows[0];
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: {
         user,
@@ -71,7 +71,7 @@ export const getProfile = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Get profile error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
       error: process.env.NODE_ENV === "development" ? error : undefined,
@@ -136,7 +136,7 @@ export const getUserByUsername = async (req: Request, res: Response) => {
       [user.id],
     );
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: {
         user,
@@ -144,7 +144,7 @@ export const getUserByUsername = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Get user by username error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
       error: process.env.NODE_ENV === "development" ? error : undefined,
@@ -313,7 +313,7 @@ export const updateProfile = async (req: Request, res: Response) => {
       [userId],
     );
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Profile updated successfully",
       data: {
@@ -322,7 +322,7 @@ export const updateProfile = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Update profile error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
       error: process.env.NODE_ENV === "development" ? error : undefined,
@@ -458,13 +458,13 @@ export const updateProfileSettings = async (req: Request, res: Response) => {
       }
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Profile settings updated successfully",
     });
   } catch (error) {
     console.error("Update profile settings error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
       error: process.env.NODE_ENV === "development" ? error : undefined,

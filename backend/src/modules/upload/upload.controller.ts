@@ -61,7 +61,7 @@ export const uploadImage = async (req: AuthRequest, res: Response) => {
       file.mimetype
     );
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "File uploaded successfully",
       data: {
@@ -73,7 +73,7 @@ export const uploadImage = async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     console.error("Upload error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to upload file",
       error: process.env.NODE_ENV === "development" ? error : undefined,
@@ -107,7 +107,13 @@ export const uploadMultipleImages = async (
       });
     }
 
-    const files = req.files as Express.Multer.File[];
+    const files = req.files as Express.Multer.File[] | undefined;
+    if (!files) {
+      return res.status(400).json({
+        success: false,
+        message: "No files uploaded",
+      });
+    }
     const { type } = req.body;
 
     let bucket = "group-images";
@@ -151,7 +157,7 @@ export const uploadMultipleImages = async (
 
     const uploadedFiles = await Promise.all(uploadPromises);
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Files uploaded successfully",
       data: {
@@ -160,7 +166,7 @@ export const uploadMultipleImages = async (
     });
   } catch (error) {
     console.error("Upload multiple error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to upload files",
       error: process.env.NODE_ENV === "development" ? error : undefined,

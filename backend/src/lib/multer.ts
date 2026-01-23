@@ -1,5 +1,6 @@
 import multer from "multer";
 import path from "path";
+import { Request } from "express";
 
 // Configure multer to use memory storage
 // Files will be stored in memory as Buffer objects
@@ -7,7 +8,7 @@ const storage = multer.memoryStorage();
 
 // File filter to only allow images
 const fileFilter = (
-  req: Express.Request,
+  _req: Request,
   file: Express.Multer.File,
   cb: multer.FileFilterCallback
 ) => {

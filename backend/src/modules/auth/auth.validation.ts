@@ -62,7 +62,7 @@ export const validateSignup = [
     .withMessage('Invalid gender selection'),
 
   // Smart validation handler - progressive error display
-  (req: Request, res: Response, next: NextFunction) => {
+  (req: Request, res: Response, next: NextFunction): void | Response => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       const { username, password, month, day, year } = req.body;
@@ -130,7 +130,7 @@ export const validateLogin = [
     .withMessage('Please enter your password'),
 
   // Smart validation handler
-  (req: Request, res: Response, next: NextFunction) => {
+  (req: Request, res: Response, next: NextFunction): void | Response => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       const { username, password } = req.body;
@@ -175,7 +175,7 @@ export const validateEmail = [
     .withMessage('Invalid email format')
     .normalizeEmail(),
 
-  (req: Request, res: Response, next: NextFunction) => {
+  (req: Request, res: Response, next: NextFunction): void | Response => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -199,7 +199,7 @@ export const validatePasswordReset = [
     .withMessage('Invalid email format')
     .normalizeEmail(),
 
-  (req: Request, res: Response, next: NextFunction) => {
+  (req: Request, res: Response, next: NextFunction): void | Response => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
