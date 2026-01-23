@@ -1,3 +1,1 @@
-import app from "./serverless.js";
-
-export default app;
+export { default } from "./serverless.js";
