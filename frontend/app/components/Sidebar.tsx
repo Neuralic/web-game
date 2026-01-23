@@ -11,6 +11,7 @@ import {
   Package,
   TrendingUp,
   Gift,
+  Star,
 } from "lucide-react";
 import VerifiedBadge from "./VerifiedBadge";
 import { usersApi } from "@/lib/api";
@@ -167,6 +168,15 @@ export default function Sidebar({
               >
                 <Users className="w-4 h-4" />
                 <span className="font-medium text-sm">Friends</span>
+              </Link>
+
+              <Link
+                href="/best-friends"
+                className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                onClick={onClose}
+              >
+                <Star className="w-4 h-4 text-yellow-500" />
+                <span className="font-medium text-sm">Best Friends</span>
               </Link>
 
               <Link

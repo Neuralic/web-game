@@ -1127,8 +1127,8 @@ export const friendsApi = {
     });
   },
 
-  // Remove from best friends
-  removeBestFriend: async (friendId: string): Promise<ApiResponse> => {
+  // Remove best friend
+  removeBestFriend: async (friendId: string): Promise<ApiResponse<unknown>> => {
     const token = storage.getAccessToken();
     if (!token) {
       return {
@@ -1139,6 +1139,24 @@ export const friendsApi = {
 
     return apiCall(`/friends/best/${friendId}`, {
       method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  // Get best friends list
+  getBestFriends: async (): Promise<ApiResponse<{ bestFriends: unknown[] }>> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall("/friends/best", {
+      method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
       },

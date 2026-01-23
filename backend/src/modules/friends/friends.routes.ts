@@ -8,6 +8,7 @@ import {
   getFriendRequests,
   addBestFriend,
   removeBestFriend,
+  getBestFriends,
   blockUser,
   unblockUser,
   getBlockedUsers,
@@ -30,6 +31,7 @@ router.get("/", getFriends);
 router.delete("/:friendId", removeFriend);
 
 // Best friends
+router.get("/best", getBestFriends);
 router.post("/best/:friendId", addBestFriend);
 router.delete("/best/:friendId", removeBestFriend);
 

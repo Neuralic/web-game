@@ -493,20 +493,7 @@ export const addBestFriend = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    // Check best friends count (max 10)
-    const countResult = await db.query(
-      `SELECT COUNT(*) as count FROM best_friends WHERE "userId" = $1`,
-      [userId]
-    );
-
-    if (parseInt(countResult.rows[0].count) >= 10) {
-      return res.status(400).json({
-        success: false,
-        message: "You can only have 10 best friends maximum",
-      });
-    }
-
-    // Add to best friends
+    // Add to best friends (no limit)
     const bestFriendId = uuidv4();
     await db.query(
       `INSERT INTO best_friends ("id", "userId", "friendId", "createdAt")
@@ -557,6 +544,61 @@ export const removeBestFriend = async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     console.error("Remove best friend error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: process.env.NODE_ENV === "development" ? error : undefined,
+    });
+  }
+};
+
+/**
+ * @route   POST /api/v1/friends/block/:userId
+ * @desc    Block a user
+ * @access  Private
+ */
+/**
+ * @route   GET /api/v1/friends/best
+ * @desc    Get all best friends
+ * @access  Private
+ */
+export const getBestFriends = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    // Get best friends with user details
+    const result = await db.query(
+      `SELECT 
+        u.id,
+        u.username,
+        u."displayName" as display_name,
+        u."isVerified" as is_verified,
+        u."avatarUrl" as avatar_url,
+        u."presenceStatus" as presence_status,
+        u."currentGame" as current_game,
+        bf."createdAt" as best_friend_since
+       FROM best_friends bf
+       JOIN users u ON bf."friendId" = u.id
+       WHERE bf."userId" = $1
+       ORDER BY bf."createdAt" DESC`,
+      [userId]
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        bestFriends: result.rows,
+      },
+    });
+  } catch (error) {
+    console.error("Get best friends error:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error",
