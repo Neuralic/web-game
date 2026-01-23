@@ -421,7 +421,7 @@ const ProfilePage = () => {
         const userResponse = await usersApi.getCurrentUser();
         if (userResponse.success && userResponse.data) {
           const refreshedUser = userResponse.data.user as UserProfile;
-          setUser(refreshedUser);
+          setProfileUser(refreshedUser);
           // Update fields from fresh API data
           setDisplayName(refreshedUser.display_name || refreshedUser.username);
           setUsername(refreshedUser.username);
