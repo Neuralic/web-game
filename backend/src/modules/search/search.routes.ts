@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { searchUsers, quickSearch } from "./search.controller";
-import { optionalAuth } from "../../middleware/auth.middleware";
+import { searchUsers, quickSearch } from './search.controller.js';
+import { optionalAuth } from '../../middleware/auth.middleware.js';
 
 const router = Router();
 

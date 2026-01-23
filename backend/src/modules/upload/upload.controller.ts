@@ -1,7 +1,7 @@
 import { Response } from "express";
-import { AuthRequest } from "../../middleware/auth.middleware";
-import { uploadFile } from "../../lib/storage";
-import { generateUniqueFilename } from "../../lib/multer";
+import { AuthRequest } from '../../middleware/auth.middleware.js';
+import { uploadFile } from '../../lib/storage.js';
+import { generateUniqueFilename } from '../../lib/multer.js';
 
 /**
  * @route   POST /api/v1/upload/image

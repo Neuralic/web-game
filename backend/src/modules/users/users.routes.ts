@@ -4,8 +4,8 @@ import {
   getUserByUsername,
   updateProfile,
   updateProfileSettings,
-} from "./users.controller";
-import { verifyToken, optionalAuth } from "../../middleware/auth.middleware";
+} from './users.controller.js';
+import { verifyToken, optionalAuth } from '../../middleware/auth.middleware.js';
 
 const router = Router();
 

@@ -19,23 +19,23 @@ import {
   createGroupRole,
   updateGroupRole,
   deleteGroupRole,
-} from "./groups.controller";
+} from './groups.controller.js';
 import {
   getGroupSettings,
   updateGroupSettings,
-} from "./groups.settings.controller";
+} from './groups.settings.controller.js';
 import {
   getGroupSocialLinks,
   updateGroupSocialLinks,
-} from "./groups.social.controller";
+} from './groups.social.controller.js';
 import {
   getGroupAlliances,
   getAllianceRequests,
   sendAllianceRequest,
   respondToAllianceRequest,
   removeAlliance,
-} from "./groups.alliances.controller";
-import { authMiddleware, optionalAuth } from "../../middleware/auth.middleware";
+} from './groups.alliances.controller.js';
+import { authMiddleware, optionalAuth } from '../../middleware/auth.middleware.js';
 
 const router = Router();
 

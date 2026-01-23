@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import db from "../../lib/db";
-import { AuthRequest } from "../../middleware/auth.middleware";
+import db from '../../lib/db.js';
+import { AuthRequest } from '../../middleware/auth.middleware.js';
 
 /**
  * @route   GET /api/v1/search/users

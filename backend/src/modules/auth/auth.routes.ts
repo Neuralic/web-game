@@ -5,8 +5,8 @@ import {
   logout,
   refreshToken,
   verifyEmail,
-} from "./auth.controller";
-import { validateSignup, validateLogin } from "./auth.validation";
+} from './auth.controller.js';
+import { validateSignup, validateLogin } from './auth.validation.js';
 
 const router = Router();
 

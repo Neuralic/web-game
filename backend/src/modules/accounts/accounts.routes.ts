@@ -5,8 +5,8 @@ import {
   switchAccount,
   removeAccount,
   getActiveAccount,
-} from "./accounts.controller";
-import { authMiddleware } from "../../middleware/auth.middleware";
+} from './accounts.controller.js';
+import { authMiddleware } from '../../middleware/auth.middleware.js';
 
 const router = Router();
 
