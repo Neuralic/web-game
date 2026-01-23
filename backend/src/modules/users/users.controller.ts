@@ -34,9 +34,14 @@ export const getProfile = async (req: Request, res: Response) => {
         u."isPremium" as is_premium,
         u."lastLogin" as last_login,
         u."createdAt" as created_at,
-        p.bio,
-        p.status,
-        p."avatarUrl" as avatar_url,
+        u."lastOnline" as last_online,
+        u."presenceStatus" as presence_status,
+        u."currentGame" as current_game,
+        u."followerCount" as follower_count,
+        u."followingCount" as following_count,
+        u.bio,
+        u."statusMessage" as status_message,
+        u."avatarUrl" as avatar_url,
         p."profileTheme" as profile_theme,
         p."profileVisibility" as profile_visibility,
         p."canReceiveFriendRequests" as can_receive_friend_requests,
@@ -44,10 +49,7 @@ export const getProfile = async (req: Request, res: Response) => {
         p."showOnlineStatus" as show_online_status,
         p."showLastSeen" as show_last_seen,
         p."visitCount" as visit_count,
-        p."placeVisits" as place_visits,
-        p."presenceStatus" as presence_status,
-        p."currentGame" as current_game,
-        p."lastSeen" as last_seen
+        p."placeVisits" as place_visits
       FROM users u
       LEFT JOIN profiles p ON u.id = p."userId"
       WHERE u.id = $1`,
@@ -98,15 +100,17 @@ export const getUserByUsername = async (req: Request, res: Response) => {
         u."isPlayer" as is_player,
         u."isStudio" as is_studio,
         u."createdAt" as created_at,
-        p.bio,
-        p.status,
-        p."avatarUrl" as avatar_url,
+        u."lastOnline" as last_online,
+        u."presenceStatus" as presence_status,
+        u."currentGame" as current_game,
+        u."followerCount" as follower_count,
+        u."followingCount" as following_count,
+        u.bio,
+        u."statusMessage" as status_message,
+        u."avatarUrl" as avatar_url,
         p."profileVisibility" as profile_visibility,
         p."visitCount" as visit_count,
-        p."placeVisits" as place_visits,
-        p."presenceStatus" as presence_status,
-        p."currentGame" as current_game,
-        p."lastSeen" as last_seen
+        p."placeVisits" as place_visits
       FROM users u
       LEFT JOIN profiles p ON u.id = p."userId"
       WHERE u.username = $1 AND u."isBanned" = false`,
@@ -464,6 +468,232 @@ export const updateProfileSettings = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Update profile settings error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: process.env.NODE_ENV === "development" ? error : undefined,
+    });
+  }
+};
+
+/**
+ * @route   POST /api/v1/users/:userId/follow
+ * @desc    Follow a user
+ * @access  Private
+ */
+export const followUser = async (req: Request, res: Response) => {
+  try {
+    const followerId = (req as any).userId;
+    const { userId: followingId } = req.params;
+
+    if (!followerId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    // Can't follow yourself
+    if (followerId === followingId) {
+      return res.status(400).json({
+        success: false,
+        message: "You cannot follow yourself",
+      });
+    }
+
+    // Check if user exists
+    const userCheck = await db.query(
+      'SELECT id FROM users WHERE id = $1 AND "isBanned" = false',
+      [followingId]
+    );
+
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Check if already following
+    const existingFollow = await db.query(
+      'SELECT id FROM followers WHERE "followerId" = $1 AND "followingId" = $2',
+      [followerId, followingId]
+    );
+
+    if (existingFollow.rows.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "You are already following this user",
+      });
+    }
+
+    // Create follow relationship
+    await db.query(
+      'INSERT INTO followers ("followerId", "followingId", "createdAt") VALUES ($1, $2, NOW())',
+      [followerId, followingId]
+    );
+
+    // Update follower counts
+    await db.query(
+      'UPDATE users SET "followerCount" = "followerCount" + 1 WHERE id = $1',
+      [followingId]
+    );
+    await db.query(
+      'UPDATE users SET "followingCount" = "followingCount" + 1 WHERE id = $1',
+      [followerId]
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Successfully followed user",
+    });
+  } catch (error) {
+    console.error("Follow user error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: process.env.NODE_ENV === "development" ? error : undefined,
+    });
+  }
+};
+
+/**
+ * @route   DELETE /api/v1/users/:userId/follow
+ * @desc    Unfollow a user
+ * @access  Private
+ */
+export const unfollowUser = async (req: Request, res: Response) => {
+  try {
+    const followerId = (req as any).userId;
+    const { userId: followingId } = req.params;
+
+    if (!followerId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    // Check if following
+    const existingFollow = await db.query(
+      'SELECT id FROM followers WHERE "followerId" = $1 AND "followingId" = $2',
+      [followerId, followingId]
+    );
+
+    if (existingFollow.rows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "You are not following this user",
+      });
+    }
+
+    // Delete follow relationship
+    await db.query(
+      'DELETE FROM followers WHERE "followerId" = $1 AND "followingId" = $2',
+      [followerId, followingId]
+    );
+
+    // Update follower counts
+    await db.query(
+      'UPDATE users SET "followerCount" = GREATEST("followerCount" - 1, 0) WHERE id = $1',
+      [followingId]
+    );
+    await db.query(
+      'UPDATE users SET "followingCount" = GREATEST("followingCount" - 1, 0) WHERE id = $1',
+      [followerId]
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Successfully unfollowed user",
+    });
+  } catch (error) {
+    console.error("Unfollow user error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: process.env.NODE_ENV === "development" ? error : undefined,
+    });
+  }
+};
+
+/**
+ * @route   GET /api/v1/users/:userId/relationship
+ * @desc    Get relationship status with a user (friend, following, etc.)
+ * @access  Private
+ */
+export const getRelationship = async (req: Request, res: Response) => {
+  try {
+    const currentUserId = (req as any).userId;
+    const { userId: targetUserId } = req.params;
+
+    if (!currentUserId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    // Check if users are friends
+    const friendshipCheck = await db.query(
+      `SELECT id FROM friendships 
+       WHERE ("userId" = $1 AND "friendId" = $2) 
+       OR ("userId" = $2 AND "friendId" = $1)`,
+      [currentUserId, targetUserId]
+    );
+
+    const isFriend = friendshipCheck.rows.length > 0;
+
+    // Check if there's a pending friend request
+    const friendRequestCheck = await db.query(
+      `SELECT id, "senderId", "receiverId" FROM friend_requests 
+       WHERE status = 'pending' 
+       AND (("senderId" = $1 AND "receiverId" = $2) OR ("senderId" = $2 AND "receiverId" = $1))`,
+      [currentUserId, targetUserId]
+    );
+
+    let friendRequestStatus = null;
+    if (friendRequestCheck.rows.length > 0) {
+      const request = friendRequestCheck.rows[0];
+      friendRequestStatus = request.senderId === currentUserId ? 'sent' : 'received';
+    }
+
+    // Check if following
+    const followingCheck = await db.query(
+      'SELECT id FROM followers WHERE "followerId" = $1 AND "followingId" = $2',
+      [currentUserId, targetUserId]
+    );
+
+    const isFollowing = followingCheck.rows.length > 0;
+
+    // Check if best friend
+    const bestFriendCheck = await db.query(
+      'SELECT id FROM best_friends WHERE "userId" = $1 AND "friendId" = $2',
+      [currentUserId, targetUserId]
+    );
+
+    const isBestFriend = bestFriendCheck.rows.length > 0;
+
+    // Check if blocked
+    const blockedCheck = await db.query(
+      'SELECT id FROM blocked_users WHERE "userId" = $1 AND "blockedUserId" = $2',
+      [currentUserId, targetUserId]
+    );
+
+    const isBlocked = blockedCheck.rows.length > 0;
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        isFriend,
+        friendRequestStatus,
+        isFollowing,
+        isBestFriend,
+        isBlocked,
+      },
+    });
+  } catch (error) {
+    console.error("Get relationship error:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error",

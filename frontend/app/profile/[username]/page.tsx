@@ -63,6 +63,16 @@ const ProfilePage = () => {
   const [saveError, setSaveError] = useState("");
   const [friends, setFriends] = useState<any[]>([]);
   const [isOwnProfile, setIsOwnProfile] = useState(false);
+  
+  // Relationship state
+  const [relationship, setRelationship] = useState<{
+    isFriend: boolean;
+    friendRequestStatus: 'sent' | 'received' | null;
+    isFollowing: boolean;
+    isBestFriend: boolean;
+    isBlocked: boolean;
+  } | null>(null);
+  const [isLoadingAction, setIsLoadingAction] = useState(false);
 
   // Fetch data from API
   useEffect(() => {
@@ -102,6 +112,14 @@ const ProfilePage = () => {
               setBio(profileData.user.bio || "");
               if (profileData.user.status_message) {
                 setStatusMessage(profileData.user.status_message);
+              }
+              
+              // Fetch relationship status
+              if (profileData.user.id) {
+                const relationshipResponse = await usersApi.getRelationship(profileData.user.id);
+                if (relationshipResponse.success && relationshipResponse.data) {
+                  setRelationship(relationshipResponse.data);
+                }
               }
             }
           }
@@ -333,6 +351,154 @@ const ProfilePage = () => {
   };
 
   // Handle save profile changes
+  // Handle follow/unfollow
+  const handleFollowToggle = async () => {
+    if (!profileUser?.id) return;
+    setIsLoadingAction(true);
+    
+    try {
+      if (relationship?.isFollowing) {
+        const response = await usersApi.unfollowUser(profileUser.id);
+        if (response.success) {
+          setRelationship(prev => prev ? { ...prev, isFollowing: false } : null);
+        }
+      } else {
+        const response = await usersApi.followUser(profileUser.id);
+        if (response.success) {
+          setRelationship(prev => prev ? { ...prev, isFollowing: true } : null);
+        }
+      }
+    } catch (error) {
+      console.error('Follow toggle error:', error);
+    } finally {
+      setIsLoadingAction(false);
+    }
+  };
+
+  // Handle send friend request
+  const handleSendFriendRequest = async () => {
+    if (!profileUser?.id) return;
+    setIsLoadingAction(true);
+    
+    try {
+      const response = await friendsApi.sendFriendRequest(profileUser.id);
+      if (response.success) {
+        setRelationship(prev => prev ? { ...prev, friendRequestStatus: 'sent' } : null);
+      }
+    } catch (error) {
+      console.error('Send friend request error:', error);
+    } finally {
+      setIsLoadingAction(false);
+    }
+  };
+
+  // Handle unfriend
+  const handleUnfriend = async () => {
+    if (!profileUser?.id || !window.confirm('Are you sure you want to unfriend this user?')) return;
+    setIsLoadingAction(true);
+    
+    try {
+      const response = await friendsApi.removeFriend(profileUser.id);
+      if (response.success) {
+        setRelationship(prev => prev ? { ...prev, isFriend: false, isBestFriend: false } : null);
+      }
+    } catch (error) {
+      console.error('Unfriend error:', error);
+    } finally {
+      setIsLoadingAction(false);
+    }
+  };
+
+  // Handle best friend toggle
+  const handleBestFriendToggle = async () => {
+    if (!profileUser?.id) return;
+    setIsLoadingAction(true);
+    
+    try {
+      if (relationship?.isBestFriend) {
+        const response = await friendsApi.removeBestFriend(profileUser.id);
+        if (response.success) {
+          setRelationship(prev => prev ? { ...prev, isBestFriend: false } : null);
+        }
+      } else {
+        const response = await friendsApi.addBestFriend(profileUser.id);
+        if (response.success) {
+          setRelationship(prev => prev ? { ...prev, isBestFriend: true } : null);
+        }
+      }
+    } catch (error) {
+      console.error('Best friend toggle error:', error);
+    } finally {
+      setIsLoadingAction(false);
+    }
+  };
+
+  // Handle block user
+  const handleBlockUser = async () => {
+    if (!profileUser?.id || !window.confirm('Are you sure you want to block this user?')) return;
+    setIsLoadingAction(true);
+    
+    try {
+      const response = await friendsApi.blockUser(profileUser.id);
+      if (response.success) {
+        setRelationship(prev => prev ? { ...prev, isBlocked: true, isFriend: false } : null);
+      }
+    } catch (error) {
+      console.error('Block user error:', error);
+    } finally {
+      setIsLoadingAction(false);
+    }
+  };
+
+  // Handle report abuse
+  const handleReportAbuse = () => {
+    alert('Report abuse functionality coming soon');
+    setShowProfileMenu(false);
+  };
+
+  // Format date helper
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return 'Unknown';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  };
+
+  // Format last online
+  const formatLastOnline = (dateString: string | null | undefined) => {
+    if (!dateString) return 'Never';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+    return formatDate(dateString);
+  };
+
+  // Get presence status badge
+  const getPresenceStatus = (): { color: string; hasIcon: boolean; label: string } | null => {
+    const status = profileUser?.presence_status || 'offline';
+    if (status === 'online') {
+      return {
+        color: 'bg-blue-500',
+        hasIcon: false,
+        label: 'Online'
+      };
+    } else if (status === 'in-game') {
+      return {
+        color: 'bg-green-500',
+        hasIcon: true,
+        label: profileUser?.current_game ? `Playing ${profileUser.current_game}` : 'In Game'
+      };
+    }
+    return null; // offline - no badge
+  };
+
   const handleSaveProfile = async () => {
     setSaveError("");
     setIsSavingProfile(true);
@@ -494,16 +660,21 @@ const ProfilePage = () => {
                   className="object-cover"
                 />
               </div>
-              {/* Status Badge - In Game (Green with gamepad icon) */}
-              <div
-                className="absolute w-7 h-7 bg-green-500 rounded-full flex items-center justify-center border-2 border-white dark:border-gray-900"
-                style={{ bottom: "-3.5px", right: "-3.5px" }}
-              >
-                <FontAwesomeIcon
-                  icon={faGamepad}
-                  className="text-white text-xs"
-                />
-              </div>
+              {/* Status Badge - Dynamic based on presence */}
+              {!isOwnProfile && getPresenceStatus() && (
+                <div
+                  className={`absolute w-7 h-7 ${getPresenceStatus()?.color} rounded-full flex items-center justify-center border-2 border-white dark:border-gray-900`}
+                  style={{ bottom: "-3.5px", right: "-3.5px" }}
+                  title={getPresenceStatus()?.label}
+                >
+                  {getPresenceStatus()?.hasIcon && (
+                    <FontAwesomeIcon
+                      icon={faGamepad}
+                      className="text-white text-xs"
+                    />
+                  )}
+                </div>
+              )}
             </div>
 
             {/* User info */}
@@ -542,14 +713,42 @@ const ProfilePage = () => {
                       </Link>
                     </>
                   ) : (
-                    // Other user's profile - show Add Friend/Message buttons
+                    // Other user's profile - show appropriate buttons based on relationship
                     <>
-                      <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm transition-colors">
-                        Add Friend
-                      </button>
-                      <button className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium rounded-lg text-sm transition-colors">
-                        Message
-                      </button>
+                      {relationship?.isFriend ? (
+                        // Already friends - show Message button
+                        <Link href="/messages">
+                          <button className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium rounded-lg text-sm transition-colors">
+                            Message
+                          </button>
+                        </Link>
+                      ) : relationship?.friendRequestStatus === 'sent' ? (
+                        // Friend request sent
+                        <button 
+                          disabled
+                          className="px-4 py-2 bg-gray-400 text-white font-medium rounded-lg text-sm cursor-not-allowed"
+                        >
+                          Request Sent
+                        </button>
+                      ) : relationship?.friendRequestStatus === 'received' ? (
+                        // Friend request received
+                        <button 
+                          onClick={handleSendFriendRequest}
+                          disabled={isLoadingAction}
+                          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg text-sm transition-colors"
+                        >
+                          Accept Friend Request
+                        </button>
+                      ) : (
+                        // Not friends - show Add Friend button
+                        <button 
+                          onClick={handleSendFriendRequest}
+                          disabled={isLoadingAction}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm transition-colors disabled:opacity-50"
+                        >
+                          Add Friend
+                        </button>
+                      )}
                     </>
                   )}
 
@@ -563,19 +762,76 @@ const ProfilePage = () => {
                     </button>
 
                     {showProfileMenu && (
-                      <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 min-w-[140px] z-50">
-                        <button
-                          className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
-                          onClick={() => setShowProfileMenu(false)}
-                        >
-                          Inventory
-                        </button>
-                        <button
-                          className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
-                          onClick={() => setShowProfileMenu(false)}
-                        >
-                          Favorites
-                        </button>
+                      <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 min-w-[180px] z-50">
+                        {isOwnProfile ? (
+                          // Own profile menu
+                          <>
+                            <button
+                              className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+                              onClick={() => setShowProfileMenu(false)}
+                            >
+                              Inventory
+                            </button>
+                            <button
+                              className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+                              onClick={() => setShowProfileMenu(false)}
+                            >
+                              Favorites
+                            </button>
+                          </>
+                        ) : (
+                          // Other user's profile menu
+                          <>
+                            {relationship?.isFriend && (
+                              <>
+                                <button
+                                  className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                  onClick={() => {
+                                    handleUnfriend();
+                                    setShowProfileMenu(false);
+                                  }}
+                                >
+                                  Unfriend
+                                </button>
+                                <button
+                                  className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                  onClick={() => {
+                                    handleBestFriendToggle();
+                                    setShowProfileMenu(false);
+                                  }}
+                                >
+                                  {relationship?.isBestFriend ? 'Remove Best Friend' : 'Make Best Friend'}
+                                </button>
+                                <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+                              </>
+                            )}
+                            <button
+                              className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+                              onClick={() => {
+                                handleFollowToggle();
+                                setShowProfileMenu(false);
+                              }}
+                            >
+                              {relationship?.isFollowing ? 'Unfollow' : 'Follow'}
+                            </button>
+                            <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+                            <button
+                              className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                              onClick={() => {
+                                handleBlockUser();
+                                setShowProfileMenu(false);
+                              }}
+                            >
+                              Block User
+                            </button>
+                            <button
+                              className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                              onClick={handleReportAbuse}
+                            >
+                              Report Abuse
+                            </button>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
@@ -595,17 +851,41 @@ const ProfilePage = () => {
                     Friends
                   </span>
                 </Link>
-                <Link
-                  href="/connect"
-                  className="flex items-center gap-1 hover:underline"
-                >
+                <div className="flex items-center gap-1">
                   <span className="font-bold text-gray-900 dark:text-gray-100">
-                    1
+                    {profileUser?.followerCount || 0}
                   </span>
                   <span className="text-gray-600 dark:text-gray-400 text-sm">
-                    Follower
+                    Follower{profileUser?.followerCount !== 1 ? 's' : ''}
                   </span>
-                </Link>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="font-bold text-gray-900 dark:text-gray-100">
+                    {profileUser?.followingCount || 0}
+                  </span>
+                  <span className="text-gray-600 dark:text-gray-400 text-sm">
+                    Following
+                  </span>
+                </div>
+                {/* Join Date and Last Online */}
+                <div className="flex items-center gap-1 text-sm">
+                  <span className="text-gray-600 dark:text-gray-400">
+                    Joined:
+                  </span>
+                  <span className="font-medium text-gray-900 dark:text-gray-100">
+                    {formatDate(profileUser?.created_at)}
+                  </span>
+                </div>
+                {!isOwnProfile && profileUser?.last_online && (
+                  <div className="flex items-center gap-1 text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">
+                      Last Online:
+                    </span>
+                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                      {formatLastOnline(profileUser.last_online)}
+                    </span>
+                  </div>
+                )}
                 <Link
                   href="/connect"
                   className="flex items-center gap-1 hover:underline"

@@ -181,6 +181,66 @@ export const usersApi = {
       body: JSON.stringify(data),
     });
   },
+
+  // Follow a user
+  followUser: async (userId: string): Promise<ApiResponse<unknown>> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall(`/users/${userId}/follow`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  // Unfollow a user
+  unfollowUser: async (userId: string): Promise<ApiResponse<unknown>> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall(`/users/${userId}/follow`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  // Get relationship status with a user
+  getRelationship: async (userId: string): Promise<ApiResponse<{
+    isFriend: boolean;
+    friendRequestStatus: 'sent' | 'received' | null;
+    isFollowing: boolean;
+    isBestFriend: boolean;
+    isBlocked: boolean;
+  }>> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall(`/users/${userId}/relationship`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
 };
 
 // Accounts API

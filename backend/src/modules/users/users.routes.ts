@@ -4,6 +4,9 @@ import {
   getUserByUsername,
   updateProfile,
   updateProfileSettings,
+  followUser,
+  unfollowUser,
+  getRelationship,
 } from './users.controller.js';
 import { verifyToken, optionalAuth } from '../../middleware/auth.middleware.js';
 
@@ -29,6 +32,27 @@ router.put("/profile", verifyToken, updateProfile);
  * @access  Private
  */
 router.put("/profile/settings", verifyToken, updateProfileSettings);
+
+/**
+ * @route   POST /api/v1/users/:userId/follow
+ * @desc    Follow a user
+ * @access  Private
+ */
+router.post("/:userId/follow", verifyToken, followUser);
+
+/**
+ * @route   DELETE /api/v1/users/:userId/follow
+ * @desc    Unfollow a user
+ * @access  Private
+ */
+router.delete("/:userId/follow", verifyToken, unfollowUser);
+
+/**
+ * @route   GET /api/v1/users/:userId/relationship
+ * @desc    Get relationship status with a user
+ * @access  Private
+ */
+router.get("/:userId/relationship", verifyToken, getRelationship);
 
 /**
  * @route   GET /api/v1/users/:username
