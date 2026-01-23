@@ -141,24 +141,26 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   });
 });
 
-// Start server
-httpServer.listen(PORT, () => {
-  console.log("🚀 ====================================");
-  console.log(`🎮 AdventureBlox Backend Server`);
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
-  console.log(`📡 API: http://localhost:${PORT}/api/v1`);
-  console.log(`🔌 Socket.IO: ws://localhost:${PORT}`);
-  console.log("🚀 ====================================");
-});
-
-// Graceful shutdown
-process.on("SIGTERM", () => {
-  console.log("SIGTERM signal received: closing HTTP server");
-  httpServer.close(() => {
-    console.log("HTTP server closed");
-    process.exit(0);
+// Start server only if not in serverless environment
+if (process.env.VERCEL !== "1") {
+  httpServer.listen(PORT, () => {
+    console.log("🚀 ====================================");
+    console.log(`🎮 AdventureBlox Backend Server`);
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
+    console.log(`📡 API: http://localhost:${PORT}/api/v1`);
+    console.log(`🔌 Socket.IO: ws://localhost:${PORT}`);
+    console.log("🚀 ====================================");
   });
-});
+
+  // Graceful shutdown
+  process.on("SIGTERM", () => {
+    console.log("SIGTERM signal received: closing HTTP server");
+    httpServer.close(() => {
+      console.log("HTTP server closed");
+      process.exit(0);
+    });
+  });
+}
 
 export { app, io };
