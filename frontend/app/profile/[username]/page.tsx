@@ -853,50 +853,20 @@ const ProfilePage = () => {
                 </Link>
                 <div className="flex items-center gap-1">
                   <span className="font-bold text-gray-900 dark:text-gray-100">
-                    {profileUser?.followerCount || 0}
+                    {profileUser?.follower_count || 0}
                   </span>
                   <span className="text-gray-600 dark:text-gray-400 text-sm">
-                    Follower{profileUser?.followerCount !== 1 ? 's' : ''}
+                    Follower{profileUser?.follower_count !== 1 ? 's' : ''}
                   </span>
                 </div>
                 <div className="flex items-center gap-1">
                   <span className="font-bold text-gray-900 dark:text-gray-100">
-                    {profileUser?.followingCount || 0}
+                    {profileUser?.following_count || 0}
                   </span>
                   <span className="text-gray-600 dark:text-gray-400 text-sm">
                     Following
                   </span>
                 </div>
-                {/* Join Date and Last Online */}
-                <div className="flex items-center gap-1 text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">
-                    Joined:
-                  </span>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">
-                    {formatDate(profileUser?.created_at)}
-                  </span>
-                </div>
-                {!isOwnProfile && profileUser?.last_online && (
-                  <div className="flex items-center gap-1 text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">
-                      Last Online:
-                    </span>
-                    <span className="font-medium text-gray-900 dark:text-gray-100">
-                      {formatLastOnline(profileUser.last_online)}
-                    </span>
-                  </div>
-                )}
-                <Link
-                  href="/connect"
-                  className="flex items-center gap-1 hover:underline"
-                >
-                  <span className="font-bold text-gray-900 dark:text-gray-100">
-                    1
-                  </span>
-                  <span className="text-gray-600 dark:text-gray-400 text-sm">
-                    Following
-                  </span>
-                </Link>
               </div>
             </div>
           </div>
@@ -1546,7 +1516,7 @@ const ProfilePage = () => {
                       Join Date
                     </p>
                     <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
-                      7/15/2022
+                      {formatDate(profileUser?.created_at)}
                     </p>
                   </div>
                   <div className="text-center flex-1">
@@ -1554,7 +1524,9 @@ const ProfilePage = () => {
                       Last Online
                     </p>
                     <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
-                      Now
+                      {profileUser?.presence_status === 'online' || profileUser?.presence_status === 'in-game' 
+                        ? 'Now' 
+                        : formatLastOnline(profileUser?.last_online)}
                     </p>
                   </div>
                   <div className="text-center flex-1">
@@ -1562,7 +1534,7 @@ const ProfilePage = () => {
                       Place Visits
                     </p>
                     <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
-                      31
+                      {profileUser?.visit_count || 0}
                     </p>
                   </div>
                 </div>
