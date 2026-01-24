@@ -11,6 +11,7 @@ import friendsRoutes from './modules/friends/friends.routes.js';
 import groupsRoutes from './modules/groups/groups.routes.js';
 import searchRoutes from './modules/search/search.routes.js';
 import uploadRoutes from './modules/upload/upload.routes.js';
+import messagesRoutes from './modules/messages/messages.routes.js';
 
 dotenv.config();
 
@@ -45,6 +46,7 @@ app.use('/api/v1/friends', friendsRoutes);
 app.use('/api/v1/groups', groupsRoutes);
 app.use('/api/v1/search', searchRoutes);
 app.use('/api/v1/upload', uploadRoutes);
+app.use('/api/v1/messages', messagesRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'Route not found' });

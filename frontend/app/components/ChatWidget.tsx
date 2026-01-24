@@ -1,63 +1,194 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { MessageSquare, X, Settings, Minimize2, Send } from "lucide-react";
+import { messagesApi, friendsApi } from "@/lib/api";
+import { sendChatMessage, onChatMessage, offChatMessage, sendTypingIndicator, onTypingIndicator, offTypingIndicator, markMessagesAsRead } from "@/lib/chat";
+import { usePresence } from "@/contexts/PresenceContext";
+import type { ChatMessage } from "@/lib/chat";
 
-interface Friend {
-  id: number;
-  name: string;
-  avatar: string;
-  lastMessage?: string;
-  lastMessageTime?: string;
-  online?: boolean;
+interface Conversation {
+  id: string;
+  username: string;
+  display_name?: string;
+  avatar_url?: string;
+  presence_status?: string;
+  last_message?: string;
+  last_message_time?: string;
+  unread_count?: number;
 }
 
 interface ChatWindow {
-  id: number;
+  id: string;
   name: string;
   avatar: string;
   username: string;
+  messages: ChatMessage[];
+  isLoadingMessages: boolean;
 }
 
 export default function ChatWidget() {
   const [isChatListOpen, setIsChatListOpen] = useState(false);
   const [openChats, setOpenChats] = useState<ChatWindow[]>([]);
-  const [messageInputs, setMessageInputs] = useState<{ [key: number]: string }>({});
+  const [messageInputs, setMessageInputs] = useState<{ [key: string]: string }>({});
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [typingUsers, setTypingUsers] = useState<{ [key: string]: boolean }>({});
+  const { presenceMap } = usePresence();
+  const messagesEndRef = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
-  const friends: Friend[] = [
-    { id: 1, name: "intann_bil", avatar: "https://robohash.org/intann?set=set3", lastMessage: "Hey!", lastMessageTime: "Yesterday", online: true },
-    { id: 2, name: "reahan007", avatar: "https://robohash.org/reahan007?set=set3", lastMessage: "Thanks", lastMessageTime: "Yesterday", online: true },
-    { id: 3, name: "pcobilaa", avatar: "https://robohash.org/pcobilaa?set=set3", lastMessageTime: "Jul 1", online: false },
-    { id: 4, name: "nass4", avatar: "https://robohash.org/nass4?set=set3", lastMessageTime: "Jun 7", online: false },
-    { id: 5, name: "reahan000R", avatar: "https://robohash.org/reahan00r?set=set3", lastMessageTime: "Jun 7", online: false },
-    { id: 6, name: "Rfgzxgfdd", avatar: "https://robohash.org/rfg?set=set3", lastMessageTime: "Jun 7", online: false },
-    { id: 7, name: "JayJayElmi", avatar: "https://robohash.org/jayjay?set=set3", lastMessageTime: "Jun 5", online: false },
-  ];
+  // Load conversations on mount
+  useEffect(() => {
+    loadConversations();
+  }, []);
 
-  const openChatWindow = (friend: Friend) => {
-    if (!openChats.find(chat => chat.id === friend.id)) {
+  // Listen for incoming messages
+  useEffect(() => {
+    const handleIncomingMessage = (message: ChatMessage) => {
+      // Add to open chat if exists
+      setOpenChats(prev => prev.map(chat => {
+        if (chat.id === message.sender_id) {
+          return {
+            ...chat,
+            messages: [...chat.messages, message]
+          };
+        }
+        return chat;
+      }));
+
+      // Update conversations list
+      loadConversations();
+
+      // Mark as read if chat is open
+      const isOpen = openChats.some(chat => chat.id === message.sender_id);
+      if (isOpen) {
+        markMessagesAsRead(message.sender_id);
+      }
+    };
+
+    const handleTyping = (data: { userId: string; username: string; isTyping: boolean }) => {
+      setTypingUsers(prev => ({
+        ...prev,
+        [data.userId]: data.isTyping
+      }));
+    };
+
+    onChatMessage(handleIncomingMessage);
+    onTypingIndicator(handleTyping);
+
+    return () => {
+      offChatMessage(handleIncomingMessage);
+      offTypingIndicator(handleTyping);
+    };
+  }, [openChats]);
+
+  const loadConversations = async () => {
+    const response = await messagesApi.getConversations();
+    if (response.success && response.data) {
+      setConversations(response.data.conversations as Conversation[]);
+    }
+  };
+
+  const loadMessages = async (userId: string) => {
+    setOpenChats(prev => prev.map(chat => 
+      chat.id === userId ? { ...chat, isLoadingMessages: true } : chat
+    ));
+
+    const response = await messagesApi.getMessages(userId);
+    if (response.success && response.data) {
+      setOpenChats(prev => prev.map(chat => 
+        chat.id === userId 
+          ? { ...chat, messages: response.data!.messages as ChatMessage[], isLoadingMessages: false }
+          : chat
+      ));
+
+      // Mark as read
+      markMessagesAsRead(userId);
+    }
+  };
+
+  const filteredConversations = conversations.filter(conv => 
+    conv.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    conv.display_name?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const openChatWindow = (conv: Conversation) => {
+    if (!openChats.find(chat => chat.id === conv.id)) {
       const newChat: ChatWindow = {
-        id: friend.id,
-        name: friend.name,
-        avatar: friend.avatar,
-        username: `@${friend.name}`,
+        id: conv.id,
+        name: conv.display_name || conv.username,
+        avatar: conv.avatar_url || `https://robohash.org/${conv.username}?set=set3`,
+        username: `@${conv.username}`,
+        messages: [],
+        isLoadingMessages: false,
       };
       setOpenChats([...openChats, newChat]);
+      loadMessages(conv.id);
     }
+    setIsChatListOpen(false);
   };
 
-  const closeChatWindow = (chatId: number) => {
+  const closeChatWindow = (chatId: string) => {
     setOpenChats(openChats.filter(chat => chat.id !== chatId));
+    delete messageInputs[chatId];
   };
 
-  const handleSendMessage = (chatId: number) => {
+  const handleSendMessage = (chatId: string) => {
     const message = messageInputs[chatId];
     if (message && message.trim()) {
-      // Handle message sending logic here
-      console.log(`Sending message to ${chatId}: ${message}`);
-      setMessageInputs({ ...messageInputs, [chatId]: "" });
+      sendChatMessage(chatId, message.trim(), (response) => {
+        if (response.success && response.message) {
+          // Add message to chat
+          setOpenChats(prev => prev.map(chat => {
+            if (chat.id === chatId) {
+              return {
+                ...chat,
+                messages: [...chat.messages, response.message!]
+              };
+            }
+            return chat;
+          }));
+          
+          // Clear input
+          setMessageInputs({ ...messageInputs, [chatId]: "" });
+          
+          // Update conversations
+          loadConversations();
+        }
+      });
     }
+  };
+
+  const handleInputChange = (chatId: string, value: string) => {
+    setMessageInputs({ ...messageInputs, [chatId]: value });
+    
+    // Send typing indicator
+    if (value.length > 0) {
+      sendTypingIndicator(chatId, true);
+    } else {
+      sendTypingIndicator(chatId, false);
+    }
+  };
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  };
+
+  const getPresenceStatus = (userId: string) => {
+    const presence = presenceMap.get(userId);
+    return presence?.presenceStatus || 'offline';
   };
 
   return (
@@ -86,7 +217,9 @@ export default function ChatWidget() {
             <div className="relative">
               <input
                 type="text"
-                placeholder="Search for Friends"
+                placeholder="Search conversations"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 pl-8 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
               <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20">
@@ -95,45 +228,58 @@ export default function ChatWidget() {
             </div>
           </div>
 
-          {/* Friends List */}
+          {/* Conversations List */}
           <div className="flex-1 overflow-y-auto">
-            {friends.map((friend) => (
-              <button
-                key={friend.id}
-                onClick={() => openChatWindow(friend)}
-                className="w-full flex items-center gap-3 p-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700"
-              >
-                <div className="relative flex-shrink-0">
-                  <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-600">
-                    <Image
-                      src={friend.avatar}
-                      alt={friend.name}
-                      width={40}
-                      height={40}
-                      className="w-full h-full object-cover"
-                    />
+            {filteredConversations.length === 0 ? (
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400 text-sm">
+                {searchQuery ? 'No conversations found' : 'No messages yet'}
+              </div>
+            ) : (
+              filteredConversations.map((conv) => (
+                <button
+                  key={conv.id}
+                  onClick={() => openChatWindow(conv)}
+                  className="w-full flex items-center gap-3 p-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700"
+                >
+                  <div className="relative flex-shrink-0">
+                    <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-600">
+                      <Image
+                        src={conv.avatar_url || `https://robohash.org/${conv.username}?set=set3`}
+                        alt={conv.username}
+                        width={40}
+                        height={40}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    {getPresenceStatus(conv.id) !== 'offline' && (
+                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-800"></div>
+                    )}
+                    {(conv.unread_count || 0) > 0 && (
+                      <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                        {conv.unread_count}
+                      </div>
+                    )}
                   </div>
-                  {friend.online && (
-                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-800"></div>
-                  )}
-                </div>
-                <div className="flex-1 text-left min-w-0">
-                  <div className="flex items-center justify-between">
-                    <p className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">
-                      {friend.name}
-                    </p>
-                    <span className="text-xs text-gray-500 dark:text-gray-400 ml-2 flex-shrink-0">
-                      {friend.lastMessageTime}
-                    </span>
+                  <div className="flex-1 text-left min-w-0">
+                    <div className="flex items-center justify-between">
+                      <p className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">
+                        {conv.display_name || conv.username}
+                      </p>
+                      {conv.last_message_time && (
+                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-2 flex-shrink-0">
+                          {formatTime(conv.last_message_time)}
+                        </span>
+                      )}
+                    </div>
+                    {conv.last_message && (
+                      <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                        {conv.last_message}
+                      </p>
+                    )}
                   </div>
-                  {friend.lastMessage && (
-                    <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
-                      {friend.lastMessage}
-                    </p>
-                  )}
-                </div>
-              </button>
-            ))}
+                </button>
+              ))
+            )}
           </div>
         </div>
       )}
@@ -177,33 +323,78 @@ export default function ChatWidget() {
             </div>
           </div>
 
-          {/* First Conversation Notice */}
-          <div className="flex-1 overflow-y-auto p-4">
-            <div className="text-center py-8">
-              <div className="w-20 h-20 mx-auto mb-3 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-600">
-                <Image
-                  src={chat.avatar}
-                  alt={chat.name}
-                  width={80}
-                  height={80}
-                  className="w-full h-full object-cover"
-                />
+          {/* Messages Area */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            {chat.isLoadingMessages ? (
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400 text-sm">
+                Loading messages...
               </div>
-              <h4 className="font-bold text-gray-900 dark:text-gray-100 mb-1">
-                {chat.name}
-              </h4>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mb-4">
-                {chat.username}
-              </p>
-              <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 max-w-xs mx-auto">
-                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                  First conversation with {chat.name}
+            ) : chat.messages.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="w-20 h-20 mx-auto mb-3 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-600">
+                  <Image
+                    src={chat.avatar}
+                    alt={chat.name}
+                    width={80}
+                    height={80}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <h4 className="font-bold text-gray-900 dark:text-gray-100 mb-1">
+                  {chat.name}
+                </h4>
+                <p className="text-xs text-gray-600 dark:text-gray-400 mb-4">
+                  {chat.username}
                 </p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">
-                  Your safety matters. Not feeling comfortable? You can block or report this person anytime from their profile.
-                </p>
+                <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 max-w-xs mx-auto">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                    Start a conversation with {chat.name}
+                  </p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                    Send a message to begin chatting!
+                  </p>
+                </div>
               </div>
-            </div>
+            ) : (
+              <>
+                {chat.messages.map((msg) => {
+                  const isCurrentUser = msg.sender_id !== chat.id;
+                  return (
+                    <div
+                      key={msg.id}
+                      className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div
+                        className={`max-w-[70%] rounded-lg px-3 py-2 ${
+                          isCurrentUser
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
+                        }`}
+                      >
+                        <p className="text-sm break-words">{msg.content}</p>
+                        <p
+                          className={`text-xs mt-1 ${
+                            isCurrentUser ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'
+                          }`}
+                        >
+                          {formatTime(msg.created_at)}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+                {typingUsers[chat.id] && (
+                  <div className="flex justify-start">
+                    <div className="bg-gray-200 dark:bg-gray-700 rounded-lg px-3 py-2">
+                      <p className="text-sm text-gray-600 dark:text-gray-400 italic">
+                        {chat.name} is typing...
+                      </p>
+                    </div>
+                  </div>
+                )}
+                <div ref={(el) => { messagesEndRef.current[chat.id] = el; }} />
+              </>
+            )}
           </div>
 
           {/* Message Input */}
@@ -213,7 +404,7 @@ export default function ChatWidget() {
                 type="text"
                 placeholder="Send a message"
                 value={messageInputs[chat.id] || ""}
-                onChange={(e) => setMessageInputs({ ...messageInputs, [chat.id]: e.target.value })}
+                onChange={(e) => handleInputChange(chat.id, e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSendMessage(chat.id)}
                 className="flex-1 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />

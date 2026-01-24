@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { PresenceProvider } from "@/contexts/PresenceContext";
+import GlobalChatWidget from "./components/GlobalChatWidget";
 
 export const metadata: Metadata = {
   title: "AdventureBlox",
@@ -24,6 +25,7 @@ export default function RootLayout({
         >
           <PresenceProvider>
             {children}
+            <GlobalChatWidget />
           </PresenceProvider>
         </ThemeProvider>
       </body>

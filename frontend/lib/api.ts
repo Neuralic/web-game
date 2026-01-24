@@ -1180,6 +1180,83 @@ export const friendsApi = {
       },
     });
   },
+};
+
+// Messages API
+export const messagesApi = {
+  // Get all conversations
+  getConversations: async (): Promise<ApiResponse<{ conversations: unknown[] }>> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall("/messages/conversations", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  // Get messages with a specific user
+  getMessages: async (userId: string, limit = 50, offset = 0): Promise<ApiResponse<{ messages: unknown[] }>> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall(`/messages/${userId}?limit=${limit}&offset=${offset}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  // Send a message (REST fallback)
+  sendMessage: async (userId: string, content: string): Promise<ApiResponse<{ message: unknown }>> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall(`/messages/${userId}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ content }),
+    });
+  },
+
+  // Mark message as read
+  markAsRead: async (messageId: string): Promise<ApiResponse> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall(`/messages/${messageId}/read`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
 
   // Unblock user
   unblockUser: async (userId: string): Promise<ApiResponse> => {

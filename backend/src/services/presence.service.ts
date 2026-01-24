@@ -200,6 +200,114 @@ export const initializePresenceService = (io: SocketIOServer) => {
       await broadcastPresenceUpdate(io, authSocket.userId);
     });
 
+    // ===== CHAT EVENTS =====
+    
+    // Send message
+    socket.on('chat:send', async (data: { receiverId: string; content: string }, callback) => {
+      if (!authSocket.userId) {
+        callback?.({ success: false, error: 'Unauthorized' });
+        return;
+      }
+
+      try {
+        const { receiverId, content } = data;
+
+        if (!content || !content.trim() || content.length > 2000) {
+          callback?.({ success: false, error: 'Invalid message content' });
+          return;
+        }
+
+        // Save message to database
+        const messageId = require('uuid').v4();
+        const result = await db.query(
+          `INSERT INTO messages (id, "senderId", "receiverId", content, "createdAt")
+           VALUES ($1, $2, $3, $4, NOW())
+           RETURNING 
+             id,
+             "senderId" as sender_id,
+             "receiverId" as receiver_id,
+             content,
+             "isRead" as is_read,
+             "createdAt" as created_at`,
+          [messageId, authSocket.userId, receiverId, content.trim()]
+        );
+
+        const message = result.rows[0];
+
+        // Get sender info
+        const senderResult = await db.query(
+          `SELECT username, "displayName" as display_name, "avatarUrl" as avatar_url
+           FROM users WHERE id = $1`,
+          [authSocket.userId]
+        );
+
+        const messageWithSender = {
+          ...message,
+          sender_username: senderResult.rows[0]?.username,
+          sender_display_name: senderResult.rows[0]?.display_name,
+          sender_avatar_url: senderResult.rows[0]?.avatar_url,
+        };
+
+        // Send to receiver's sockets if online
+        const receiverSockets = activeConnections.get(receiverId);
+        if (receiverSockets) {
+          receiverSockets.forEach((socketId) => {
+            io.to(socketId).emit('chat:message', messageWithSender);
+          });
+        }
+
+        // Confirm to sender
+        callback?.({ success: true, message: messageWithSender });
+      } catch (error) {
+        console.error('Chat send error:', error);
+        callback?.({ success: false, error: 'Failed to send message' });
+      }
+    });
+
+    // Typing indicator
+    socket.on('chat:typing', (data: { receiverId: string; isTyping: boolean }) => {
+      if (!authSocket.userId) return;
+
+      const { receiverId, isTyping } = data;
+      const receiverSockets = activeConnections.get(receiverId);
+      
+      if (receiverSockets) {
+        receiverSockets.forEach((socketId) => {
+          io.to(socketId).emit('chat:typing', {
+            userId: authSocket.userId,
+            username: authSocket.username,
+            isTyping,
+          });
+        });
+      }
+    });
+
+    // Mark messages as read
+    socket.on('chat:read', async (data: { senderId: string }) => {
+      if (!authSocket.userId) return;
+
+      try {
+        await db.query(
+          `UPDATE messages 
+           SET "isRead" = true, "readAt" = NOW()
+           WHERE "receiverId" = $1 AND "senderId" = $2 AND "isRead" = false`,
+          [authSocket.userId, data.senderId]
+        );
+
+        // Notify sender that messages were read
+        const senderSockets = activeConnections.get(data.senderId);
+        if (senderSockets) {
+          senderSockets.forEach((socketId) => {
+            io.to(socketId).emit('chat:read', {
+              userId: authSocket.userId,
+            });
+          });
+        }
+      } catch (error) {
+        console.error('Mark as read error:', error);
+      }
+    });
+
     // Handle disconnect
     socket.on('disconnect', async () => {
       await handleUserOffline(authSocket, io);
