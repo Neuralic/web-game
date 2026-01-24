@@ -8,6 +8,14 @@ import { sendChatMessage, onChatMessage, offChatMessage, sendTypingIndicator, on
 import { usePresence } from "@/contexts/PresenceContext";
 import type { ChatMessage } from "@/lib/chat";
 
+interface Friend {
+  id: string;
+  username: string;
+  display_name?: string;
+  avatar_url?: string;
+  presence_status?: string;
+}
+
 interface Conversation {
   id: string;
   username: string;
@@ -32,14 +40,16 @@ export default function ChatWidget() {
   const [isChatListOpen, setIsChatListOpen] = useState(false);
   const [openChats, setOpenChats] = useState<ChatWindow[]>([]);
   const [messageInputs, setMessageInputs] = useState<{ [key: string]: string }>({});
+  const [friends, setFriends] = useState<Friend[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [typingUsers, setTypingUsers] = useState<{ [key: string]: boolean }>({});
   const { presenceMap } = usePresence();
   const messagesEndRef = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
-  // Load conversations on mount
+  // Load friends and conversations on mount
   useEffect(() => {
+    loadFriends();
     loadConversations();
   }, []);
 
@@ -83,6 +93,13 @@ export default function ChatWidget() {
     };
   }, [openChats]);
 
+  const loadFriends = async () => {
+    const response = await friendsApi.getFriends();
+    if (response.success && response.data) {
+      setFriends(response.data.friends as Friend[]);
+    }
+  };
+
   const loadConversations = async () => {
     const response = await messagesApi.getConversations();
     if (response.success && response.data) {
@@ -113,6 +130,11 @@ export default function ChatWidget() {
     conv.display_name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const filteredFriends = friends.filter(friend => 
+    friend.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    friend.display_name?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const openChatWindow = (conv: Conversation) => {
     if (!openChats.find(chat => chat.id === conv.id)) {
       const newChat: ChatWindow = {
@@ -125,6 +147,22 @@ export default function ChatWidget() {
       };
       setOpenChats([...openChats, newChat]);
       loadMessages(conv.id);
+    }
+    setIsChatListOpen(false);
+  };
+
+  const openChatWindowFromFriend = (friend: Friend) => {
+    if (!openChats.find(chat => chat.id === friend.id)) {
+      const newChat: ChatWindow = {
+        id: friend.id,
+        name: friend.display_name || friend.username,
+        avatar: friend.avatar_url || `https://robohash.org/${friend.username}?set=set3`,
+        username: `@${friend.username}`,
+        messages: [],
+        isLoadingMessages: false,
+      };
+      setOpenChats([...openChats, newChat]);
+      loadMessages(friend.id);
     }
     setIsChatListOpen(false);
   };
@@ -217,7 +255,7 @@ export default function ChatWidget() {
             <div className="relative">
               <input
                 type="text"
-                placeholder="Search conversations"
+                placeholder="Search friends and conversations"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 pl-8 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -228,57 +266,107 @@ export default function ChatWidget() {
             </div>
           </div>
 
-          {/* Conversations List */}
+          {/* Conversations & Friends List */}
           <div className="flex-1 overflow-y-auto">
-            {filteredConversations.length === 0 ? (
-              <div className="text-center py-8 text-gray-500 dark:text-gray-400 text-sm">
-                {searchQuery ? 'No conversations found' : 'No messages yet'}
-              </div>
-            ) : (
-              filteredConversations.map((conv) => (
-                <button
-                  key={conv.id}
-                  onClick={() => openChatWindow(conv)}
-                  className="w-full flex items-center gap-3 p-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700"
-                >
-                  <div className="relative flex-shrink-0">
-                    <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-600">
-                      <Image
-                        src={conv.avatar_url || `https://robohash.org/${conv.username}?set=set3`}
-                        alt={conv.username}
-                        width={40}
-                        height={40}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    {getPresenceStatus(conv.id) !== 'offline' && (
-                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-800"></div>
-                    )}
-                    {(conv.unread_count || 0) > 0 && (
-                      <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
-                        {conv.unread_count}
+            {/* Conversations Section */}
+            {filteredConversations.length > 0 && (
+              <>
+                <div className="px-3 py-2 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Recent Chats</p>
+                </div>
+                {filteredConversations.map((conv) => (
+                  <button
+                    key={conv.id}
+                    onClick={() => openChatWindow(conv)}
+                    className="w-full flex items-center gap-3 p-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700"
+                  >
+                    <div className="relative flex-shrink-0">
+                      <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-600">
+                        <Image
+                          src={conv.avatar_url || `https://robohash.org/${conv.username}?set=set3`}
+                          alt={conv.username}
+                          width={40}
+                          height={40}
+                          className="w-full h-full object-cover"
+                        />
                       </div>
-                    )}
-                  </div>
-                  <div className="flex-1 text-left min-w-0">
-                    <div className="flex items-center justify-between">
-                      <p className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">
-                        {conv.display_name || conv.username}
-                      </p>
-                      {conv.last_message_time && (
-                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-2 flex-shrink-0">
-                          {formatTime(conv.last_message_time)}
-                        </span>
+                      {getPresenceStatus(conv.id) !== 'offline' && (
+                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-800"></div>
+                      )}
+                      {(conv.unread_count || 0) > 0 && (
+                        <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                          {conv.unread_count}
+                        </div>
                       )}
                     </div>
-                    {conv.last_message && (
+                    <div className="flex-1 text-left min-w-0">
+                      <div className="flex items-center justify-between">
+                        <p className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">
+                          {conv.display_name || conv.username}
+                        </p>
+                        {conv.last_message_time && (
+                          <span className="text-xs text-gray-500 dark:text-gray-400 ml-2 flex-shrink-0">
+                            {formatTime(conv.last_message_time)}
+                          </span>
+                        )}
+                      </div>
+                      {conv.last_message && (
+                        <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                          {conv.last_message}
+                        </p>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </>
+            )}
+
+            {/* Friends Section */}
+            {filteredFriends.length > 0 && (
+              <>
+                <div className="px-3 py-2 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Friends</p>
+                </div>
+                {filteredFriends.map((friend) => (
+                  <button
+                    key={friend.id}
+                    onClick={() => openChatWindowFromFriend(friend)}
+                    className="w-full flex items-center gap-3 p-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700"
+                  >
+                    <div className="relative flex-shrink-0">
+                      <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-600">
+                        <Image
+                          src={friend.avatar_url || `https://robohash.org/${friend.username}?set=set3`}
+                          alt={friend.username}
+                          width={40}
+                          height={40}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      {getPresenceStatus(friend.id) !== 'offline' && (
+                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-800"></div>
+                      )}
+                    </div>
+                    <div className="flex-1 text-left min-w-0">
+                      <div className="flex items-center justify-between">
+                        <p className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">
+                          {friend.display_name || friend.username}
+                        </p>
+                      </div>
                       <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
-                        {conv.last_message}
+                        @{friend.username}
                       </p>
-                    )}
-                  </div>
-                </button>
-              ))
+                    </div>
+                  </button>
+                ))}
+              </>
+            )}
+
+            {/* Empty State */}
+            {filteredConversations.length === 0 && filteredFriends.length === 0 && (
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400 text-sm">
+                {searchQuery ? 'No friends or conversations found' : 'No friends yet'}
+              </div>
             )}
           </div>
         </div>
