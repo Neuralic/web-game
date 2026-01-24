@@ -204,9 +204,37 @@ export default function ChatWidget() {
           // Update conversations
           loadConversations();
         } else {
-          console.error('Failed to send message:', response.error);
+          // Fallback to REST API
+          sendViaRestApi(chatId, message.trim());
         }
       });
+    }
+  };
+
+  const sendViaRestApi = async (chatId: string, content: string) => {
+    try {
+      const response = await messagesApi.sendMessage(chatId, content);
+      
+      if (response.success && response.data?.message) {
+        // Add message to chat
+        setOpenChats(prev => prev.map(chat => {
+          if (chat.id === chatId) {
+            return {
+              ...chat,
+              messages: [...chat.messages, response.data!.message as ChatMessage]
+            };
+          }
+          return chat;
+        }));
+        
+        // Clear input
+        setMessageInputs({ ...messageInputs, [chatId]: "" });
+        
+        // Update conversations
+        loadConversations();
+      }
+    } catch (error) {
+      // Silent error handling
     }
   };
 

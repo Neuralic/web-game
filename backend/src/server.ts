@@ -22,13 +22,11 @@ const io = new SocketIOServer(httpServer, {
 // Initialize presence service
 initializePresenceService(io);
 
-// Start server only in non-production (Vercel handles production)
-if (process.env.NODE_ENV !== 'production') {
-  httpServer.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`🔌 Socket.IO server ready`);
-  });
-}
+// Always start server for Socket.IO to work
+httpServer.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🔌 Socket.IO server ready`);
+});
 
 export { httpServer, io };
 export default app;
