@@ -106,10 +106,8 @@ export const createGroup = async (req: AuthRequest, res: Response) => {
         "canManageAds",
         "canSpendGroupFunds",
         "canCreateInvites",
-        "canBanMembers",
-        "createdAt",
-        "updatedAt"
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, NOW(), NOW())`,
+        "canBanMembers"
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
       [
         ownerRoleId,
         group.id,
@@ -153,10 +151,8 @@ export const createGroup = async (req: AuthRequest, res: Response) => {
         "canManageAds",
         "canSpendGroupFunds",
         "canCreateInvites",
-        "canBanMembers",
-        "createdAt",
-        "updatedAt"
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, NOW(), NOW())`,
+        "canBanMembers"
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
       [
         memberRoleId,
         group.id,
