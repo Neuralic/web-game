@@ -427,6 +427,20 @@ const GroupDetailPage = () => {
 
         {/* Main Content */}
         <div className="flex-1 min-w-0 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+          {/* Cover Photo - Full width if exists */}
+          {currentGroup?.cover_photo_url && (
+            <div className="w-full h-[200px] relative overflow-hidden">
+              <Image
+                src={currentGroup.cover_photo_url}
+                alt={`${currentGroup.name} cover`}
+                fill
+                className="object-cover"
+                sizes="100vw"
+                priority
+              />
+            </div>
+          )}
+
           {/* Group Header */}
           <div className="flex items-start gap-4 p-4 border-b border-gray-200 dark:border-gray-700">
             {currentGroup ? (
@@ -472,148 +486,175 @@ const GroupDetailPage = () => {
                       </div>
                     )}
                   </div>
+                </div>
 
+                {/* Right side: Join Button + Three Dot Menu */}
+                <div className="flex items-center gap-2">
                   {/* Join Button - Show only if user is not a member */}
                   {!currentGroup.role && (
-                    <div className="mt-4">
-                      <button
-                        onClick={handleJoinGroup}
-                        disabled={joining}
-                        className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {joining ? "Joining..." : "Join Group"}
-                      </button>
-                    </div>
+                    <button
+                      onClick={handleJoinGroup}
+                      disabled={joining}
+                      className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {joining ? "Joining..." : "Join Community"}
+                    </button>
                   )}
+
+                  {/* Three Dot Menu */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setGroupMenuOpen(!groupMenuOpen)}
+                      className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                    >
+                      <MoreHorizontal className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                    </button>
+
+                    {groupMenuOpen && (
+                      <>
+                        {/* Backdrop to close menu */}
+                        <div
+                          className="fixed inset-0 z-10"
+                          onClick={() => setGroupMenuOpen(false)}
+                        />
+
+                        {/* Dropdown Menu */}
+                        <div className="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-lg z-20 py-1">
+                          {/* If user is a member/owner - show full menu */}
+                          {currentGroup.role ? (
+                            <>
+                              {/* Admin Options - Only show if user is Owner */}
+                              {currentGroup.role === "Owner" && (
+                                <>
+                                  <Link href={`/groups/${groupId}/configure`}>
+                                    <button
+                                      onClick={() => setGroupMenuOpen(false)}
+                                      className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                    >
+                                      Configure Group
+                                    </button>
+                                  </Link>
+                                  <button
+                                    onClick={() => {
+                                      alert("Group Admin Panel");
+                                      setGroupMenuOpen(false);
+                                    }}
+                                    className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                  >
+                                    Group Admin
+                                  </button>
+                                  <Link
+                                    href={`/groups/${groupId}/configure?section=Advertise Group`}
+                                  >
+                                    <button
+                                      onClick={() => setGroupMenuOpen(false)}
+                                      className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                    >
+                                      Advertise Group
+                                    </button>
+                                  </Link>
+                                </>
+                              )}
+
+                              {/* Regular Member Options */}
+                              <button
+                                onClick={async () => {
+                                  setGroupMenuOpen(false);
+                                  if (groupId) {
+                                    setActionLoading(true);
+                                    const response =
+                                      await groupsApi.makePrimaryGroup(groupId);
+                                    setActionLoading(false);
+                                    if (response.success) {
+                                      setSuccessMessage({
+                                        title: "Success",
+                                        message: "Group set as primary!",
+                                      });
+                                      setShowSuccessModal(true);
+                                    } else {
+                                      setSuccessMessage({
+                                        title: "Error",
+                                        message:
+                                          response.error || "Failed to set primary group",
+                                      });
+                                      setShowSuccessModal(true);
+                                    }
+                                  }
+                                }}
+                                className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                              >
+                                Make Primary
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setGroupMenuOpen(false);
+                                  setShowLeaveConfirm(true);
+                                }}
+                                className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                              >
+                                Leave Group
+                              </button>
+
+                              {/* Owner Only Option */}
+                              {currentGroup.role === "Owner" && (
+                                <button
+                                  onClick={() => {
+                                    alert("Change Owner");
+                                    setGroupMenuOpen(false);
+                                  }}
+                                  className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                >
+                                  Change Owner
+                                </button>
+                              )}
+
+                              <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+                            </>
+                          ) : (
+                            /* If user is NOT a member - show limited menu */
+                            <>
+                              <button
+                                onClick={() => {
+                                  setGroupMenuOpen(false);
+                                  if (groupId) {
+                                    navigator.clipboard.writeText(
+                                      `${window.location.origin}/groups/${groupId}`
+                                    );
+                                    setSuccessMessage({
+                                      title: "Success",
+                                      message: "Group link copied to clipboard!",
+                                    });
+                                    setShowSuccessModal(true);
+                                  }
+                                }}
+                                className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                              >
+                                Copy Link
+                              </button>
+                            </>
+                          )}
+
+                          {/* Report Abuse - Always visible */}
+                          <button
+                            onClick={() => {
+                              setGroupMenuOpen(false);
+                              setShowReportModal(true);
+                            }}
+                            className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                          >
+                            Report Abuse
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
               </>
             ) : (
               <div className="flex-1 text-center py-8">
-                <p className="text-gray-600 dark:text-gray-400">
-                  Group not found
-                </p>
+                <p className="text-gray-600 dark:text-gray-400">Group not found</p>
               </div>
             )}
-
-            {/* Group Menu */}
-            <div className="relative">
-              <button
-                onClick={() => setGroupMenuOpen(!groupMenuOpen)}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
-              >
-                <MoreHorizontal className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-              </button>
-
-              {groupMenuOpen && (
-                <>
-                  {/* Backdrop to close menu */}
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setGroupMenuOpen(false)}
-                  />
-
-                  {/* Dropdown Menu */}
-                  <div className="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-lg z-20 py-1">
-                    {/* Admin Options - Only show if user is Admin or Owner */}
-                    {currentGroup && currentGroup.role === "Owner" && (
-                      <>
-                        <Link href={`/groups/${groupId}/configure`}>
-                          <button
-                            onClick={() => setGroupMenuOpen(false)}
-                            className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                          >
-                            Configure Group
-                          </button>
-                        </Link>
-                        <button
-                          onClick={() => {
-                            alert("Group Admin Panel");
-                            setGroupMenuOpen(false);
-                          }}
-                          className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                        >
-                          Group Admin
-                        </button>
-                        <Link
-                          href={`/groups/${groupId}/configure?section=Advertise Group`}
-                        >
-                          <button
-                            onClick={() => setGroupMenuOpen(false)}
-                            className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                          >
-                            Advertise Group
-                          </button>
-                        </Link>
-                      </>
-                    )}
-
-                    {/* Regular Options */}
-                    <button
-                      onClick={async () => {
-                        setGroupMenuOpen(false);
-                        if (groupId) {
-                          setActionLoading(true);
-                          const response =
-                            await groupsApi.makePrimaryGroup(groupId);
-                          setActionLoading(false);
-                          if (response.success) {
-                            setSuccessMessage({
-                              title: "Success",
-                              message: "Group set as primary!",
-                            });
-                            setShowSuccessModal(true);
-                          } else {
-                            setSuccessMessage({
-                              title: "Error",
-                              message:
-                                response.error || "Failed to set primary group",
-                            });
-                            setShowSuccessModal(true);
-                          }
-                        }
-                      }}
-                      className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    >
-                      Make Primary
-                    </button>
-                    <button
-                      onClick={() => {
-                        setGroupMenuOpen(false);
-                        setShowLeaveConfirm(true);
-                      }}
-                      className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    >
-                      Leave Group
-                    </button>
-
-                    {/* Owner Only Option */}
-                    {currentGroup && currentGroup.role === "Owner" && (
-                      <button
-                        onClick={() => {
-                          alert("Change Owner");
-                          setGroupMenuOpen(false);
-                        }}
-                        className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                      >
-                        Change Owner
-                      </button>
-                    )}
-
-                    <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
-
-                    <button
-                      onClick={() => {
-                        setGroupMenuOpen(false);
-                        setShowReportModal(true);
-                      }}
-                      className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    >
-                      Report Abuse
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
           </div>
 
           {/* Tabs */}
@@ -997,20 +1038,20 @@ const GroupDetailPage = () => {
         }
         message={
           currentGroupDetails?.role === "Owner"
-            ? currentGroupDetails.member_count > 1
+            ? (currentGroupDetails?.member_count ?? 0) > 1
               ? "As the owner, you cannot leave while there are other members. Remove all members first, then you can leave to delete the group."
               : "You are the last member and the owner. Leaving will permanently delete this group. This action cannot be undone."
             : "Are you sure you want to leave this group? This action cannot be undone."
         }
         confirmText={
           currentGroupDetails?.role === "Owner" &&
-          currentGroupDetails.member_count === 1
+          currentGroupDetails?.member_count === 1
             ? "Delete Group"
             : "Leave Group"
         }
         cancelText={
           currentGroupDetails?.role === "Owner" &&
-          currentGroupDetails.member_count > 1
+          currentGroupDetails?.member_count > 1
             ? "Close"
             : "Cancel"
         }
@@ -1018,7 +1059,7 @@ const GroupDetailPage = () => {
         loading={actionLoading}
         disabled={
           currentGroupDetails?.role === "Owner" &&
-          currentGroupDetails.member_count > 1
+          (currentGroupDetails?.member_count ?? 0) > 1
         }
       />
 
