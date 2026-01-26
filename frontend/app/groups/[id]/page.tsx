@@ -54,7 +54,7 @@ const GroupDetailPage = () => {
   const [currentGroupDetails, setCurrentGroupDetails] = useState<Group | null>(
     null,
   );
-  const [loading, setLoading] = useState(true);
+  const [loadingGroups, setLoadingGroups] = useState(true);
   const [wallPosts, setWallPosts] = useState<
     Array<{
       id: string;
@@ -94,17 +94,16 @@ const GroupDetailPage = () => {
   // Fetch user's groups for sidebar
   useEffect(() => {
     const fetchUserGroups = async () => {
-      setLoading(true);
+      setLoadingGroups(true);
       try {
         const response = await groupsApi.getUserGroups();
         if (response.success && response.data) {
-          const groups = (response.data.groups as Group[]) || [];
-          setUserGroups(groups);
+          setUserGroups((response.data.groups as Group[]) || []);
         }
       } catch (error) {
-        console.error("Error fetching user groups:", error);
+        console.error("Failed to fetch user groups:", error);
       } finally {
-        setLoading(false);
+        setLoadingGroups(false);
       }
     };
 
@@ -343,41 +342,29 @@ const GroupDetailPage = () => {
       </div>
 
       {/* Main Layout */}
-      <div className="flex w-full gap-4 px-4">
-        {/* Sidebar - My Groups */}
-        <div className="w-[200px] bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg flex-shrink-0">
-          {/* Header */}
-          <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">
-              Groups
-            </h2>
-            <Link
-              href="/groups"
-              className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-            >
-              See All
-            </Link>
-          </div>
+      <div className="flex w-full gap-6 px-6 py-6">
+        {/* Left Sidebar - 25% width, no borders/padding/inner sections */}
+        <div className="w-1/4 flex-shrink-0">
+          {/* Groups List - Clean, no containers */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                Groups
+              </h2>
+              <Link
+                href="/groups"
+                className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                See All
+              </Link>
+            </div>
 
-          {/* Search Bar */}
-          <div className="p-2">
-            <input
-              type="text"
-              value={groupSearch}
-              onChange={(e) => setGroupSearch(e.target.value)}
-              placeholder="Search my groups"
-              className="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-          </div>
-
-          {/* Groups List */}
-          <div className="py-2">
-            {loading ? (
-              <div className="flex items-center justify-center py-4">
-                <Loader2 className="w-5 h-5 animate-spin text-gray-600 dark:text-gray-400" />
+            {loadingGroups ? (
+              <div className="py-4 text-center">
+                <Loader2 className="w-5 h-5 animate-spin text-blue-600 dark:text-blue-400 mx-auto" />
               </div>
             ) : userGroups.length === 0 ? (
-              <div className="px-3 py-4 text-center">
+              <div className="py-4 text-center">
                 <p className="text-xs text-gray-600 dark:text-gray-400">
                   No groups yet
                 </p>
@@ -397,8 +384,8 @@ const GroupDetailPage = () => {
                   <Link
                     key={group.id}
                     href={`/groups/${group.id}`}
-                    className={`w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                      groupId === group.id ? "bg-gray-100 dark:bg-gray-700" : ""
+                    className={`flex items-center gap-2 py-2 text-left hover:opacity-80 transition-opacity ${
+                      groupId === group.id ? "font-semibold" : ""
                     }`}
                   >
                     <div className="w-8 h-8 rounded overflow-hidden bg-gray-200 dark:bg-gray-600 flex-shrink-0 relative">
@@ -425,8 +412,8 @@ const GroupDetailPage = () => {
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="flex-1 min-w-0 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+        {/* Main Content - 75% width */}
+        <div className="w-3/4 bg-white dark:bg-gray-900 rounded-lg overflow-hidden">
           {/* Cover Photo - Full width if exists */}
           {currentGroup?.cover_photo_url && (
             <div className="w-full h-[200px] relative overflow-hidden">
