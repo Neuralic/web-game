@@ -906,6 +906,28 @@ export const groupsApi = {
       },
     });
   },
+
+  // Update group shout
+  updateGroupShout: async (
+    id: string,
+    shoutText: string,
+  ): Promise<ApiResponse<{ shout: unknown }>> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall(`/groups/${id}/shout`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ shoutText }),
+    });
+  },
 };
 
 // Upload API

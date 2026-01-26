@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Search, Loader2 } from "lucide-react";
@@ -24,6 +25,7 @@ interface Group {
 }
 
 const GroupsPage = () => {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userGroups, setUserGroups] = useState<Group[]>([]);
@@ -41,10 +43,17 @@ const GroupsPage = () => {
         // Fetch user's groups (groups they own or are a member of)
         const userGroupsResponse = await groupsApi.getUserGroups();
         if (userGroupsResponse.success && userGroupsResponse.data) {
-          setUserGroups((userGroupsResponse.data.groups as Group[]) || []);
+          const groups = (userGroupsResponse.data.groups as Group[]) || [];
+          setUserGroups(groups);
+          
+          // If user has groups, redirect to first group details page
+          if (groups.length > 0) {
+            router.push(`/groups/${groups[0].id}`);
+            return;
+          }
         }
 
-        // Fetch all groups for discovery
+        // Only fetch all groups if user has no groups (discovery mode)
         const allGroupsResponse = await groupsApi.getAllGroups({
           page: 1,
           limit: 20,
@@ -61,7 +70,7 @@ const GroupsPage = () => {
     };
 
     fetchGroups();
-  }, []);
+  }, [router]);
 
   // Mock groups data
   const friendsGroups = [

@@ -1698,6 +1698,75 @@ export const updateGroupRole = async (req: AuthRequest, res: Response) => {
 };
 
 /**
+ * @route   PUT /api/v1/groups/:id/shout
+ * @desc    Update group shout (owner only)
+ * @access  Private
+ */
+export const updateGroupShout = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId;
+    const { id } = req.params;
+    const { shoutText } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    // Check if user is the owner
+    const groupResult = await db.query(
+      'SELECT "ownerId" FROM groups WHERE id = $1',
+      [id],
+    );
+
+    if (groupResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Group not found",
+      });
+    }
+
+    if (groupResult.rows[0].ownerId !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: "Only the group owner can update the shout",
+      });
+    }
+
+    // Update shout
+    const updateResult = await db.query(
+      `UPDATE groups 
+       SET "shoutText" = $1, 
+           "shoutPostedAt" = NOW(), 
+           "shoutPostedBy" = $2,
+           "updatedAt" = NOW()
+       WHERE id = $3
+       RETURNING 
+         "shoutText" as shout_text,
+         "shoutPostedAt" as shout_posted_at,
+         "shoutPostedBy" as shout_posted_by`,
+      [shoutText || null, userId, id],
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Shout updated successfully",
+      data: {
+        shout: updateResult.rows[0],
+      },
+    });
+  } catch (error) {
+    console.error("Update shout error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+/**
  * @route   DELETE /api/v1/groups/:id/roles/:roleId
  * @desc    Delete a role from a group (owner only)
  * @access  Private

@@ -339,7 +339,7 @@ const GroupDetailPage = () => {
           {/* Groups Header */}
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">
-              Communities
+              Groups
             </h2>
             <Link
               href="/groups"
@@ -353,7 +353,7 @@ const GroupDetailPage = () => {
           <div className="mb-4">
             <input
               type="text"
-              placeholder="Search My Communities"
+              placeholder="Search My Groups"
               className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-gray-800 border-none rounded text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
@@ -413,7 +413,7 @@ const GroupDetailPage = () => {
               href="/groups/create"
               className="block w-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-semibold py-2.5 text-sm rounded-lg transition-colors text-center"
             >
-              Create Community
+              Create Group
             </Link>
           </div>
         </div>
@@ -491,7 +491,7 @@ const GroupDetailPage = () => {
                       disabled={joining}
                       className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {joining ? "Joining..." : "Join Community"}
+                      {joining ? "Joining..." : "Join Group"}
                     </button>
                   )}
 
@@ -720,14 +720,44 @@ const GroupDetailPage = () => {
                         className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                       <button
-                        onClick={() => {
-                          if (shoutText.trim()) {
-                            // TODO: Implement actual shout posting API call
-                            alert("Shout posting will be implemented");
-                            setShoutText("");
+                        onClick={async () => {
+                          if (shoutText.trim() && groupId) {
+                            try {
+                              const response = await groupsApi.updateGroupShout(
+                                groupId,
+                                shoutText.trim(),
+                              );
+                              if (response.success) {
+                                // Refresh group details to show new shout
+                                const groupResponse = await groupsApi.getGroupById(groupId);
+                                if (groupResponse.success && groupResponse.data) {
+                                  setCurrentGroupDetails(groupResponse.data.group as Group);
+                                }
+                                setShoutText("");
+                                setSuccessMessage({
+                                  title: "Success",
+                                  message: "Shout posted successfully!",
+                                });
+                                setShowSuccessModal(true);
+                              } else {
+                                setSuccessMessage({
+                                  title: "Error",
+                                  message: response.error || "Failed to post shout",
+                                });
+                                setShowSuccessModal(true);
+                              }
+                            } catch (error) {
+                              console.error("Error posting shout:", error);
+                              setSuccessMessage({
+                                title: "Error",
+                                message: "Failed to post shout",
+                              });
+                              setShowSuccessModal(true);
+                            }
                           }
                         }}
-                        className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded transition-colors"
+                        disabled={!shoutText.trim()}
+                        className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Group Shout
                       </button>

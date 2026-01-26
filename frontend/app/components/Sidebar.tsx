@@ -223,7 +223,7 @@ export default function Sidebar({
                 onClick={onClose}
                 className="block w-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-semibold py-2.5 text-sm rounded-lg transition-colors text-center"
               >
-                Create Community
+                Create Group
               </Link>
             </div>
 

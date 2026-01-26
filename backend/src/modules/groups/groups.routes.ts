@@ -19,6 +19,7 @@ import {
   createGroupRole,
   updateGroupRole,
   deleteGroupRole,
+  updateGroupShout,
 } from './groups.controller.js';
 import {
   getGroupSettings,
@@ -72,6 +73,9 @@ router.post("/:id/report", authMiddleware, reportGroup);
 router.post("/:id/roles", authMiddleware, createGroupRole);
 router.patch("/:id/roles/:roleId", authMiddleware, updateGroupRole);
 router.delete("/:id/roles/:roleId", authMiddleware, deleteGroupRole);
+
+// Protected routes - Shout management
+router.put("/:id/shout", authMiddleware, updateGroupShout);
 
 // Protected routes - Alliance management
 router.post("/:id/alliances", authMiddleware, sendAllianceRequest);
