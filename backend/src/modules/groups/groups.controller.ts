@@ -249,9 +249,12 @@ export const getGroupById = async (req: Request, res: Response) => {
         g."shoutPostedBy" as shout_posted_by,
         g."createdAt" as created_at,
         u.username as owner_username,
-        u."displayName" as owner_display_name
+        u."displayName" as owner_display_name,
+        shout_user.username as shout_posted_by_username,
+        shout_user."avatarUrl" as shout_posted_by_avatar
       FROM groups g
       LEFT JOIN users u ON g."ownerId" = u.id
+      LEFT JOIN users shout_user ON g."shoutPostedBy" = shout_user.id
       WHERE g.id = $1`,
       [id],
     );

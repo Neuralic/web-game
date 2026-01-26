@@ -184,7 +184,6 @@ const ConfigureGroupPage = () => {
       { name: "Members", hasNew: false },
       { name: "Roles", hasNew: false },
       { name: "Alliances", hasNew: false },
-      { name: "Shout", hasNew: false },
       { name: "Wall", hasNew: false },
       { name: "Advertise Group", hasNew: false },
       { name: "Analytics", hasNew: false },
@@ -2110,70 +2109,6 @@ const ConfigureGroupPage = () => {
                           </div>
                         ))}
                       </div>
-                    </div>
-                  </div>
-                )}
-
-                {activeSection === "Shout" && (
-                  <div className="space-y-6">
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                      Shout
-                    </h2>
-
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Post a shout to share updates with all group members.
-                      Shouts appear on the group page.
-                    </p>
-
-                    {/* Shout Input */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Enter your shout
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={shoutTitle}
-                          onChange={(e) => setShoutTitle(e.target.value)}
-                          placeholder="Enter your shout"
-                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Description Section - Optional */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Description
-                      </label>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                        Add additional context or details (optional)
-                      </p>
-                      <div className="relative">
-                        <textarea
-                          value={shoutContent}
-                          onChange={(e) => setShoutContent(e.target.value)}
-                          placeholder="Add description (optional)..."
-                          rows={4}
-                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex gap-3">
-                      <button className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded transition-colors">
-                        Group Shout
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShoutTitle("");
-                          setShoutContent("");
-                        }}
-                        className="px-8 py-2.5 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium rounded transition-colors"
-                      >
-                        Clear
-                      </button>
                     </div>
                   </div>
                 )}

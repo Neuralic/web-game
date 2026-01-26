@@ -13,63 +13,79 @@ interface Member {
   is_verified: boolean;
   joined_at: string;
   role_id?: string;
+  role_name?: string;
+}
+
+interface Role {
+  id: string;
+  name: string;
+  rank: number;
 }
 
 interface MembersSectionProps {
   groupId?: string;
 }
 
-const roles = [
-  { name: "All Members", value: "all" },
-  { name: "Owner", value: "Owner" },
-  { name: "Admin", value: "Admin" },
-  { name: "Moderator", value: "Moderator" },
-  { name: "VIP", value: "VIP" },
-  { name: "Customer", value: "Customer" },
-  { name: "Member", value: "Member" },
-];
 
 export default function MembersSection({ groupId }: MembersSectionProps) {
   const [selectedRole, setSelectedRole] = useState("all");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [members, setMembers] = useState<Member[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // Fetch members
+  // Fetch members and roles
   useEffect(() => {
-    const fetchMembers = async () => {
+    const fetchData = async () => {
       if (!groupId) return;
 
       setLoading(true);
       try {
-        const response = await groupsApi.getGroupMembers(groupId);
-        if (response.success && response.data) {
-          setMembers((response.data.members as Member[]) || []);
+        // Fetch members
+        const membersResponse = await groupsApi.getGroupMembers(groupId);
+        if (membersResponse.success && membersResponse.data) {
+          setMembers((membersResponse.data.members as Member[]) || []);
+        }
+
+        // Fetch roles
+        const rolesResponse = await groupsApi.getGroupRoles(groupId);
+        if (rolesResponse.success && rolesResponse.data) {
+          setRoles((rolesResponse.data.roles as Role[]) || []);
         }
       } catch (err) {
-        console.error("Error fetching members:", err);
+        console.error("Error fetching data:", err);
         setError("Failed to load members");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchMembers();
+    fetchData();
   }, [groupId]);
 
-  const filteredMembers =
-    selectedRole === "all"
-      ? members
-      : members.filter((member) => member.role_id === selectedRole);
+  // Filter members by role and search query
+  const filteredMembers = members.filter((member) => {
+    // Filter by role
+    const roleMatch = selectedRole === "all" || member.role_id === selectedRole;
+    
+    // Filter by search query (semantic search on username and display name)
+    const searchMatch = searchQuery.trim() === "" || 
+      member.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (member.display_name && member.display_name.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    return roleMatch && searchMatch;
+  });
   return (
     <div className="p-4 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-          Members
-        </h2>
+      <div className="flex flex-col gap-3 mb-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+            Members
+          </h2>
 
-        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
             <button className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors">
               <ChevronLeft className="w-4 h-4" />
@@ -86,7 +102,9 @@ export default function MembersSection({ groupId }: MembersSectionProps) {
               className="flex items-center justify-between gap-2 min-w-[140px] px-3 py-1.5 border border-gray-200 dark:border-gray-700 rounded text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             >
               <span>
-                {selectedRole === "all" ? "All Members" : selectedRole}
+                {selectedRole === "all" 
+                  ? "All Members" 
+                  : roles.find(r => r.id === selectedRole)?.name || "Select Role"}
               </span>
               <ChevronDown className="w-4 h-4 flex-shrink-0" />
             </button>
@@ -101,15 +119,28 @@ export default function MembersSection({ groupId }: MembersSectionProps) {
 
                 {/* Dropdown Menu */}
                 <div className="absolute right-0 top-full mt-1 w-full min-w-[140px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-lg z-20 py-1 max-h-[300px] overflow-y-auto">
+                  <button
+                    onClick={() => {
+                      setSelectedRole("all");
+                      setIsDropdownOpen(false);
+                    }}
+                    className={`w-full px-3 py-2 text-left text-sm transition-colors ${
+                      selectedRole === "all"
+                        ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium"
+                        : "text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    }`}
+                  >
+                    All Members
+                  </button>
                   {roles.map((role) => (
                     <button
-                      key={role.value}
+                      key={role.id}
                       onClick={() => {
-                        setSelectedRole(role.value);
+                        setSelectedRole(role.id);
                         setIsDropdownOpen(false);
                       }}
                       className={`w-full px-3 py-2 text-left text-sm transition-colors ${
-                        selectedRole === role.value
+                        selectedRole === role.id
                           ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium"
                           : "text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
                       }`}
@@ -121,7 +152,17 @@ export default function MembersSection({ groupId }: MembersSectionProps) {
               </>
             )}
           </div>
+          </div>
         </div>
+
+        {/* Search Input */}
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search members by username..."
+          className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
       </div>
 
       <div className="flex flex-wrap gap-3">

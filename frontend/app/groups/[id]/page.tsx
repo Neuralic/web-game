@@ -33,6 +33,8 @@ interface Group {
   shout_image_url?: string;
   shout_posted_at?: string;
   shout_posted_by?: string;
+  shout_posted_by_username?: string;
+  shout_posted_by_avatar?: string;
   join_setting?: string;
   created_at?: string;
 }
@@ -726,18 +728,56 @@ const GroupDetailPage = () => {
 
                 {/* Current Shout Display */}
                 {currentGroup?.shout_text ? (
-                  <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded border border-gray-100 dark:border-gray-800 mb-4">
-                    <p className="text-sm text-gray-900 dark:text-gray-100">
-                      {currentGroup.shout_text}
-                    </p>
-                    {currentGroup.shout_posted_at && (
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                        Posted{" "}
-                        {new Date(
-                          currentGroup.shout_posted_at,
-                        ).toLocaleString()}
-                      </p>
-                    )}
+                  <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded border border-gray-100 dark:border-gray-700 mb-4">
+                    <div className="flex items-start gap-3">
+                      {/* Avatar */}
+                      <div className="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-600 flex-shrink-0 overflow-hidden">
+                        {currentGroup.shout_posted_by_avatar ? (
+                          <img 
+                            src={currentGroup.shout_posted_by_avatar} 
+                            alt={currentGroup.shout_posted_by_username || "User"}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-600 dark:text-gray-300 font-semibold">
+                            {currentGroup.shout_posted_by_username?.charAt(0).toUpperCase() || "?"}
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        {/* Username */}
+                        {currentGroup.shout_posted_by_username && (
+                          <a 
+                            href={`/users/${currentGroup.shout_posted_by_username}`}
+                            className="font-semibold text-sm text-gray-900 dark:text-gray-100 hover:underline"
+                          >
+                            {currentGroup.shout_posted_by_username}
+                          </a>
+                        )}
+                        
+                        {/* Shout Message */}
+                        <p className="text-sm text-gray-700 dark:text-gray-200 mt-1 break-words">
+                          {currentGroup.shout_text}
+                        </p>
+                        
+                        {/* Timestamp */}
+                        {currentGroup.shout_posted_at && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                            {new Date(currentGroup.shout_posted_at).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric"
+                            })} | {new Date(currentGroup.shout_posted_at).toLocaleTimeString("en-US", {
+                              hour: "numeric",
+                              minute: "2-digit",
+                              hour12: true
+                            })}
+                          </p>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
