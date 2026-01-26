@@ -442,10 +442,10 @@ const GroupDetailPage = () => {
           )}
 
           {/* Group Header */}
-          <div className="flex items-start gap-4 p-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-start gap-4 p-6 border-b border-gray-100 dark:border-gray-800">
             {currentGroup ? (
               <>
-                <div className="w-[120px] h-[120px] border border-gray-200 dark:border-gray-700 rounded overflow-hidden flex-shrink-0 bg-gray-100 dark:bg-gray-700 relative">
+                <div className="w-[120px] h-[120px] border border-gray-100 dark:border-gray-800 rounded overflow-hidden flex-shrink-0 bg-gray-100 dark:bg-gray-700 relative">
                   {currentGroup.icon_url ? (
                     <Image
                       src={currentGroup.icon_url}
@@ -659,7 +659,7 @@ const GroupDetailPage = () => {
 
           {/* Tabs */}
           {/* Tab Navigation */}
-          <div className="flex gap-2 px-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex gap-2 px-6 border-b border-gray-100 dark:border-gray-800">
             {tabs.map((tab) => (
               <button
                 key={tab}
@@ -687,14 +687,14 @@ const GroupDetailPage = () => {
               </div>
 
               {/* Shout Section */}
-              <div className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 p-6">
+              <div className="bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 p-6">
                 <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-4">
                   Shout
                 </h3>
 
                 {/* Current Shout Display */}
                 {currentGroup?.shout_text ? (
-                  <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 mb-4">
+                  <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded border border-gray-100 dark:border-gray-800 mb-4">
                     <p className="text-sm text-gray-900 dark:text-gray-100">
                       {currentGroup.shout_text}
                     </p>
@@ -755,7 +755,7 @@ const GroupDetailPage = () => {
               <SocialLinksSection groupId={currentGroup?.id} />
 
               {/* Wall Section */}
-              <div className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 p-6">
+              <div className="bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 p-6">
                 <h2 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-4">
                   Wall
                 </h2>
