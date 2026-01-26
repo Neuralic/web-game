@@ -984,13 +984,13 @@ const GroupDetailPage = () => {
               )}
             </div>
           )}
+
+          {/* Footer */}
+          <div className="mt-8">
+            <Footer />
+          </div>
           </div>
         </div>
-      </div>
-
-      {/* Footer */}
-      <div className="mt-8">
-        <Footer />
       </div>
 
       {/* Modals */}
