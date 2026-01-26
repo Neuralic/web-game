@@ -1802,15 +1802,7 @@ const ConfigureGroupPage = () => {
                           />
                         </div>
 
-                        <button 
-                          onClick={handleSaveRole}
-                          disabled={!roleName.trim() || saving}
-                          className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {saving ? "Saving..." : (selectedRole ? "Save Changes" : "Create Role")}
-                        </button>
-
-                        {/* Posts Section */}
+                        {/* Posts Section */
                         <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
                           <button 
                             onClick={() => setPermissionSectionsCollapsed(prev => ({ ...prev, posts: !prev.posts }))}
@@ -1824,9 +1816,9 @@ const ConfigureGroupPage = () => {
                             </span>
                           </button>
                           {!permissionSectionsCollapsed.posts && (
-                          <div className="p-5 space-y-4 bg-gray-800 dark:bg-gray-900">
+                          <div className="p-5 space-y-4 bg-gray-50 dark:bg-gray-800">
                             <div className="flex items-center justify-between">
-                              <span className="text-sm text-gray-100">
+                              <span className="text-sm text-gray-700 dark:text-gray-100">
                                 Post on community wall
                               </span>
                               <ToggleSwitch
@@ -1840,7 +1832,7 @@ const ConfigureGroupPage = () => {
                               />
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="text-sm text-gray-100">
+                              <span className="text-sm text-gray-700 dark:text-gray-100">
                                 Delete community wall posts
                               </span>
                               <ToggleSwitch
@@ -1854,7 +1846,7 @@ const ConfigureGroupPage = () => {
                               />
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="text-sm text-gray-100">
+                              <span className="text-sm text-gray-700 dark:text-gray-100">
                                 Post group shout
                               </span>
                               <ToggleSwitch
@@ -1885,9 +1877,9 @@ const ConfigureGroupPage = () => {
                             </span>
                           </button>
                           {!permissionSectionsCollapsed.members && (
-                          <div className="p-5 space-y-4 bg-gray-800 dark:bg-gray-900">
+                          <div className="p-5 space-y-4 bg-gray-50 dark:bg-gray-800">
                             <div className="flex items-center justify-between">
-                              <span className="text-sm text-gray-100">
+                              <span className="text-sm text-gray-700 dark:text-gray-100">
                                 Manage members
                               </span>
                               <ToggleSwitch
@@ -1901,7 +1893,7 @@ const ConfigureGroupPage = () => {
                               />
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="text-sm text-gray-100">
+                              <span className="text-sm text-gray-700 dark:text-gray-100">
                                 Delete members
                               </span>
                               <ToggleSwitch
@@ -1915,7 +1907,7 @@ const ConfigureGroupPage = () => {
                               />
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="text-sm text-gray-100">
+                              <span className="text-sm text-gray-700 dark:text-gray-100">
                                 Ban members
                               </span>
                               <ToggleSwitch
@@ -1946,9 +1938,9 @@ const ConfigureGroupPage = () => {
                             </span>
                           </button>
                           {!permissionSectionsCollapsed.moderation && (
-                          <div className="p-5 space-y-4 bg-gray-800 dark:bg-gray-900">
+                          <div className="p-5 space-y-4 bg-gray-50 dark:bg-gray-800">
                             <div className="flex items-center justify-between">
-                              <span className="text-sm text-gray-100">
+                              <span className="text-sm text-gray-700 dark:text-gray-100">
                                 View audit log
                               </span>
                               <ToggleSwitch
@@ -1962,7 +1954,7 @@ const ConfigureGroupPage = () => {
                               />
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="text-sm text-gray-100">
+                              <span className="text-sm text-gray-700 dark:text-gray-100">
                                 Spend group funds
                               </span>
                               <ToggleSwitch
@@ -1976,7 +1968,7 @@ const ConfigureGroupPage = () => {
                               />
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="text-sm text-gray-100">
+                              <span className="text-sm text-gray-700 dark:text-gray-100">
                                 Advertise group
                               </span>
                               <ToggleSwitch
@@ -1990,7 +1982,7 @@ const ConfigureGroupPage = () => {
                               />
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="text-sm text-gray-100">
+                              <span className="text-sm text-gray-700 dark:text-gray-100">
                                 Manage ads
                               </span>
                               <ToggleSwitch
@@ -2004,7 +1996,7 @@ const ConfigureGroupPage = () => {
                               />
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="text-sm text-gray-100">
+                              <span className="text-sm text-gray-700 dark:text-gray-100">
                                 Manage alliances
                               </span>
                               <ToggleSwitch
@@ -2018,7 +2010,7 @@ const ConfigureGroupPage = () => {
                               />
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="text-sm text-gray-100">
+                              <span className="text-sm text-gray-700 dark:text-gray-100">
                                 Manage roles
                               </span>
                               <ToggleSwitch
@@ -2032,7 +2024,7 @@ const ConfigureGroupPage = () => {
                               />
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="text-sm text-gray-100">
+                              <span className="text-sm text-gray-700 dark:text-gray-100">
                                 Manage store
                               </span>
                               <ToggleSwitch
@@ -2046,7 +2038,7 @@ const ConfigureGroupPage = () => {
                               />
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="text-sm text-gray-100">
+                              <span className="text-sm text-gray-700 dark:text-gray-100">
                                 Manage games
                               </span>
                               <ToggleSwitch
@@ -2062,6 +2054,15 @@ const ConfigureGroupPage = () => {
                           </div>
                           )}
                         </div>
+
+                        {/* Save Button at Bottom */}
+                        <button 
+                          onClick={handleSaveRole}
+                          disabled={!roleName.trim() || saving}
+                          className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-6"
+                        >
+                          {saving ? "Saving..." : (selectedRole ? "Save Changes" : "Create Role")}
+                        </button>
                       </div>
                     </div>
                   </div>
