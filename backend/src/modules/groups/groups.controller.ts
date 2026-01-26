@@ -85,7 +85,101 @@ export const createGroup = async (req: AuthRequest, res: Response) => {
 
     const group = groupResult.rows[0];
 
-    // Add creator as owner in group_members
+    // Create default Owner role
+    const ownerRoleId = uuidv4();
+    await db.query(
+      `INSERT INTO group_roles (
+        id,
+        "groupId",
+        name,
+        rank,
+        description,
+        "canManageMembers",
+        "canManageRoles",
+        "canPostOnWall",
+        "canDeleteWallPosts",
+        "canPostShout",
+        "canManageStore",
+        "canManageGames",
+        "canViewAuditLogs",
+        "canManageAlliances",
+        "canManageAds",
+        "canSpendGroupFunds",
+        "canCreateInvites",
+        "canBanMembers",
+        "createdAt",
+        "updatedAt"
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, NOW(), NOW())`,
+      [
+        ownerRoleId,
+        group.id,
+        "Owner",
+        255,
+        "The group's owner with full permissions.",
+        true, // canManageMembers
+        true, // canManageRoles
+        true, // canPostOnWall
+        true, // canDeleteWallPosts
+        true, // canPostShout
+        true, // canManageStore
+        true, // canManageGames
+        true, // canViewAuditLogs
+        true, // canManageAlliances
+        true, // canManageAds
+        true, // canSpendGroupFunds
+        true, // canCreateInvites
+        true, // canBanMembers
+      ],
+    );
+
+    // Create default Member role
+    const memberRoleId = uuidv4();
+    await db.query(
+      `INSERT INTO group_roles (
+        id,
+        "groupId",
+        name,
+        rank,
+        description,
+        "canManageMembers",
+        "canManageRoles",
+        "canPostOnWall",
+        "canDeleteWallPosts",
+        "canPostShout",
+        "canManageStore",
+        "canManageGames",
+        "canViewAuditLogs",
+        "canManageAlliances",
+        "canManageAds",
+        "canSpendGroupFunds",
+        "canCreateInvites",
+        "canBanMembers",
+        "createdAt",
+        "updatedAt"
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, NOW(), NOW())`,
+      [
+        memberRoleId,
+        group.id,
+        "Member",
+        0,
+        "Default member role with basic permissions.",
+        false, // canManageMembers
+        false, // canManageRoles
+        true,  // canPostOnWall
+        false, // canDeleteWallPosts
+        false, // canPostShout
+        false, // canManageStore
+        false, // canManageGames
+        false, // canViewAuditLogs
+        false, // canManageAlliances
+        false, // canManageAds
+        false, // canSpendGroupFunds
+        true,  // canCreateInvites
+        false, // canBanMembers
+      ],
+    );
+
+    // Add creator as owner in group_members with Owner role
     const memberId = uuidv4();
     await db.query(
       `INSERT INTO group_members (
@@ -95,7 +189,7 @@ export const createGroup = async (req: AuthRequest, res: Response) => {
         "roleId",
         "joinedAt"
       ) VALUES ($1, $2, $3, $4, NOW())`,
-      [memberId, group.id, userId, null],
+      [memberId, group.id, userId, ownerRoleId],
     );
 
     return res.status(201).json({
@@ -501,7 +595,17 @@ export const joinGroup = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    // Add user to group
+    // Get the default Member role for this group
+    const memberRoleResult = await db.query(
+      'SELECT id FROM group_roles WHERE "groupId" = $1 AND name = $2',
+      [id, 'Member'],
+    );
+
+    const memberRoleId = memberRoleResult.rows.length > 0 
+      ? memberRoleResult.rows[0].id 
+      : null;
+
+    // Add user to group with Member role
     const memberId = uuidv4();
     await db.query(
       `INSERT INTO group_members (
@@ -511,7 +615,7 @@ export const joinGroup = async (req: AuthRequest, res: Response) => {
         "roleId",
         "joinedAt"
       ) VALUES ($1, $2, $3, $4, NOW())`,
-      [memberId, id, userId, null],
+      [memberId, id, userId, memberRoleId],
     );
 
     // Update member count
@@ -1411,7 +1515,9 @@ export const getGroupRoles = async (req: Request, res: Response) => {
 
     return res.status(200).json({
       success: true,
-      data: rolesResult.rows,
+      data: {
+        roles: rolesResult.rows,
+      },
     });
   } catch (error) {
     console.error("Error fetching group roles:", error);
@@ -1534,7 +1640,9 @@ export const createGroupRole = async (req: AuthRequest, res: Response) => {
 
     return res.status(201).json({
       success: true,
-      data: roleResult.rows[0],
+      data: {
+        role: roleResult.rows[0],
+      },
     });
   } catch (error) {
     console.error("Error creating group role:", error);

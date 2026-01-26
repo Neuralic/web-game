@@ -107,6 +107,11 @@ const ConfigureGroupPage = () => {
   const [roleName, setRoleName] = useState("");
   const [roleDescription, setRoleDescription] = useState("");
   const [roleRank, setRoleRank] = useState(0);
+  const [permissionSectionsCollapsed, setPermissionSectionsCollapsed] = useState({
+    posts: false,
+    members: false,
+    moderation: false,
+  });
   const [rolePermissions, setRolePermissions] = useState({
     viewWall: true,
     postWall: true,
@@ -254,29 +259,7 @@ const ConfigureGroupPage = () => {
         const response = await groupsApi.getGroupRoles(groupId);
         if (response.success && response.data) {
           setRoles((response.data.roles as any[]) || []);
-          // Select first role by default if available
-          if (response.data.roles && response.data.roles.length > 0) {
-            const firstRole = response.data.roles[0] as any;
-            setSelectedRole(firstRole);
-            setRoleName(firstRole.name || "");
-            setRoleDescription(firstRole.description || "");
-            setRoleRank(firstRole.rank || 0);
-            setRolePermissions({
-              viewWall: firstRole.can_view_wall !== false,
-              postWall: firstRole.can_post_on_wall !== false,
-              deleteWallPosts: firstRole.can_delete_wall_posts || false,
-              viewShout: firstRole.can_view_shout !== false,
-              createAnnouncements: firstRole.can_post_shout || false,
-              manageMembers: firstRole.can_manage_members || false,
-              deleteMembers: firstRole.can_delete_members || false,
-              createInvites: firstRole.can_create_invites || false,
-              viewAuditLog: firstRole.can_view_audit_logs || false,
-              spendGroupFunds: firstRole.can_spend_group_funds || false,
-              advertiseGroup: firstRole.can_advertise_group || false,
-              manageAlliances: firstRole.can_manage_alliances || false,
-              manageRoles: firstRole.can_manage_roles || false,
-            });
-          }
+          // Don't auto-select any role - show empty form for creating new role
         }
       } catch (error) {
         console.error("Error fetching roles:", error);
@@ -513,9 +496,8 @@ const ConfigureGroupPage = () => {
     }
   };
 
-  // Handle creating a new role
-  const handleCreateRole = () => {
-    setIsCreatingRole(true);
+  // Handle clearing form to create new role
+  const handleClearForm = () => {
     setSelectedRole(null);
     setRoleName("");
     setRoleDescription("");
@@ -539,7 +521,6 @@ const ConfigureGroupPage = () => {
 
   // Handle selecting an existing role
   const handleSelectRole = (role: any) => {
-    setIsCreatingRole(false);
     setSelectedRole(role);
     setRoleName(role.name || "");
     setRoleDescription(role.description || "");
@@ -587,24 +568,29 @@ const ConfigureGroupPage = () => {
       };
 
       let response;
-      if (isCreatingRole) {
-        response = await groupsApi.createGroupRole(groupId, roleData);
-      } else if (selectedRole) {
+      if (selectedRole) {
+        // Updating existing role
         response = await groupsApi.updateGroupRole(groupId, selectedRole.id, roleData);
+      } else {
+        // Creating new role
+        response = await groupsApi.createGroupRole(groupId, roleData);
       }
 
       if (response?.success) {
         setSuccessMessage({
           title: "Success",
-          message: isCreatingRole ? "Role created successfully!" : "Role updated successfully!",
+          message: selectedRole ? "Role updated successfully!" : "Role created successfully!",
         });
         setShowSuccessModal(true);
-        // Refresh roles
+        // Refresh roles list
         const rolesResponse = await groupsApi.getGroupRoles(groupId);
         if (rolesResponse.success && rolesResponse.data) {
           setRoles((rolesResponse.data.roles as any[]) || []);
         }
-        setIsCreatingRole(false);
+        // Clear form after creating new role
+        if (!selectedRole) {
+          handleClearForm();
+        }
       } else {
         setSuccessMessage({
           title: "Error",
@@ -1735,7 +1721,7 @@ const ConfigureGroupPage = () => {
                           </div>
                         ) : roles.length === 0 ? (
                           <div className="py-4 text-center text-sm text-gray-500 dark:text-gray-400">
-                            No roles yet
+                            No custom roles yet. Fill the form to create one.
                           </div>
                         ) : (
                           roles.map((role) => (
@@ -1743,7 +1729,7 @@ const ConfigureGroupPage = () => {
                               key={role.id}
                               onClick={() => handleSelectRole(role)}
                               className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${
-                                selectedRole?.id === role.id && !isCreatingRole
+                                selectedRole?.id === role.id
                                   ? "bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600"
                                   : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50"
                               }`}
@@ -1757,16 +1743,6 @@ const ConfigureGroupPage = () => {
                             </button>
                           ))
                         )}
-                        <button 
-                          onClick={handleCreateRole}
-                          className={`w-full px-4 py-3 bg-white dark:bg-gray-800 border-2 border-dashed rounded-lg transition-colors ${
-                            isCreatingRole
-                              ? "border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
-                              : "border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-900 dark:hover:text-gray-200"
-                          }`}
-                        >
-                          + Create Role
-                        </button>
                       </div>
 
                       {/* Right: Role Details */}
@@ -1827,19 +1803,23 @@ const ConfigureGroupPage = () => {
                           disabled={!roleName.trim() || saving}
                           className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          {saving ? "Saving..." : (isCreatingRole ? "Create Role" : "Save Changes")}
+                          {saving ? "Saving..." : (selectedRole ? "Save Changes" : "Create Role")}
                         </button>
 
                         {/* Posts Section */}
                         <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
-                          <div className="bg-gray-50 dark:bg-gray-700/50 px-5 py-3 flex items-center justify-between">
+                          <button 
+                            onClick={() => setPermissionSectionsCollapsed(prev => ({ ...prev, posts: !prev.posts }))}
+                            className="w-full bg-gray-50 dark:bg-gray-700/50 px-5 py-3 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                          >
                             <h3 className="font-bold text-gray-900 dark:text-gray-100">
                               Posts
                             </h3>
-                            <button className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">
-                              Collapse
-                            </button>
-                          </div>
+                            <span className="text-sm text-gray-600 dark:text-gray-400">
+                              {permissionSectionsCollapsed.posts ? "Expand" : "Collapse"}
+                            </span>
+                          </button>
+                          {!permissionSectionsCollapsed.posts && (
                           <div className="p-5 space-y-4 bg-gray-800 dark:bg-gray-900">
                             <div className="flex items-center justify-between">
                               <span className="text-sm text-gray-100">
@@ -1912,18 +1892,23 @@ const ConfigureGroupPage = () => {
                               />
                             </div>
                           </div>
+                          )}
                         </div>
 
                         {/* Members Section */}
                         <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
-                          <div className="bg-gray-50 dark:bg-gray-700/50 px-5 py-3 flex items-center justify-between">
+                          <button 
+                            onClick={() => setPermissionSectionsCollapsed(prev => ({ ...prev, members: !prev.members }))}
+                            className="w-full bg-gray-50 dark:bg-gray-700/50 px-5 py-3 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                          >
                             <h3 className="font-bold text-gray-900 dark:text-gray-100">
                               Members
                             </h3>
-                            <button className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">
-                              Collapse
-                            </button>
-                          </div>
+                            <span className="text-sm text-gray-600 dark:text-gray-400">
+                              {permissionSectionsCollapsed.members ? "Expand" : "Collapse"}
+                            </span>
+                          </button>
+                          {!permissionSectionsCollapsed.members && (
                           <div className="p-5 space-y-4 bg-gray-800 dark:bg-gray-900">
                             <div className="flex items-center justify-between">
                               <span className="text-sm text-gray-100">
@@ -1968,18 +1953,23 @@ const ConfigureGroupPage = () => {
                               />
                             </div>
                           </div>
+                          )}
                         </div>
 
                         {/* Administration Section */}
                         <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
-                          <div className="bg-gray-50 dark:bg-gray-700/50 px-5 py-3 flex items-center justify-between">
+                          <button 
+                            onClick={() => setPermissionSectionsCollapsed(prev => ({ ...prev, moderation: !prev.moderation }))}
+                            className="w-full bg-gray-50 dark:bg-gray-700/50 px-5 py-3 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                          >
                             <h3 className="font-bold text-gray-900 dark:text-gray-100">
                               Administration
                             </h3>
-                            <button className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">
-                              Collapse
-                            </button>
-                          </div>
+                            <span className="text-sm text-gray-600 dark:text-gray-400">
+                              {permissionSectionsCollapsed.moderation ? "Expand" : "Collapse"}
+                            </span>
+                          </button>
+                          {!permissionSectionsCollapsed.moderation && (
                           <div className="p-5 space-y-4 bg-gray-800 dark:bg-gray-900">
                             <div className="flex items-center justify-between">
                               <span className="text-sm text-gray-100">
@@ -2052,6 +2042,7 @@ const ConfigureGroupPage = () => {
                               />
                             </div>
                           </div>
+                          )}
                         </div>
                       </div>
                     </div>
