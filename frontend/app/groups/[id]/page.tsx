@@ -859,8 +859,8 @@ const GroupDetailPage = () => {
 
           {activeTab === "Store" && (
             <div className="p-6">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                   Store
                 </h2>
                 <Link
@@ -921,8 +921,8 @@ const GroupDetailPage = () => {
 
           {activeTab === "Alliances" && (
             <div className="p-6">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                   Allies ({alliances.length})
                 </h2>
               </div>
