@@ -1816,11 +1816,11 @@ const ConfigureGroupPage = () => {
                             </span>
                           </button>
                           {!permissionSectionsCollapsed.posts && (
-                          <div className="p-5 space-y-4 bg-gray-50 dark:bg-gray-800">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm text-gray-700 dark:text-gray-100">
-                                Post on community wall
-                              </span>
+                            <div className="p-5 space-y-4 bg-gray-50 dark:bg-gray-800">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-gray-700 dark:text-gray-100">
+                                  Post on community wall
+                                </span>
                               <ToggleSwitch
                                 enabled={rolePermissions.postWall}
                                 onChange={(val) =>
@@ -1830,36 +1830,36 @@ const ConfigureGroupPage = () => {
                                   })
                                 }
                               />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-gray-700 dark:text-gray-100">
+                                  Delete community wall posts
+                                </span>
+                                <ToggleSwitch
+                                  enabled={rolePermissions.deleteWallPosts}
+                                  onChange={(val) =>
+                                    setRolePermissions({
+                                      ...rolePermissions,
+                                      deleteWallPosts: val,
+                                    })
+                                  }
+                                />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-gray-700 dark:text-gray-100">
+                                  Post group shout
+                                </span>
+                                <ToggleSwitch
+                                  enabled={rolePermissions.postShout}
+                                  onChange={(val) =>
+                                    setRolePermissions({
+                                      ...rolePermissions,
+                                      postShout: val,
+                                    })
+                                  }
+                                />
+                              </div>
                             </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm text-gray-700 dark:text-gray-100">
-                                Delete community wall posts
-                              </span>
-                              <ToggleSwitch
-                                enabled={rolePermissions.deleteWallPosts}
-                                onChange={(val) =>
-                                  setRolePermissions({
-                                    ...rolePermissions,
-                                    deleteWallPosts: val,
-                                  })
-                                }
-                              />
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm text-gray-700 dark:text-gray-100">
-                                Post group shout
-                              </span>
-                              <ToggleSwitch
-                                enabled={rolePermissions.postShout}
-                                onChange={(val) =>
-                                  setRolePermissions({
-                                    ...rolePermissions,
-                                    postShout: val,
-                                  })
-                                }
-                              />
-                            </div>
-                          </div>
                           )}
                         </div>
 
