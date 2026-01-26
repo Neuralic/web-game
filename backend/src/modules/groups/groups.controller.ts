@@ -750,9 +750,11 @@ export const getGroupMembers = async (req: Request, res: Response) => {
         gm."joinedAt" as joined_at,
         u.username,
         u."displayName" as display_name,
-        u."isVerified" as is_verified
+        u."isVerified" as is_verified,
+        gr.name as role_name
       FROM group_members gm
       LEFT JOIN users u ON gm."userId" = u.id
+      LEFT JOIN group_roles gr ON gm."roleId" = gr.id
       WHERE gm."groupId" = $1
       ORDER BY gm."joinedAt" ASC`,
       [id],
