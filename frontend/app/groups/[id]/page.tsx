@@ -333,9 +333,9 @@ const GroupDetailPage = () => {
       />
 
       {/* Main Layout */}
-      <div className="flex w-full h-[calc(100vh-64px)]">
-        {/* Left Sidebar - Fixed, Independent Scroll */}
-        <div className="w-1/4 flex-shrink-0 border-r border-gray-200 dark:border-gray-800 overflow-y-auto px-6 py-6 flex flex-col">
+      <div className="flex w-full">
+        {/* Left Sidebar - Fixed, No Scroll */}
+        <div className="w-1/4 flex-shrink-0 border-r border-gray-200 dark:border-gray-800 px-6 py-6 fixed h-[calc(100vh-64px)] left-0 top-[64px]">
           {/* Groups Header */}
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">
@@ -359,7 +359,7 @@ const GroupDetailPage = () => {
           </div>
 
           {/* Groups List */}
-          <div className="flex-1 space-y-1 mb-4">
+          <div className="space-y-1 mb-4">
             {loadingGroups ? (
               <div className="py-4 text-center">
                 <Loader2 className="w-5 h-5 animate-spin text-blue-600 dark:text-blue-400 mx-auto" />
@@ -407,8 +407,8 @@ const GroupDetailPage = () => {
             )}
           </div>
 
-          {/* Create Community Button - Sticky at bottom when scrolling */}
-          <div className="mt-auto pt-4 border-t border-gray-200 dark:border-gray-800">
+          {/* Create Community Button */}
+          <div className="mt-4">
             <Link
               href="/groups/create"
               className="block w-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-semibold py-2.5 text-sm rounded-lg transition-colors text-center"
@@ -418,8 +418,8 @@ const GroupDetailPage = () => {
           </div>
         </div>
 
-        {/* Main Content - 75% width, Scrollable */}
-        <div className="w-3/4 overflow-y-auto">
+        {/* Main Content - 75% width, Only Scrollable Section */}
+        <div className="w-3/4 ml-[25%]">
           <div className="bg-white dark:bg-gray-900">
           {/* Cover Photo - Full width if exists */}
           {currentGroup?.cover_photo_url && (
