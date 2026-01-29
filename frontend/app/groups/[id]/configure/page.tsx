@@ -98,6 +98,16 @@ const ConfigureGroupPage = () => {
   const [members, setMembers] = useState<any[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [openMemberMenu, setOpenMemberMenu] = useState<string | null>(null);
+  
+  // Role assignment confirmation modal states
+  const [showRoleConfirmModal, setShowRoleConfirmModal] = useState(false);
+  const [pendingRoleChange, setPendingRoleChange] = useState<{
+    memberId: string;
+    memberName: string;
+    newRoleId: string | null;
+    newRoleName: string;
+  } | null>(null);
+  const [assigningRole, setAssigningRole] = useState(false);
 
   // Roles states
   const [roles, setRoles] = useState<any[]>([]);
@@ -240,6 +250,12 @@ const ConfigureGroupPage = () => {
         if (membersResponse.success && membersResponse.data) {
           setMembers((membersResponse.data.members as any[]) || []);
         }
+
+        // Fetch roles for members section
+        const rolesResponse = await groupsApi.getGroupRoles(groupId);
+        if (rolesResponse.success && rolesResponse.data) {
+          setRoles((rolesResponse.data.roles as any[]) || []);
+        }
       } catch (error) {
         console.error("Error fetching group data:", error);
       } finally {
@@ -250,7 +266,7 @@ const ConfigureGroupPage = () => {
     fetchGroupData();
   }, [groupId]);
 
-  // Fetch roles when Roles section is active
+  // Fetch roles when Roles section is active (refresh roles list)
   useEffect(() => {
     const fetchRoles = async () => {
       if (!groupId || activeSection !== "Roles") return;
@@ -270,6 +286,77 @@ const ConfigureGroupPage = () => {
 
     fetchRoles();
   }, [groupId, activeSection]);
+
+  // Helper function to get role name by ID
+  const getRoleName = (roleId: string | null) => {
+    if (!roleId) return "Member";
+    const role = roles.find(r => r.id === roleId);
+    return role ? role.name : "Member";
+  };
+
+  // Handle role assignment confirmation
+  const handleRoleChangeRequest = (memberId: string, memberName: string, newRoleId: string | null) => {
+    const newRoleName = getRoleName(newRoleId);
+    setPendingRoleChange({ memberId, memberName, newRoleId, newRoleName });
+    setShowRoleConfirmModal(true);
+  };
+
+  // Confirm and apply role change
+  const handleConfirmRoleChange = async () => {
+    if (!pendingRoleChange) return;
+
+    setAssigningRole(true);
+    try {
+      const response = await groupsApi.updateMemberRole(
+        groupId,
+        pendingRoleChange.memberId,
+        pendingRoleChange.newRoleId
+      );
+
+      if (response.success) {
+        // Update local members state
+        setMembers(
+          members.map((m) =>
+            m.user_id === pendingRoleChange.memberId
+              ? { ...m, role_id: pendingRoleChange.newRoleId }
+              : m
+          )
+        );
+        setShowRoleConfirmModal(false);
+        setPendingRoleChange(null);
+        setSuccessMessage({
+          title: "Success",
+          message: `Role updated to ${pendingRoleChange.newRoleName} successfully!`,
+        });
+        setShowSuccessModal(true);
+      } else {
+        setSuccessMessage({
+          title: "Error",
+          message: response.error || "Failed to update role",
+        });
+        setShowSuccessModal(true);
+        setShowRoleConfirmModal(false);
+        setPendingRoleChange(null);
+      }
+    } catch (error) {
+      console.error("Error updating role:", error);
+      setSuccessMessage({
+        title: "Error",
+        message: "An error occurred while updating role",
+      });
+      setShowSuccessModal(true);
+      setShowRoleConfirmModal(false);
+      setPendingRoleChange(null);
+    } finally {
+      setAssigningRole(false);
+    }
+  };
+
+  // Cancel role change
+  const handleCancelRoleChange = () => {
+    setShowRoleConfirmModal(false);
+    setPendingRoleChange(null);
+  };
 
   // Check if user is owner
   const isOwner = groupData?.role === "Owner";
@@ -1503,10 +1590,14 @@ const ConfigureGroupPage = () => {
                             onChange={(e) => setMemberRoleFilter(e.target.value)}
                             className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                           >
-                            <option value="All">All</option>
+                            <option value="All">All Roles</option>
                             <option value="Owner">Owner</option>
-                            <option value="Admin">Admin</option>
-                            <option value="Member">Member</option>
+                            <option value="no-role">Member (No Role)</option>
+                            {roles.map((role) => (
+                              <option key={role.id} value={role.id}>
+                                {role.name}
+                              </option>
+                            ))}
                           </select>
                         </div>
 
@@ -1526,9 +1617,18 @@ const ConfigureGroupPage = () => {
                                 const matchesSearch = member.username
                                   ?.toLowerCase()
                                   .includes(memberSearch.toLowerCase());
-                                const matchesRole =
-                                  memberRoleFilter === "All" ||
-                                  member.role === memberRoleFilter;
+                                
+                                let matchesRole = true;
+                                if (memberRoleFilter !== "All") {
+                                  if (memberRoleFilter === "Owner") {
+                                    matchesRole = member.user_id === groupData?.owner_id;
+                                  } else if (memberRoleFilter === "no-role") {
+                                    matchesRole = !member.role_id;
+                                  } else {
+                                    matchesRole = member.role_id === memberRoleFilter;
+                                  }
+                                }
+                                
                                 return matchesSearch && matchesRole;
                               })
                               .map((member) => (
@@ -1629,44 +1729,37 @@ const ConfigureGroupPage = () => {
                                     </div>
                                   </div>
 
-                                  {/* Role Dropdown */}
-                                  <select
-                                    value={member.role_id || ""}
-                                    onChange={async (e) => {
-                                      const newRoleId = e.target.value || null;
-                                      const response = await groupsApi.updateMemberRole(
-                                        groupId,
-                                        member.user_id,
-                                        newRoleId
-                                      );
-                                      if (response.success) {
-                                        setMembers(
-                                          members.map((m) =>
-                                            m.user_id === member.user_id
-                                              ? { ...m, role_id: newRoleId }
-                                              : m
-                                          )
-                                        );
-                                        setSuccessMessage({
-                                          title: "Success",
-                                          message: "Member role updated successfully",
-                                        });
-                                        setShowSuccessModal(true);
-                                      } else {
-                                        setSuccessMessage({
-                                          title: "Error",
-                                          message:
-                                            response.error || "Failed to update role",
-                                        });
-                                        setShowSuccessModal(true);
-                                      }
-                                    }}
-                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                  >
-                                    <option value="">Member</option>
-                                    <option value="admin">Admin</option>
-                                    <option value="moderator">Moderator</option>
-                                  </select>
+                                  {/* Role Display and Dropdown */}
+                                  <div className="space-y-2">
+                                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                                      Current Role: <span className="font-semibold text-gray-700 dark:text-gray-300">
+                                        {member.user_id === groupData?.owner_id
+                                          ? "Owner"
+                                          : getRoleName(member.role_id)}
+                                      </span>
+                                    </div>
+                                    {member.user_id !== groupData?.owner_id && (
+                                      <select
+                                        value={member.role_id || ""}
+                                        onChange={(e) => {
+                                          const newRoleId = e.target.value || null;
+                                          handleRoleChangeRequest(
+                                            member.user_id,
+                                            member.username,
+                                            newRoleId
+                                          );
+                                        }}
+                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                      >
+                                        <option value="">Member (No Role)</option>
+                                        {roles.map((role) => (
+                                          <option key={role.id} value={role.id}>
+                                            {role.name}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    )}
+                                  </div>
                                 </div>
                               ))}
                           </div>
@@ -2701,6 +2794,19 @@ const ConfigureGroupPage = () => {
         message={successMessage.message}
         autoClose={true}
         autoCloseDelay={2000}
+      />
+
+      {/* Role Assignment Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showRoleConfirmModal}
+        onClose={handleCancelRoleChange}
+        onConfirm={handleConfirmRoleChange}
+        title="Confirm Role Change"
+        message={`Are you sure you want to change ${pendingRoleChange?.memberName}'s role to ${pendingRoleChange?.newRoleName}?`}
+        confirmText="Assign Role"
+        cancelText="Cancel"
+        loading={assigningRole}
+        disabled={assigningRole}
       />
     </div>
   );
