@@ -104,7 +104,7 @@ const ConfigureGroupPage = () => {
   const [pendingRoleChange, setPendingRoleChange] = useState<{
     memberId: string;
     memberName: string;
-    newRoleId: string | null;
+    newRoleId: string;
     newRoleName: string;
   } | null>(null);
   const [assigningRole, setAssigningRole] = useState(false);
@@ -289,13 +289,13 @@ const ConfigureGroupPage = () => {
 
   // Helper function to get role name by ID
   const getRoleName = (roleId: string | null) => {
-    if (!roleId) return "Member";
+    if (!roleId) return "Unknown";
     const role = roles.find(r => r.id === roleId);
-    return role ? role.name : "Member";
+    return role ? role.name : "Unknown";
   };
 
   // Handle role assignment confirmation
-  const handleRoleChangeRequest = (memberId: string, memberName: string, newRoleId: string | null) => {
+  const handleRoleChangeRequest = (memberId: string, memberName: string, newRoleId: string) => {
     const newRoleName = getRoleName(newRoleId);
     setPendingRoleChange({ memberId, memberName, newRoleId, newRoleName });
     setShowRoleConfirmModal(true);
@@ -1591,8 +1591,6 @@ const ConfigureGroupPage = () => {
                             className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                           >
                             <option value="All">All Roles</option>
-                            <option value="Owner">Owner</option>
-                            <option value="no-role">Member (No Role)</option>
                             {roles.map((role) => (
                               <option key={role.id} value={role.id}>
                                 {role.name}
@@ -1618,16 +1616,7 @@ const ConfigureGroupPage = () => {
                                   ?.toLowerCase()
                                   .includes(memberSearch.toLowerCase());
                                 
-                                let matchesRole = true;
-                                if (memberRoleFilter !== "All") {
-                                  if (memberRoleFilter === "Owner") {
-                                    matchesRole = member.user_id === groupData?.owner_id;
-                                  } else if (memberRoleFilter === "no-role") {
-                                    matchesRole = !member.role_id;
-                                  } else {
-                                    matchesRole = member.role_id === memberRoleFilter;
-                                  }
-                                }
+                                const matchesRole = memberRoleFilter === "All" || member.role_id === memberRoleFilter;
                                 
                                 return matchesSearch && matchesRole;
                               })
@@ -1733,32 +1722,29 @@ const ConfigureGroupPage = () => {
                                   <div className="space-y-2">
                                     <div className="text-xs text-gray-500 dark:text-gray-400">
                                       Current Role: <span className="font-semibold text-gray-700 dark:text-gray-300">
-                                        {member.user_id === groupData?.owner_id
-                                          ? "Owner"
-                                          : getRoleName(member.role_id)}
+                                        {getRoleName(member.role_id)}
                                       </span>
                                     </div>
-                                    {member.user_id !== groupData?.owner_id && (
-                                      <select
-                                        value={member.role_id || ""}
-                                        onChange={(e) => {
-                                          const newRoleId = e.target.value || null;
+                                    <select
+                                      value={member.role_id || ""}
+                                      onChange={(e) => {
+                                        const newRoleId = e.target.value;
+                                        if (newRoleId && newRoleId !== member.role_id) {
                                           handleRoleChangeRequest(
                                             member.user_id,
                                             member.username,
                                             newRoleId
                                           );
-                                        }}
-                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                      >
-                                        <option value="">Member (No Role)</option>
-                                        {roles.map((role) => (
-                                          <option key={role.id} value={role.id}>
-                                            {role.name}
-                                          </option>
-                                        ))}
-                                      </select>
-                                    )}
+                                        }
+                                      }}
+                                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
+                                      {roles.map((role) => (
+                                        <option key={role.id} value={role.id}>
+                                          {role.name}
+                                        </option>
+                                      ))}
+                                    </select>
                                   </div>
                                 </div>
                               ))}
