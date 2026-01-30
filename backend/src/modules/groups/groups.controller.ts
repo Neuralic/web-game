@@ -984,6 +984,7 @@ export const createGroupWallPost = async (req: AuthRequest, res: Response) => {
         gwp.id,
         gwp.content,
         gwp.likes,
+        gwp."replyCount" as reply_count,
         gwp."createdAt" as created_at,
         gwp."authorId" as author_id,
         u.username as author_username,
@@ -1008,6 +1009,189 @@ export const createGroupWallPost = async (req: AuthRequest, res: Response) => {
       success: false,
       message: "Internal server error",
       error: process.env.NODE_ENV === "development" ? error : undefined,
+    });
+  }
+};
+
+/**
+ * @route   GET /api/v1/groups/:id/wall/:postId/replies
+ * @desc    Get replies for a wall post
+ * @access  Public
+ */
+export const getWallPostReplies = async (req: Request, res: Response) => {
+  try {
+    const { postId } = req.params;
+
+    const repliesResult = await db.query(
+      `SELECT
+        r.id,
+        r.content,
+        r."createdAt" as created_at,
+        r."authorId" as author_id,
+        u.username as author_username,
+        u."displayName" as author_display_name,
+        u."isVerified" as author_is_verified
+      FROM group_wall_post_replies r
+      LEFT JOIN users u ON r."authorId" = u.id
+      WHERE r."postId" = $1
+      ORDER BY r."createdAt" ASC`,
+      [postId],
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        replies: repliesResult.rows,
+      },
+    });
+  } catch (error) {
+    console.error("Get wall post replies error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+/**
+ * @route   POST /api/v1/groups/:id/wall/:postId/replies
+ * @desc    Create a reply to a wall post
+ * @access  Private
+ */
+export const createWallPostReply = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId;
+    const { id, postId } = req.params;
+    const { content } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    if (!content || !content.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Content is required",
+      });
+    }
+
+    // Verify post exists and get group ID
+    const postCheck = await db.query(
+      `SELECT "groupId" FROM group_wall_posts WHERE id = $1`,
+      [postId],
+    );
+
+    if (postCheck.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Wall post not found",
+      });
+    }
+
+    const groupId = postCheck.rows[0].groupId;
+
+    // Check if user is a member of the group
+    const memberCheck = await db.query(
+      `SELECT id FROM group_members WHERE "groupId" = $1 AND "userId" = $2`,
+      [groupId, userId],
+    );
+
+    if (memberCheck.rows.length === 0) {
+      return res.status(403).json({
+        success: false,
+        message: "You must be a member of this group to reply",
+      });
+    }
+
+    const replyId = uuidv4();
+    await db.query(
+      `INSERT INTO group_wall_post_replies (id, "postId", "authorId", content, "createdAt", "updatedAt")
+       VALUES ($1, $2, $3, $4, NOW(), NOW())`,
+      [replyId, postId, userId, content.trim()],
+    );
+
+    const replyResult = await db.query(
+      `SELECT
+        r.id,
+        r.content,
+        r."createdAt" as created_at,
+        r."authorId" as author_id,
+        u.username as author_username,
+        u."displayName" as author_display_name,
+        u."isVerified" as author_is_verified
+      FROM group_wall_post_replies r
+      LEFT JOIN users u ON r."authorId" = u.id
+      WHERE r.id = $1`,
+      [replyId],
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: "Reply created successfully",
+      data: {
+        reply: replyResult.rows[0],
+      },
+    });
+  } catch (error) {
+    console.error("Create wall post reply error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+/**
+ * @route   DELETE /api/v1/groups/:id/wall/:postId/replies/:replyId
+ * @desc    Delete a wall post reply
+ * @access  Private
+ */
+export const deleteWallPostReply = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId;
+    const { replyId } = req.params;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    // Check if reply exists and user is the author
+    const replyCheck = await db.query(
+      `SELECT "authorId" FROM group_wall_post_replies WHERE id = $1`,
+      [replyId],
+    );
+
+    if (replyCheck.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Reply not found",
+      });
+    }
+
+    if (replyCheck.rows[0].authorId !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only delete your own replies",
+      });
+    }
+
+    await db.query(`DELETE FROM group_wall_post_replies WHERE id = $1`, [replyId]);
+
+    return res.status(200).json({
+      success: true,
+      message: "Reply deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete wall post reply error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
     });
   }
 };

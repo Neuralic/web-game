@@ -10,6 +10,9 @@ import {
   getGroupGames,
   getGroupWallPosts,
   createGroupWallPost,
+  getWallPostReplies,
+  createWallPostReply,
+  deleteWallPostReply,
   makePrimaryGroup,
   leaveGroupEnhanced,
   removeMember,
@@ -46,6 +49,7 @@ router.get("/:id", optionalAuth, getGroupById);
 router.get("/:id/members", getGroupMembers);
 router.get("/:id/games", getGroupGames);
 router.get("/:id/wall", getGroupWallPosts);
+router.get("/:id/wall/:postId/replies", getWallPostReplies);
 router.get("/:id/roles", getGroupRoles);
 router.get("/:id/settings", getGroupSettings);
 router.get("/:id/social-links", getGroupSocialLinks);
@@ -60,6 +64,8 @@ router.put("/:id", authMiddleware, updateGroup);
 router.post("/:id/join", authMiddleware, joinGroup);
 router.post("/:id/leave", authMiddleware, leaveGroupEnhanced);
 router.post("/:id/wall", authMiddleware, createGroupWallPost);
+router.post("/:id/wall/:postId/replies", authMiddleware, createWallPostReply);
+router.delete("/:id/wall/:postId/replies/:replyId", authMiddleware, deleteWallPostReply);
 router.put("/:id/settings", authMiddleware, updateGroupSettings);
 router.put("/:id/social-links", authMiddleware, updateGroupSocialLinks);
 

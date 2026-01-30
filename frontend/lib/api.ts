@@ -940,6 +940,61 @@ export const groupsApi = {
       body: JSON.stringify({ shoutText }),
     });
   },
+
+  // Get wall post replies
+  getWallPostReplies: async (
+    groupId: string,
+    postId: string,
+  ): Promise<ApiResponse<{ replies: unknown[] }>> => {
+    return apiCall(`/groups/${groupId}/wall/${postId}/replies`, {
+      method: "GET",
+    });
+  },
+
+  // Create wall post reply
+  createWallPostReply: async (
+    groupId: string,
+    postId: string,
+    content: string,
+  ): Promise<ApiResponse<{ reply: unknown }>> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall(`/groups/${groupId}/wall/${postId}/replies`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ content }),
+    });
+  },
+
+  // Delete wall post reply
+  deleteWallPostReply: async (
+    groupId: string,
+    postId: string,
+    replyId: string,
+  ): Promise<ApiResponse> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall(`/groups/${groupId}/wall/${postId}/replies/${replyId}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
 };
 
 // Upload API

@@ -62,6 +62,7 @@ const GroupDetailPage = () => {
       id: string;
       content: string;
       likes: number;
+      reply_count: number;
       created_at: string;
       author_id: string;
       author_username: string;
@@ -71,6 +72,11 @@ const GroupDetailPage = () => {
   >([]);
   const [loadingWallPosts, setLoadingWallPosts] = useState(true);
   const [postingWall, setPostingWall] = useState(false);
+  const [showReplies, setShowReplies] = useState<Record<string, boolean>>({});
+  const [replies, setReplies] = useState<Record<string, any[]>>({});
+  const [loadingReplies, setLoadingReplies] = useState<Record<string, boolean>>({});
+  const [replyText, setReplyText] = useState<Record<string, string>>({});
+  const [postingReply, setPostingReply] = useState<Record<string, boolean>>({});
 
   // Modal states
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
@@ -277,6 +283,106 @@ const GroupDetailPage = () => {
       setSuccessMessage({
         title: "Error",
         message: "Failed to post shout",
+      });
+      setShowSuccessModal(true);
+    }
+  };
+
+  // Toggle replies visibility
+  const handleToggleReplies = async (postId: string) => {
+    const isCurrentlyShown = showReplies[postId];
+    
+    if (!isCurrentlyShown && !replies[postId]) {
+      // Fetch replies if not already loaded
+      setLoadingReplies({ ...loadingReplies, [postId]: true });
+      try {
+        const response = await groupsApi.getWallPostReplies(groupId, postId);
+        if (response.success && response.data) {
+          setReplies({ ...replies, [postId]: response.data.replies || [] });
+        }
+      } catch (error) {
+        console.error("Error fetching replies:", error);
+      } finally {
+        setLoadingReplies({ ...loadingReplies, [postId]: false });
+      }
+    }
+    
+    setShowReplies({ ...showReplies, [postId]: !isCurrentlyShown });
+  };
+
+  // Handle reply submission
+  const handleReplySubmit = async (postId: string) => {
+    const content = replyText[postId];
+    if (!content?.trim() || !groupId) return;
+
+    setPostingReply({ ...postingReply, [postId]: true });
+    try {
+      const response = await groupsApi.createWallPostReply(
+        groupId,
+        postId,
+        content.trim(),
+      );
+      if (response.success && response.data) {
+        // Add new reply to the list
+        const currentReplies = replies[postId] || [];
+        setReplies({
+          ...replies,
+          [postId]: [...currentReplies, response.data.reply],
+        });
+        // Update reply count
+        setWallPosts(
+          wallPosts.map((post) =>
+            post.id === postId
+              ? { ...post, reply_count: post.reply_count + 1 }
+              : post
+          )
+        );
+        // Clear reply text
+        setReplyText({ ...replyText, [postId]: "" });
+      }
+    } catch (error) {
+      console.error("Error posting reply:", error);
+    } finally {
+      setPostingReply({ ...postingReply, [postId]: false });
+    }
+  };
+
+  // Handle delete reply
+  const handleDeleteReply = async (postId: string, replyId: string) => {
+    if (!confirm("Are you sure you want to delete this reply?")) return;
+
+    try {
+      const response = await groupsApi.deleteWallPostReply(
+        groupId,
+        postId,
+        replyId,
+      );
+      if (response.success) {
+        // Remove reply from list
+        const currentReplies = replies[postId] || [];
+        setReplies({
+          ...replies,
+          [postId]: currentReplies.filter((r: any) => r.id !== replyId),
+        });
+        // Update reply count
+        setWallPosts(
+          wallPosts.map((post) =>
+            post.id === postId
+              ? { ...post, reply_count: Math.max(0, post.reply_count - 1) }
+              : post
+          )
+        );
+        setSuccessMessage({
+          title: "Success",
+          message: "Reply deleted successfully!",
+        });
+        setShowSuccessModal(true);
+      }
+    } catch (error) {
+      console.error("Error deleting reply:", error);
+      setSuccessMessage({
+        title: "Error",
+        message: "Failed to delete reply",
       });
       setShowSuccessModal(true);
     }
@@ -845,71 +951,179 @@ const GroupDetailPage = () => {
                 </div>
 
                 {wallPosts.length > 0 ? (
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     {wallPosts.map((post) => (
-                      <div key={post.id} className="flex gap-3 pb-4 border-b border-gray-100 dark:border-gray-800 last:border-0">
-                        <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-600 flex-shrink-0 relative">
-                          <Image
-                            src={`https://robohash.org/${post.author_username}?set=set3`}
-                            alt={
-                              post.author_display_name || post.author_username
-                            }
-                            fill
-                            className="object-cover"
-                            sizes="40px"
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <a
-                            href={`/profile/${post.author_username}`}
-                            className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
-                          >
-                            {post.author_display_name || post.author_username}
-                          </a>
-                          <p className="text-sm text-gray-900 dark:text-gray-100 mt-0.5">
-                            {post.content}
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            {new Date(post.created_at).toLocaleString()}
-                          </p>
+                      <div key={post.id} className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                        {/* Post Header */}
+                        <div className="flex gap-3 mb-3">
+                          <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-600 flex-shrink-0 relative">
+                            <Image
+                              src={`https://robohash.org/${post.author_username}?set=set3`}
+                              alt={post.author_display_name || post.author_username}
+                              fill
+                              className="object-cover"
+                              sizes="40px"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <a
+                                href={`/profile/${post.author_username}`}
+                                className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                              >
+                                {post.author_display_name || post.author_username}
+                              </a>
+                              {post.author_is_verified && (
+                                <span className="text-blue-500 text-xs">✓</span>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              {new Date(post.created_at).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              })} | {new Date(post.created_at).toLocaleTimeString("en-US", {
+                                hour: "numeric",
+                                minute: "2-digit",
+                                hour12: true,
+                              })}
+                            </p>
+                          </div>
+
+                          {/* Three-dot menu */}
+                          <div className="relative">
+                            <button
+                              onClick={() =>
+                                setOpenPostMenu(
+                                  openPostMenu === post.id ? null : post.id,
+                                )
+                              }
+                              className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                            >
+                              <MoreHorizontal className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                            </button>
+
+                            {openPostMenu === post.id && (
+                              <>
+                                <div
+                                  className="fixed inset-0 z-10"
+                                  onClick={() => setOpenPostMenu(null)}
+                                />
+                                <div className="absolute right-0 top-full mt-1 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-lg z-20 py-1">
+                                  <button
+                                    onClick={() => {
+                                      setShowReportModal(true);
+                                      setOpenPostMenu(null);
+                                    }}
+                                    className="w-full px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                  >
+                                    Report Abuse
+                                  </button>
+                                </div>
+                              </>
+                            )}
+                          </div>
                         </div>
 
-                        {/* Three-dot menu */}
-                        <div className="relative">
+                        {/* Post Content */}
+                        <p className="text-sm text-gray-900 dark:text-gray-100 mb-3 whitespace-pre-wrap break-words">
+                          {post.content}
+                        </p>
+
+                        {/* Post Actions */}
+                        <div className="flex items-center gap-4 pt-2 border-t border-gray-200 dark:border-gray-700">
                           <button
-                            onClick={() =>
-                              setOpenPostMenu(
-                                openPostMenu === post.id ? null : post.id,
-                              )
-                            }
-                            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors h-fit"
+                            onClick={() => handleToggleReplies(post.id)}
+                            className="text-xs text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors"
                           >
-                            <MoreHorizontal className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                            {showReplies[post.id] ? "Hide" : "View"} Replies ({post.reply_count || 0})
                           </button>
-
-                          {openPostMenu === post.id && (
-                            <>
-                              {/* Backdrop to close dropdown */}
-                              <div
-                                className="fixed inset-0 z-10"
-                                onClick={() => setOpenPostMenu(null)}
-                              />
-
-                              {/* Dropdown Menu */}
-                              <div className="absolute right-0 top-full mt-1 w-full min-w-[120px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-lg z-20 py-1 max-h-[300px] overflow-y-auto">
-                                <button
-                                  onClick={() => {
-                                    alert("Report Abuse functionality");
-                                    setOpenPostMenu(null);
-                                  }}
-                                  className="w-full px-3 py-2 text-left text-sm transition-colors text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                >
-                                  Report Abuse
-                                </button>
-                              </div>
-                            </>
-                          )}
                         </div>
+
+                        {/* Replies Section */}
+                        {showReplies[post.id] && (
+                          <div className="mt-4 space-y-3">
+                            {loadingReplies[post.id] ? (
+                              <div className="text-center py-4">
+                                <Loader2 className="w-5 h-5 animate-spin text-blue-500 mx-auto" />
+                              </div>
+                            ) : (
+                              <>
+                                {/* Reply Input */}
+                                <div className="flex gap-2">
+                                  <input
+                                    type="text"
+                                    value={replyText[post.id] || ""}
+                                    onChange={(e) =>
+                                      setReplyText({ ...replyText, [post.id]: e.target.value })
+                                    }
+                                    onKeyPress={(e) => {
+                                      if (e.key === "Enter" && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleReplySubmit(post.id);
+                                      }
+                                    }}
+                                    placeholder="Write a reply..."
+                                    className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  />
+                                  <button
+                                    onClick={() => handleReplySubmit(post.id)}
+                                    disabled={!replyText[post.id]?.trim() || postingReply[post.id]}
+                                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {postingReply[post.id] ? "..." : "Reply"}
+                                  </button>
+                                </div>
+
+                                {/* Replies List */}
+                                {replies[post.id]?.length > 0 && (
+                                  <div className="space-y-3 pl-4 border-l-2 border-gray-300 dark:border-gray-600">
+                                    {replies[post.id].map((reply: any) => (
+                                      <div key={reply.id} className="flex gap-2">
+                                        <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-600 flex-shrink-0 relative">
+                                          <Image
+                                            src={`https://robohash.org/${reply.author_username}?set=set3`}
+                                            alt={reply.author_username}
+                                            fill
+                                            className="object-cover"
+                                            sizes="32px"
+                                          />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <div className="flex items-center gap-2">
+                                            <a
+                                              href={`/profile/${reply.author_username}`}
+                                              className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                                            >
+                                              {reply.author_display_name || reply.author_username}
+                                            </a>
+                                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                                              {new Date(reply.created_at).toLocaleDateString("en-US", {
+                                                month: "short",
+                                                day: "numeric",
+                                              })}
+                                            </span>
+                                          </div>
+                                          <p className="text-xs text-gray-900 dark:text-gray-100 mt-0.5 break-words">
+                                            {reply.content}
+                                          </p>
+                                        </div>
+                                        {reply.author_id === currentGroupDetails?.owner_id && (
+                                          <button
+                                            onClick={() => handleDeleteReply(post.id, reply.id)}
+                                            className="text-xs text-red-600 dark:text-red-400 hover:underline"
+                                          >
+                                            Delete
+                                          </button>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
