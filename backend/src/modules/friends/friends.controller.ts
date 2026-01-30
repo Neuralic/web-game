@@ -205,24 +205,16 @@ export const acceptFriendRequest = async (req: AuthRequest, res: Response) => {
     console.log("Friendships created:", insertResult.rows);
 
     // Create notification for sender
-    const senderResult = await db.query(
-      'SELECT "senderId" FROM friend_requests WHERE id = $1',
-      [requestId]
-    );
-    
-    if (senderResult.rows.length > 0) {
-      const senderId = senderResult.rows[0].senderId as string;
-      try {
-        await createNotification(
-          senderId,
-          'friend_request_accepted',
-          `${userId} accepted your friend request`,
-          userId,
-          requestId
-        );
-      } catch (error) {
-        console.error('Failed to create notification:', error);
-      }
+    try {
+      await createNotification(
+        request.sender_id,
+        'friend_request_accepted',
+        `${userId} accepted your friend request`,
+        userId,
+        requestId
+      );
+    } catch (error) {
+      console.error('Failed to create notification:', error);
     }
 
     return res.status(200).json({
