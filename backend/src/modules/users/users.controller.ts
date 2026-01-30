@@ -172,7 +172,7 @@ export const updateProfile = async (req: Request, res: Response) => {
       });
     }
 
-    const { displayName, username, bio, status } = req.body;
+    const { displayName, username, bio, status, statusMessage } = req.body;
 
     // Validate displayName if provided
     if (displayName) {
@@ -232,6 +232,14 @@ export const updateProfile = async (req: Request, res: Response) => {
       });
     }
 
+    // Validate statusMessage if provided
+    if (statusMessage && statusMessage.length > 255) {
+      return res.status(400).json({
+        success: false,
+        message: "Status message cannot exceed 255 characters",
+      });
+    }
+
     // Update user table if displayName or username is provided
     const userUpdates: string[] = [];
     const userValues: any[] = [];
@@ -246,6 +254,12 @@ export const updateProfile = async (req: Request, res: Response) => {
     if (username !== undefined) {
       userUpdates.push(`username = $${userParamIndex}`);
       userValues.push(username);
+      userParamIndex++;
+    }
+
+    if (statusMessage !== undefined) {
+      userUpdates.push(`"statusMessage" = $${userParamIndex}`);
+      userValues.push(statusMessage);
       userParamIndex++;
     }
 
