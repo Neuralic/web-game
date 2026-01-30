@@ -201,12 +201,12 @@ export const createGroup = async (req: AuthRequest, res: Response) => {
 
       // Create group_settings entry with manual approval based on joinSetting
       const manualApproval = joinSetting === 'approval';
-      console.log("Creating group settings with manual_approval:", manualApproval);
+      console.log("Creating group settings with manualApproval:", manualApproval);
       await db.query(
         `INSERT INTO group_settings (
           "groupId",
-          manual_approval,
-          account_age_requirement,
+          "manualApproval",
+          "accountAgeRequirement",
           "createdAt",
           "updatedAt"
         ) VALUES ($1, $2, $3, NOW(), NOW())`,
@@ -656,14 +656,28 @@ export const joinGroup = async (req: AuthRequest, res: Response) => {
     }
 
     // Get group settings to check join requirements
-    const settingsResult = await db.query(
-      'SELECT manual_approval, account_age_requirement FROM group_settings WHERE "groupId" = $1',
+    let settingsResult = await db.query(
+      'SELECT "manualApproval", "accountAgeRequirement" FROM group_settings WHERE "groupId" = $1',
       [id],
     );
 
+    // If settings don't exist, create default settings
+    if (settingsResult.rows.length === 0) {
+      console.log('No settings found for group, creating defaults');
+      await db.query(
+        `INSERT INTO group_settings ("groupId", "manualApproval", "accountAgeRequirement") 
+         VALUES ($1, false, 'none')`,
+        [id],
+      );
+      settingsResult = await db.query(
+        'SELECT "manualApproval", "accountAgeRequirement" FROM group_settings WHERE "groupId" = $1',
+        [id],
+      );
+    }
+
     const settings = settingsResult.rows[0] || {};
-    const manualApproval = settings.manual_approval || false;
-    const accountAgeRequirement = settings.account_age_requirement || 'none';
+    const manualApproval = settings.manualApproval || false;
+    const accountAgeRequirement = settings.accountAgeRequirement || 'none';
 
     // Check account age requirement
     if (accountAgeRequirement !== 'none') {
@@ -750,12 +764,18 @@ export const joinGroup = async (req: AuthRequest, res: Response) => {
       message: "Successfully joined the group",
       requiresApproval: false,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Join group error:", error);
+    console.error("Error details:", {
+      message: error?.message,
+      stack: error?.stack,
+      code: error?.code,
+    });
     return res.status(500).json({
       success: false,
       message: "Internal server error",
-      error: process.env.NODE_ENV === "development" ? error : undefined,
+      error: process.env.NODE_ENV === "development" ? error?.message : undefined,
+      details: process.env.NODE_ENV === "development" ? error?.stack : undefined,
     });
   }
 };
