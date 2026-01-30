@@ -263,6 +263,12 @@ export const updateProfile = async (req: Request, res: Response) => {
       userParamIndex++;
     }
 
+    if (bio !== undefined) {
+      userUpdates.push(`bio = $${userParamIndex}`);
+      userValues.push(bio);
+      userParamIndex++;
+    }
+
     if (userUpdates.length > 0) {
       userUpdates.push(`"updatedAt" = NOW()`);
       userValues.push(userId);
@@ -273,44 +279,25 @@ export const updateProfile = async (req: Request, res: Response) => {
       );
     }
 
-    // Check if profile exists
+    // Check if profile exists for status field only
     const profileCheck = await db.query(
       `SELECT id FROM profiles WHERE "userId" = $1`,
       [userId],
     );
 
-    if (profileCheck.rows.length === 0) {
-      // Create profile if it doesn't exist
-      await db.query(
-        `INSERT INTO profiles (id, "userId", bio, status, "createdAt", "updatedAt")
-         VALUES (gen_random_uuid()::TEXT, $1, $2, $3, NOW(), NOW())`,
-        [userId, bio || null, status || null],
-      );
-    } else {
-      // Update existing profile
-      const updates: string[] = [];
-      const values: any[] = [];
-      let paramIndex = 1;
-
-      if (bio !== undefined) {
-        updates.push(`bio = $${paramIndex}`);
-        values.push(bio);
-        paramIndex++;
-      }
-
-      if (status !== undefined) {
-        updates.push(`status = $${paramIndex}`);
-        values.push(status);
-        paramIndex++;
-      }
-
-      if (updates.length > 0) {
-        updates.push(`"updatedAt" = NOW()`);
-        values.push(userId);
-
+    if (status !== undefined) {
+      if (profileCheck.rows.length === 0) {
+        // Create profile if it doesn't exist
         await db.query(
-          `UPDATE profiles SET ${updates.join(", ")} WHERE "userId" = $${paramIndex}`,
-          values,
+          `INSERT INTO profiles (id, "userId", status, "createdAt", "updatedAt")
+           VALUES (gen_random_uuid()::TEXT, $1, $2, NOW(), NOW())`,
+          [userId, status],
+        );
+      } else {
+        // Update existing profile
+        await db.query(
+          `UPDATE profiles SET status = $1, "updatedAt" = NOW() WHERE "userId" = $2`,
+          [status, userId],
         );
       }
     }

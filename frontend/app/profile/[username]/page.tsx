@@ -267,6 +267,37 @@ const ProfilePage = () => {
     };
   }, [profileUser?.id]);
 
+  // Real-time updates for bio changes
+  useEffect(() => {
+    if (!profileUser?.id) return;
+
+    const channel = supabase
+      .channel('profile-bio-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'users',
+          filter: `id=eq.${profileUser.id}`,
+        },
+        (payload: any) => {
+          // Update bio when it changes
+          if (payload.new && 'bio' in payload.new) {
+            setBio(payload.new.bio || '');
+            if (!isEditingBio) {
+              setEditedBio(payload.new.bio || '');
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profileUser?.id, isEditingBio]);
+
   const [groupsViewMode, setGroupsViewMode] = useState<"carousel" | "grid">(
     "carousel",
   );
