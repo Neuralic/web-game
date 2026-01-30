@@ -344,7 +344,7 @@ const GroupDetailPage = () => {
         setWallPosts(
           wallPosts.map((post) =>
             post.id === postId
-              ? { ...post, reply_count: post.reply_count + 1 }
+              ? { ...post, reply_count: (post.reply_count || 0) + 1 }
               : post
           )
         );
@@ -379,7 +379,7 @@ const GroupDetailPage = () => {
         setWallPosts(
           wallPosts.map((post) =>
             post.id === postId
-              ? { ...post, reply_count: Math.max(0, post.reply_count - 1) }
+              ? { ...post, reply_count: Math.max(0, (post.reply_count || 0) - 1) }
               : post
           )
         );
@@ -1051,12 +1051,31 @@ const GroupDetailPage = () => {
                         </p>
 
                         {/* Post Actions */}
-                        <div className="flex items-center gap-4 pt-2 border-t border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
+                          {(post.reply_count || 0) > 0 ? (
+                            <button
+                              onClick={() => handleToggleReplies(post.id)}
+                              className="text-xs text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors"
+                            >
+                              {showReplies[post.id] ? "Hide" : "View"} Replies ({post.reply_count})
+                            </button>
+                          ) : (
+                            <span className="text-xs text-gray-500 dark:text-gray-400">No replies yet</span>
+                          )}
                           <button
-                            onClick={() => handleToggleReplies(post.id)}
-                            className="text-xs text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors"
+                            onClick={() => {
+                              if (!showReplies[post.id]) {
+                                handleToggleReplies(post.id);
+                              }
+                              // Focus on reply input after a short delay
+                              setTimeout(() => {
+                                const input = document.querySelector(`input[data-post-id="${post.id}"]`) as HTMLInputElement;
+                                input?.focus();
+                              }, 100);
+                            }}
+                            className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors"
                           >
-                            {showReplies[post.id] ? "Hide" : "View"} Replies ({post.reply_count || 0})
+                            Reply
                           </button>
                         </div>
 
@@ -1073,6 +1092,7 @@ const GroupDetailPage = () => {
                                 <div className="flex gap-2">
                                   <input
                                     type="text"
+                                    data-post-id={post.id}
                                     value={replyText[post.id] || ""}
                                     onChange={(e) =>
                                       setReplyText({ ...replyText, [post.id]: e.target.value })
