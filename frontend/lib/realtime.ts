@@ -57,8 +57,17 @@ export const initializePresence = async (
       Object.keys(state).forEach((key) => {
         const presences = state[key];
         if (presences && presences.length > 0) {
-          const presence = presences[0] as PresenceData;
-          presenceMap.set(presence.userId, presence);
+          const presenceData = presences[0] as any;
+          // Extract the actual presence data from Supabase's structure
+          if (presenceData && presenceData.userId) {
+            presenceMap.set(presenceData.userId, {
+              userId: presenceData.userId,
+              username: presenceData.username,
+              presenceStatus: presenceData.presenceStatus || 'offline',
+              currentGame: presenceData.currentGame,
+              lastOnline: presenceData.lastOnline,
+            });
+          }
         }
       });
 
