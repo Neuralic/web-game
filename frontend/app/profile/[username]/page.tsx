@@ -858,22 +858,28 @@ const ProfilePage = () => {
                     Friends
                   </span>
                 </Link>
-                <div className="flex items-center gap-1">
+                <Link
+                  href="/connect?tab=Followers"
+                  className="flex items-center gap-1 hover:underline"
+                >
                   <span className="font-bold text-gray-900 dark:text-gray-100">
                     {profileUser?.follower_count || 0}
                   </span>
                   <span className="text-gray-600 dark:text-gray-400 text-sm">
                     Follower{profileUser?.follower_count !== 1 ? 's' : ''}
                   </span>
-                </div>
-                <div className="flex items-center gap-1">
+                </Link>
+                <Link
+                  href="/connect?tab=Following"
+                  className="flex items-center gap-1 hover:underline"
+                >
                   <span className="font-bold text-gray-900 dark:text-gray-100">
                     {profileUser?.following_count || 0}
                   </span>
                   <span className="text-gray-600 dark:text-gray-400 text-sm">
                     Following
                   </span>
-                </div>
+                </Link>
               </div>
             </div>
           </div>

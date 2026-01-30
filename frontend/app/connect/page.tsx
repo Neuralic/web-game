@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Search, HelpCircle, MoreHorizontal, Check, X } from "lucide-react";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
@@ -10,9 +11,11 @@ import { friendsApi, usersApi } from "@/lib/api";
 import { useRealtime } from "@/contexts/RealtimeContext";
 
 const ConnectPage = () => {
+  const searchParams = useSearchParams();
+  const tabFromUrl = searchParams.get('tab');
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("Friends");
+  const [activeTab, setActiveTab] = useState(tabFromUrl || "Friends");
   const [connectionSearch, setConnectionSearch] = useState("");
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -29,6 +32,13 @@ const ConnectPage = () => {
 
 
   const tabs = ["Friends", "Following", "Followers", "Requests"];
+
+  // Update active tab when URL parameter changes
+  useEffect(() => {
+    if (tabFromUrl && tabs.includes(tabFromUrl)) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [tabFromUrl]);
 
   // Fetch data when tab changes
   useEffect(() => {
@@ -321,7 +331,10 @@ const ConnectPage = () => {
               )}
 
               <div className="flex flex-col items-center text-center">
-                <div className="relative w-24 h-24 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 mb-3">
+                <Link
+                  href={`/profile/${user.username.replace('@', '')}`}
+                  className="relative w-24 h-24 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 mb-3 cursor-pointer hover:opacity-90 transition-opacity"
+                >
                   <img
                     src={user.avatar}
                     alt={user.name}
@@ -342,7 +355,7 @@ const ConnectPage = () => {
                       style={{ bottom: "-2.5px", right: "-2.5px" }}
                     />
                   )}
-                </div>
+                </Link>
 
                 <div className="flex items-center gap-2 mb-1">
                   {/* Status Dot before name */}
@@ -357,9 +370,12 @@ const ConnectPage = () => {
                             : "bg-gray-400"
                     }`}
                   />
-                  <h3 className="font-bold text-gray-900 dark:text-gray-100">
+                  <Link
+                    href={`/profile/${user.username.replace('@', '')}`}
+                    className="font-bold text-gray-900 dark:text-gray-100 hover:underline cursor-pointer"
+                  >
                     {user.name}
-                  </h3>
+                  </Link>
                 </div>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
                   {user.username}
