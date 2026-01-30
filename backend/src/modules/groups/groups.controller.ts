@@ -1556,6 +1556,12 @@ export const createWallPostReply = async (req: AuthRequest, res: Response) => {
       [replyId, postId, userId, content.trim()],
     );
 
+    // Increment reply count on the post
+    await db.query(
+      `UPDATE group_wall_posts SET "replyCount" = "replyCount" + 1 WHERE id = $1`,
+      [postId],
+    );
+
     const replyResult = await db.query(
       `SELECT
         r.id,
@@ -1624,7 +1630,22 @@ export const deleteWallPostReply = async (req: AuthRequest, res: Response) => {
       });
     }
 
+    // Get postId before deleting
+    const postIdResult = await db.query(
+      `SELECT "postId" FROM group_wall_post_replies WHERE id = $1`,
+      [replyId],
+    );
+    const postId = postIdResult.rows[0]?.postId;
+
     await db.query(`DELETE FROM group_wall_post_replies WHERE id = $1`, [replyId]);
+
+    // Decrement reply count on the post
+    if (postId) {
+      await db.query(
+        `UPDATE group_wall_posts SET "replyCount" = GREATEST("replyCount" - 1, 0) WHERE id = $1`,
+        [postId],
+      );
+    }
 
     return res.status(200).json({
       success: true,
