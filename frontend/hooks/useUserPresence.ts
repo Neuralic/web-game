@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { usePresence } from '@/contexts/PresenceContext';
+import { useRealtime } from '@/contexts/RealtimeContext';
 
 interface UserPresence {
   presenceStatus: string;
@@ -11,7 +11,7 @@ interface UserPresence {
  * Hook to get real-time presence for a specific user
  */
 export const useUserPresence = (userId: string | undefined): UserPresence | null => {
-  const { presenceMap } = usePresence();
+  const { presenceMap } = useRealtime();
   const [presence, setPresence] = useState<UserPresence | null>(null);
 
   useEffect(() => {
