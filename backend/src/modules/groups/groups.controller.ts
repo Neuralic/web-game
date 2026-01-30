@@ -1334,6 +1334,7 @@ export const getGroupWallPosts = async (req: Request, res: Response) => {
         gwp.id,
         gwp.content,
         gwp.likes,
+        gwp."replyCount" as reply_count,
         gwp."createdAt" as created_at,
         gwp."authorId" as author_id,
         u.username as author_username,
