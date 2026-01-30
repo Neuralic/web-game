@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import db from "../../config/database.js";
+import db from "../../lib/db.js";
 import { createNotification } from "../notifications/notifications.controller.js";
 import { AuthRequest } from '../../middleware/auth.middleware.js';
 import { v4 as uuidv4 } from "uuid";

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import db from "../../config/database.js";
+import db from "../../lib/db.js";
 
 /**
  * @route   GET /api/v1/notifications
