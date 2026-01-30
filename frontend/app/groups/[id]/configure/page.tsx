@@ -108,6 +108,15 @@ const ConfigureGroupPage = () => {
   } | null>(null);
   const [assigningRole, setAssigningRole] = useState(false);
 
+  // Alliance states
+  const [allianceSearch, setAllianceSearch] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [alliances, setAlliances] = useState<any[]>([]);
+  const [allianceRequests, setAllianceRequests] = useState<any[]>([]);
+  const [loadingAlliances, setLoadingAlliances] = useState(false);
+  const [alliancesTab, setAlliancesTab] = useState<"allies" | "requests">("allies");
+
   // Roles states
   const [roles, setRoles] = useState<any[]>([]);
   const [loadingRoles, setLoadingRoles] = useState(false);
@@ -266,6 +275,18 @@ const ConfigureGroupPage = () => {
         if (rolesResponse.success && rolesResponse.data) {
           setRoles((rolesResponse.data.roles as any[]) || []);
         }
+
+        // Fetch alliances
+        const alliancesResponse = await groupsApi.getGroupAlliances(groupId);
+        if (alliancesResponse.success && alliancesResponse.data) {
+          setAlliances((alliancesResponse.data.alliances as any[]) || []);
+        }
+
+        // Fetch alliance requests
+        const allianceRequestsResponse = await groupsApi.getAllianceRequests(groupId);
+        if (allianceRequestsResponse.success && allianceRequestsResponse.data) {
+          setAllianceRequests((allianceRequestsResponse.data.requests as any[]) || []);
+        }
       } catch (error) {
         console.error("Error fetching group data:", error);
       } finally {
@@ -339,6 +360,168 @@ const ConfigureGroupPage = () => {
     if (!roleId) return "Unknown";
     const role = roles.find(r => r.id === roleId);
     return role ? role.name : "Unknown";
+  };
+
+  // Handle alliance search
+  const handleAllianceSearch = async () => {
+    if (!allianceSearch.trim() || allianceSearch.trim().length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    setSearching(true);
+    try {
+      const response = await groupsApi.searchGroups(allianceSearch.trim());
+      if (response.success && response.data) {
+        const groups = (response.data.groups as any[]) || [];
+        // Filter out current group and already allied groups
+        const filtered = groups.filter(
+          (g) => g.id !== groupId && !alliances.some((a) => a.allied_group_id === g.id)
+        );
+        setSearchResults(filtered);
+      }
+    } catch (error) {
+      console.error("Error searching groups:", error);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  // Handle send alliance request
+  const handleSendAllianceRequest = async (targetGroupId: string) => {
+    if (!groupId) return;
+
+    try {
+      const response = await groupsApi.sendAllianceRequest(groupId, targetGroupId);
+      if (response.success) {
+        setSuccessMessage({
+          title: "Success",
+          message: "Alliance request sent successfully!",
+        });
+        setShowSuccessModal(true);
+        setAllianceSearch("");
+        setSearchResults([]);
+      } else {
+        setSuccessMessage({
+          title: "Error",
+          message: response.error || response.message || "Failed to send alliance request",
+        });
+        setShowSuccessModal(true);
+      }
+    } catch (error) {
+      console.error("Error sending alliance request:", error);
+      setSuccessMessage({
+        title: "Error",
+        message: "An error occurred while sending alliance request",
+      });
+      setShowSuccessModal(true);
+    }
+  };
+
+  // Handle accept alliance request
+  const handleAcceptAllianceRequest = async (allianceId: string) => {
+    if (!groupId) return;
+
+    try {
+      const response = await groupsApi.respondToAllianceRequest(groupId, allianceId, "accept");
+      if (response.success) {
+        // Refresh alliances and requests
+        const alliancesResponse = await groupsApi.getGroupAlliances(groupId);
+        if (alliancesResponse.success && alliancesResponse.data) {
+          setAlliances((alliancesResponse.data.alliances as any[]) || []);
+        }
+        const requestsResponse = await groupsApi.getAllianceRequests(groupId);
+        if (requestsResponse.success && requestsResponse.data) {
+          setAllianceRequests((requestsResponse.data.requests as any[]) || []);
+        }
+        setSuccessMessage({
+          title: "Success",
+          message: "Alliance request accepted!",
+        });
+        setShowSuccessModal(true);
+      } else {
+        setSuccessMessage({
+          title: "Error",
+          message: response.error || response.message || "Failed to accept alliance request",
+        });
+        setShowSuccessModal(true);
+      }
+    } catch (error) {
+      console.error("Error accepting alliance request:", error);
+      setSuccessMessage({
+        title: "Error",
+        message: "An error occurred while accepting alliance request",
+      });
+      setShowSuccessModal(true);
+    }
+  };
+
+  // Handle decline alliance request
+  const handleDeclineAllianceRequest = async (allianceId: string) => {
+    if (!groupId) return;
+
+    try {
+      const response = await groupsApi.respondToAllianceRequest(groupId, allianceId, "decline");
+      if (response.success) {
+        // Refresh requests
+        const requestsResponse = await groupsApi.getAllianceRequests(groupId);
+        if (requestsResponse.success && requestsResponse.data) {
+          setAllianceRequests((requestsResponse.data.requests as any[]) || []);
+        }
+        setSuccessMessage({
+          title: "Success",
+          message: "Alliance request declined",
+        });
+        setShowSuccessModal(true);
+      } else {
+        setSuccessMessage({
+          title: "Error",
+          message: response.error || response.message || "Failed to decline alliance request",
+        });
+        setShowSuccessModal(true);
+      }
+    } catch (error) {
+      console.error("Error declining alliance request:", error);
+      setSuccessMessage({
+        title: "Error",
+        message: "An error occurred while declining alliance request",
+      });
+      setShowSuccessModal(true);
+    }
+  };
+
+  // Handle remove alliance
+  const handleRemoveAlliance = async (allianceId: string) => {
+    if (!groupId) return;
+
+    try {
+      const response = await groupsApi.removeAlliance(groupId, allianceId);
+      if (response.success) {
+        // Refresh alliances
+        const alliancesResponse = await groupsApi.getGroupAlliances(groupId);
+        if (alliancesResponse.success && alliancesResponse.data) {
+          setAlliances((alliancesResponse.data.alliances as any[]) || []);
+        }
+        setSuccessMessage({
+          title: "Success",
+          message: "Alliance removed successfully",
+        });
+        setShowSuccessModal(true);
+      } else {
+        setSuccessMessage({
+          title: "Error",
+          message: response.error || response.message || "Failed to remove alliance",
+        });
+        setShowSuccessModal(true);
+      }
+    } catch (error) {
+      console.error("Error removing alliance:", error);
+      setSuccessMessage({
+        title: "Error",
+        message: "An error occurred while removing alliance",
+      });
+      setShowSuccessModal(true);
+    }
   };
 
   // Handle accept join request
@@ -2279,43 +2462,175 @@ const ConfigureGroupPage = () => {
                       Alliances Management
                     </h2>
 
-                    <div className="flex gap-3">
-                      <input
-                        type="text"
-                        placeholder="Enter group name to send alliance request..."
-                        className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                      />
-                      <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
-                        Send Request
-                      </button>
+                    {/* Search for groups to ally with */}
+                    <div className="space-y-3">
+                      <div className="flex gap-3">
+                        <input
+                          type="text"
+                          value={allianceSearch}
+                          onChange={(e) => setAllianceSearch(e.target.value)}
+                          onKeyPress={(e) => e.key === 'Enter' && handleAllianceSearch()}
+                          placeholder="Search groups to send alliance request..."
+                          className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        />
+                        <button
+                          onClick={handleAllianceSearch}
+                          disabled={searching || allianceSearch.trim().length < 2}
+                          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {searching ? "Searching..." : "Search"}
+                        </button>
+                      </div>
+
+                      {/* Search results */}
+                      {searchResults.length > 0 && (
+                        <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-3 space-y-2 max-h-60 overflow-y-auto">
+                          {searchResults.map((group) => (
+                            <div
+                              key={group.id}
+                              className="flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                            >
+                              <img
+                                src={group.icon_url || '/default-group.png'}
+                                alt={group.name}
+                                className="w-10 h-10 rounded"
+                              />
+                              <div className="flex-1">
+                                <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                  {group.name}
+                                </h4>
+                                <p className="text-xs text-gray-600 dark:text-gray-400">
+                                  {group.member_count} members
+                                </p>
+                              </div>
+                              <button
+                                onClick={() => handleSendAllianceRequest(group.id)}
+                                className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                              >
+                                Send Request
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
-                    <div>
-                      <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">
-                        Current Allies
-                      </h3>
-                      <div className="grid grid-cols-2 gap-4">
-                        {[1, 2, 3, 4].map((i) => (
-                          <div
-                            key={i}
-                            className="flex items-center gap-3 p-3 border border-gray-300 dark:border-gray-600 rounded-lg"
-                          >
-                            <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded"></div>
-                            <div className="flex-1">
-                              <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                                Allied Group {i}
-                              </h4>
-                              <p className="text-xs text-gray-600 dark:text-gray-400">
-                                100 members
-                              </p>
-                            </div>
-                            <button className="text-sm text-red-600 dark:text-red-400 hover:underline">
-                              Remove
-                            </button>
-                          </div>
-                        ))}
+                    {/* Tabs for Allies and Requests */}
+                    <div className="border-b border-gray-300 dark:border-gray-600">
+                      <div className="flex gap-4">
+                        <button
+                          onClick={() => setAlliancesTab("allies")}
+                          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                            alliancesTab === "allies"
+                              ? "border-blue-600 text-blue-600 dark:text-blue-400"
+                              : "border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                          }`}
+                        >
+                          Allies ({alliances.length})
+                        </button>
+                        <button
+                          onClick={() => setAlliancesTab("requests")}
+                          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                            alliancesTab === "requests"
+                              ? "border-blue-600 text-blue-600 dark:text-blue-400"
+                              : "border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                          }`}
+                        >
+                          Requests ({allianceRequests.length})
+                        </button>
                       </div>
                     </div>
+
+                    {/* Allies Tab */}
+                    {alliancesTab === "allies" && (
+                      <div>
+                        {alliances.length === 0 ? (
+                          <p className="text-center text-gray-600 dark:text-gray-400 py-8">
+                            No alliances yet. Search for groups above to send alliance requests.
+                          </p>
+                        ) : (
+                          <div className="grid grid-cols-2 gap-4">
+                            {alliances.map((alliance) => (
+                              <div
+                                key={alliance.id}
+                                className="flex items-center gap-3 p-3 border border-gray-300 dark:border-gray-600 rounded-lg"
+                              >
+                                <img
+                                  src={alliance.allied_group_icon || '/default-group.png'}
+                                  alt={alliance.allied_group_name}
+                                  className="w-12 h-12 rounded"
+                                />
+                                <div className="flex-1">
+                                  <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                    {alliance.allied_group_name}
+                                  </h4>
+                                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                                    {alliance.allied_group_member_count} members
+                                  </p>
+                                </div>
+                                <button
+                                  onClick={() => handleRemoveAlliance(alliance.id)}
+                                  className="text-sm text-red-600 dark:text-red-400 hover:underline"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Requests Tab */}
+                    {alliancesTab === "requests" && (
+                      <div>
+                        {allianceRequests.length === 0 ? (
+                          <p className="text-center text-gray-600 dark:text-gray-400 py-8">
+                            No pending alliance requests.
+                          </p>
+                        ) : (
+                          <div className="space-y-3">
+                            {allianceRequests.map((request) => (
+                              <div
+                                key={request.id}
+                                className="flex items-center gap-3 p-3 border border-gray-300 dark:border-gray-600 rounded-lg"
+                              >
+                                <img
+                                  src={request.requesting_group_icon || '/default-group.png'}
+                                  alt={request.requesting_group_name}
+                                  className="w-12 h-12 rounded"
+                                />
+                                <div className="flex-1">
+                                  <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                    {request.requesting_group_name}
+                                  </h4>
+                                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                                    {request.requesting_group_member_count} members
+                                  </p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                                    Requested {new Date(request.requested_at).toLocaleDateString()}
+                                  </p>
+                                </div>
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => handleAcceptAllianceRequest(request.id)}
+                                    className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                                  >
+                                    Accept
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeclineAllianceRequest(request.id)}
+                                    className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
+                                  >
+                                    Decline
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 

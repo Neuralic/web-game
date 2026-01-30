@@ -1,12 +1,14 @@
--- Create group_alliances table
--- This table stores alliance relationships between groups
+-- Fix group_alliances table data types from UUID to TEXT
+-- Drop and recreate the table with correct types
 
-CREATE TABLE IF NOT EXISTS group_alliances (
+DROP TABLE IF EXISTS group_alliances CASCADE;
+
+CREATE TABLE group_alliances (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
   "groupId" TEXT NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
   "alliedGroupId" TEXT NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
   status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'declined')),
-  "requestedBy" TEXT NOT NULL, -- groupId that initiated the alliance
+  "requestedBy" TEXT NOT NULL,
   "requestedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   "respondedAt" TIMESTAMP WITH TIME ZONE,
   "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -25,4 +27,4 @@ CREATE INDEX idx_group_alliances_allied_group_id ON group_alliances("alliedGroup
 CREATE INDEX idx_group_alliances_status ON group_alliances(status);
 
 -- Add comment
-COMMENT ON TABLE group_alliances IS 'Alliance relationships between groups (like Roblox group allies)';
+COMMENT ON TABLE group_alliances IS 'Alliance relationships between groups';

@@ -1057,6 +1057,13 @@ export const groupsApi = {
       },
     });
   },
+
+  // Search groups for alliances
+  searchGroups: async (query: string): Promise<ApiResponse<{ groups: unknown[] }>> => {
+    return apiCall(`/groups/search?query=${encodeURIComponent(query)}`, {
+      method: "GET",
+    });
+  },
 };
 
 // Upload API

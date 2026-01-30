@@ -1227,6 +1227,54 @@ export const getUserGroups = async (req: AuthRequest, res: Response) => {
 };
 
 /**
+ * @route   GET /api/v1/groups/search
+ * @desc    Search groups by name for alliance requests
+ * @access  Public
+ */
+export const searchGroups = async (req: Request, res: Response) => {
+  try {
+    const { query } = req.query;
+
+    if (!query || typeof query !== 'string' || query.trim().length < 2) {
+      return res.status(400).json({
+        success: false,
+        message: "Search query must be at least 2 characters",
+      });
+    }
+
+    const searchTerm = `%${query.trim()}%`;
+    const groupsResult = await db.query(
+      `SELECT
+        id,
+        name,
+        description,
+        "iconUrl" as icon_url,
+        "memberCount" as member_count,
+        "isVerified" as is_verified
+      FROM groups
+      WHERE LOWER(name) LIKE LOWER($1)
+      ORDER BY "memberCount" DESC, name ASC
+      LIMIT 20`,
+      [searchTerm],
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        groups: groupsResult.rows,
+      },
+    });
+  } catch (error: any) {
+    console.error("Search groups error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: process.env.NODE_ENV === "development" ? error?.message : undefined,
+    });
+  }
+};
+
+/**
  * @route   GET /api/v1/groups/:id/games
  * @desc    Get games associated with a group
  * @access  Public
