@@ -1377,6 +1377,80 @@ export const friendsApi = {
 };
 
 // Messages API
+export const notificationsApi = {
+  // Get all notifications
+  getNotifications: async (): Promise<ApiResponse<{ notifications: any[] }>> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        message: "Not authenticated",
+      };
+    }
+
+    return apiCall("/notifications", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  // Get unread count
+  getUnreadCount: async (): Promise<ApiResponse<{ count: number }>> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        message: "Not authenticated",
+      };
+    }
+
+    return apiCall("/notifications/unread-count", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  // Mark notification as read
+  markAsRead: async (notificationId: string): Promise<ApiResponse<unknown>> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        message: "Not authenticated",
+      };
+    }
+
+    return apiCall(`/notifications/${notificationId}/read`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  // Mark all as read
+  markAllAsRead: async (): Promise<ApiResponse<unknown>> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        message: "Not authenticated",
+      };
+    }
+
+    return apiCall("/notifications/read-all", {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+};
+
 export const messagesApi = {
   // Get all conversations
   getConversations: async (): Promise<ApiResponse<{ conversations: unknown[] }>> => {

@@ -1,5 +1,6 @@
-import { Response } from "express";
-import db from '../../lib/db.js';
+import { Request, Response } from "express";
+import db from "../../config/database.js";
+import { createNotification } from "../notifications/notifications.controller.js";
 import { AuthRequest } from '../../middleware/auth.middleware.js';
 import { v4 as uuidv4 } from "uuid";
 
@@ -91,7 +92,18 @@ export const sendFriendRequest = async (req: AuthRequest, res: Response) => {
       [requestId, userId, receiverId, "pending"]
     );
 
-    // TODO: Create notification for receiver
+    // Create notification for receiver
+    try {
+      await createNotification(
+        receiverId,
+        'friend_request',
+        `${userId} sent you a friend request`,
+        userId,
+        requestId
+      );
+    } catch (error) {
+      console.error('Failed to create notification:', error);
+    }
 
     return res.status(201).json({
       success: true,
@@ -192,7 +204,26 @@ export const acceptFriendRequest = async (req: AuthRequest, res: Response) => {
 
     console.log("Friendships created:", insertResult.rows);
 
-    // TODO: Create notification for sender
+    // Create notification for sender
+    const senderResult = await db.query(
+      'SELECT "senderId" FROM friend_requests WHERE id = $1',
+      [requestId]
+    );
+    
+    if (senderResult.rows.length > 0) {
+      const senderId = senderResult.rows[0].senderId;
+      try {
+        await createNotification(
+          senderId,
+          'friend_request_accepted',
+          `${userId} accepted your friend request`,
+          userId,
+          requestId
+        );
+      } catch (error) {
+        console.error('Failed to create notification:', error);
+      }
+    }
 
     return res.status(200).json({
       success: true,

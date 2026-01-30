@@ -9,6 +9,8 @@ import VerifiedBadge from "./VerifiedBadge";
 import { logout, isAuthenticated } from "@/lib/auth";
 import { usersApi, searchApi, friendsApi } from "@/lib/api";
 import SwitchAccountsModal from "./SwitchAccountsModal";
+import NotificationDropdown from "./NotificationDropdown";
+import { useNotifications } from "@/contexts/NotificationContext";
 
 interface HeaderProps {
   searchQuery: string;
@@ -47,6 +49,8 @@ export default function Header({
   const [isSearching, setIsSearching] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const searchDropdownRef = useRef<HTMLDivElement>(null);
+  const [notificationOpen, setNotificationOpen] = useState(false);
+  const { unreadCount } = useNotifications();
 
 useEffect(() => {
     // Check if user is authenticated
@@ -386,10 +390,23 @@ useEffect(() => {
                 </Link>
 
                 {/* Notifications */}
-                <button className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg relative transition-colors">
-                  <Bell className="w-7 h-7 text-gray-700 dark:text-gray-300" />
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-                </button>
+                <div className="relative">
+                  <button 
+                    onClick={() => setNotificationOpen(!notificationOpen)}
+                    className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg relative transition-colors"
+                  >
+                    <Bell className="w-7 h-7 text-gray-700 dark:text-gray-300" />
+                    {unreadCount > 0 && (
+                      <span className="absolute top-1 right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center px-1">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </span>
+                    )}
+                  </button>
+                  <NotificationDropdown 
+                    isOpen={notificationOpen} 
+                    onClose={() => setNotificationOpen(false)} 
+                  />
+                </div>
 
                 {/* Currency Display */}
                 <div className="flex items-center gap-1.5">

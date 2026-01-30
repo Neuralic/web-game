@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { RealtimeProvider } from "@/contexts/RealtimeContext";
+import { NotificationProvider } from "@/contexts/NotificationContext";
 import GlobalChatWidget from "./components/GlobalChatWidget";
+import NotificationToast from "./components/NotificationToast";
 
 export const metadata: Metadata = {
   title: "AdventureBlox",
@@ -24,8 +26,11 @@ export default function RootLayout({
           storageKey="adventureblox-theme"
         >
           <RealtimeProvider>
-            {children}
-            <GlobalChatWidget />
+            <NotificationProvider>
+              {children}
+              <GlobalChatWidget />
+              <NotificationToast />
+            </NotificationProvider>
           </RealtimeProvider>
         </ThemeProvider>
       </body>

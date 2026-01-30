@@ -12,6 +12,7 @@ import groupsRoutes from './modules/groups/groups.routes.js';
 import searchRoutes from './modules/search/search.routes.js';
 import uploadRoutes from './modules/upload/upload.routes.js';
 import messagesRoutes from './modules/messages/messages.routes.js';
+import notificationsRoutes from './modules/notifications/notifications.routes.js';
 
 dotenv.config();
 
@@ -47,6 +48,7 @@ app.use('/api/v1/groups', groupsRoutes);
 app.use('/api/v1/search', searchRoutes);
 app.use('/api/v1/upload', uploadRoutes);
 app.use('/api/v1/messages', messagesRoutes);
+app.use('/api/v1/notifications', notificationsRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'Route not found' });
