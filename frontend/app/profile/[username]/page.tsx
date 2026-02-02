@@ -20,6 +20,7 @@ import Sidebar from "../../components/Sidebar";
 import Header from "../../components/Header";
 import VerifiedBadge from "../../components/VerifiedBadge";
 import { usersApi, friendsApi, groupsApi } from "@/lib/api";
+import { openChatWithUser } from "@/app/components/ChatWidget";
 import { useParams } from "next/navigation";
 import { useUserPresence } from "@/hooks/useUserPresence";
 import { supabase } from "@/lib/supabase";
@@ -952,11 +953,17 @@ const ProfilePage = () => {
                         <>
                           {relationship?.isFriend ? (
                             // Already friends - show Message button
-                            <Link href="/messages">
-                              <button className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium rounded-lg text-sm transition-colors">
-                                Message
-                              </button>
-                            </Link>
+                            <button 
+                              onClick={() => openChatWithUser(
+                                profileUser.id,
+                                profileUser.username,
+                                profileUser.display_name,
+                                profileUser.avatar_url
+                              )}
+                              className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium rounded-lg text-sm transition-colors"
+                            >
+                              Message
+                            </button>
                           ) : relationship?.friendRequestStatus === 'sent' ? (
                             // Friend request sent
                             <button 

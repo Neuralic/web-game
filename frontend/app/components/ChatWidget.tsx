@@ -36,6 +36,15 @@ interface ChatWindow {
   isLoadingMessages: boolean;
 }
 
+// Global function to open chat from external components
+let globalOpenChat: ((userId: string, username: string, displayName?: string, avatarUrl?: string) => void) | null = null;
+
+export const openChatWithUser = (userId: string, username: string, displayName?: string, avatarUrl?: string) => {
+  if (globalOpenChat) {
+    globalOpenChat(userId, username, displayName, avatarUrl);
+  }
+};
+
 export default function ChatWidget() {
   const [isChatListOpen, setIsChatListOpen] = useState(false);
   const [openChats, setOpenChats] = useState<ChatWindow[]>([]);
@@ -46,6 +55,29 @@ export default function ChatWidget() {
   const [typingUsers, setTypingUsers] = useState<{ [key: string]: boolean }>({});
   const { presenceMap } = useRealtime();
   const messagesEndRef = useRef<{ [key: string]: HTMLDivElement | null }>({});
+
+  // Register global chat opener
+  useEffect(() => {
+    globalOpenChat = (userId: string, username: string, displayName?: string, avatarUrl?: string) => {
+      if (!openChats.find(chat => chat.id === userId)) {
+        const newChat: ChatWindow = {
+          id: userId,
+          name: displayName || username,
+          avatar: avatarUrl || `https://robohash.org/${username}?set=set3`,
+          username: `@${username}`,
+          messages: [],
+          isLoadingMessages: false,
+        };
+        setOpenChats(prev => [...prev, newChat]);
+        loadMessages(userId);
+      }
+      setIsChatListOpen(false);
+    };
+
+    return () => {
+      globalOpenChat = null;
+    };
+  }, [openChats]);
 
   // Load friends and conversations on mount
   useEffect(() => {
