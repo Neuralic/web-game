@@ -138,7 +138,7 @@ const ProfilePage = () => {
               
               // Set relationship status immediately
               if (relationshipResponse.success && relationshipResponse.data) {
-                setRelationship(relationshipResponse.data.relationship as any);
+                setRelationship(relationshipResponse.data as any);
               } else {
                 // No relationship data, set default
                 setRelationship({
@@ -314,7 +314,7 @@ const ProfilePage = () => {
       try {
         const relationshipResponse = await usersApi.getRelationship(profileUser.id);
         if (relationshipResponse.success && relationshipResponse.data) {
-          setRelationship(relationshipResponse.data.relationship as any);
+          setRelationship(relationshipResponse.data as any);
         }
       } catch (error) {
         console.error('Error refetching relationship:', error);
