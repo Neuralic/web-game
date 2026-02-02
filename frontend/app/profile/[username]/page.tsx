@@ -928,59 +928,63 @@ const ProfilePage = () => {
                   )}
                 </div>
 
-                {/* Action Buttons */}
+                {/* Action Buttons - Only render after profile data is loaded */}
                 <div className="flex items-center gap-2">
-                  {isOwnProfile ? (
-                    // Own profile - show Edit buttons
+                  {profileUser && (
                     <>
-                      <button
-                        onClick={() => setShowEditProfileModal(true)}
-                        className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium rounded-lg text-sm transition-colors"
-                      >
-                        Edit Profile
-                      </button>
-                      <Link href="/avatar">
-                        <button className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium rounded-lg text-sm transition-colors">
-                          Edit Avatar
-                        </button>
-                      </Link>
-                    </>
-                  ) : (
-                    // Other user's profile - show appropriate buttons based on relationship
-                    <>
-                      {relationship?.isFriend ? (
-                        // Already friends - show Message button
-                        <Link href="/messages">
-                          <button className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium rounded-lg text-sm transition-colors">
-                            Message
+                      {isOwnProfile ? (
+                        // Own profile - show Edit buttons
+                        <>
+                          <button
+                            onClick={() => setShowEditProfileModal(true)}
+                            className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium rounded-lg text-sm transition-colors"
+                          >
+                            Edit Profile
                           </button>
-                        </Link>
-                      ) : relationship?.friendRequestStatus === 'sent' ? (
-                        // Friend request sent
-                        <button 
-                          disabled
-                          className="px-4 py-2 bg-gray-400 text-white font-medium rounded-lg text-sm cursor-not-allowed"
-                        >
-                          Request Sent
-                        </button>
-                      ) : relationship?.friendRequestStatus === 'received' ? (
-                        // Friend request received
-                        <button 
-                          onClick={handleSendFriendRequest}
-                          disabled={isLoadingAction}
-                          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg text-sm transition-colors"
-                        >
-                          Accept Friend Request
-                        </button>
+                          <Link href="/avatar">
+                            <button className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium rounded-lg text-sm transition-colors">
+                              Edit Avatar
+                            </button>
+                          </Link>
+                        </>
                       ) : (
-                        // Not friends - show Add Friend button
-                        <button 
-                          onClick={handleSendFriendRequest}
-                          disabled={isLoadingAction}
-                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm transition-colors disabled:opacity-50"
-                        >
-                          Add Friend
-                        </button>
+                        // Other user's profile - show appropriate buttons based on relationship
+                        <>
+                          {relationship?.isFriend ? (
+                            // Already friends - show Message button
+                            <Link href="/messages">
+                              <button className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium rounded-lg text-sm transition-colors">
+                                Message
+                              </button>
+                            </Link>
+                          ) : relationship?.friendRequestStatus === 'sent' ? (
+                            // Friend request sent
+                            <button 
+                              disabled
+                              className="px-4 py-2 bg-gray-400 text-white font-medium rounded-lg text-sm cursor-not-allowed"
+                            >
+                              Request Sent
+                            </button>
+                          ) : relationship?.friendRequestStatus === 'received' ? (
+                            // Friend request received
+                            <button 
+                              onClick={handleSendFriendRequest}
+                              disabled={isLoadingAction}
+                              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg text-sm transition-colors"
+                            >
+                              Accept Friend Request
+                            </button>
+                          ) : (
+                            // Not friends - show Add Friend button
+                            <button 
+                              onClick={handleSendFriendRequest}
+                              disabled={isLoadingAction}
+                              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm transition-colors disabled:opacity-50"
+                            >
+                              Add Friend
+                            </button>
+                          )}
+                        </>
                       )}
                     </>
                   )}

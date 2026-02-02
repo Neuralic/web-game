@@ -41,7 +41,6 @@ export default function Header({
     is_verified?: boolean;
   } | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [showSwitchAccountsModal, setShowSwitchAccountsModal] = useState(false);
   const [switchSuccess, setSwitchSuccess] = useState(false);
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -72,8 +71,6 @@ useEffect(() => {
           setIsLoggedIn(false);
         }
       }
-
-      setLoading(false);
     };
 
     checkAuth();
@@ -178,9 +175,9 @@ useEffect(() => {
     }
   };
 
-  // Show loading or fallback if user data not loaded yet
-  const displayUsername = user?.username ?? "Loading...";
-  const displayName = user?.display_name ?? user?.username ?? "Loading...";
+  // Display user data immediately without loading states
+  const displayUsername = user?.username ?? "";
+  const displayName = user?.display_name ?? user?.username ?? "";
   const userIsVerified = user?.is_verified ?? isVerified;
 
   return (
@@ -375,10 +372,12 @@ useEffect(() => {
                   href="/profile"
                   className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg px-2 py-1.5 transition-colors"
                 >
-                  <span className="text-gray-900 dark:text-gray-100 font-medium text-sm hidden lg:flex items-center gap-1">
-                    {loading ? "Loading..." : displayName}
-                    {!loading && userIsVerified && <VerifiedBadge size="sm" />}
-                  </span>
+                  {displayName && (
+                    <span className="text-gray-900 dark:text-gray-100 font-medium text-sm hidden lg:flex items-center gap-1">
+                      {displayName}
+                      {userIsVerified && <VerifiedBadge size="sm" />}
+                    </span>
+                  )}
                   <div className="w-9 h-9 bg-gray-300 dark:bg-gray-600 rounded-full flex-shrink-0 overflow-hidden relative">
                     <Image
                       src="https://tr.rbxcdn.com/30DAY-AvatarHeadshot-903254C5702EE154B5EA564D1D4CB860-Png/150/150/AvatarHeadshot/Webp/noFilter"
