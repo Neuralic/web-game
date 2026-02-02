@@ -109,9 +109,23 @@ const ProfilePage = () => {
               setStatusMessage(currentUserData.status_message);
               setEditedStatusMessage(currentUserData.status_message);
             }
+            // Clear relationship for own profile
+            setRelationship(null);
           } else {
-            // Fetch other user's profile
-            const profileResponse = await usersApi.getUserByUsername(profileUsername);
+            // Fetch other user's profile AND relationship in parallel
+            const [profileResponse, relationshipResponse] = await Promise.all([
+              usersApi.getUserByUsername(profileUsername),
+              usersApi.getUserByUsername(profileUsername).then(async (res) => {
+                if (res.success && res.data) {
+                  const userData = res.data as any;
+                  if (userData.user?.id) {
+                    return usersApi.getRelationship(userData.user.id);
+                  }
+                }
+                return { success: false, data: null };
+              })
+            ]);
+
             if (profileResponse.success && profileResponse.data) {
               const profileData = profileResponse.data as any;
               setProfileUser(profileData.user);
@@ -122,12 +136,18 @@ const ProfilePage = () => {
                 setStatusMessage(profileData.user.status_message);
               }
               
-              // Fetch relationship status
-              if (profileData.user.id) {
-                const relationshipResponse = await usersApi.getRelationship(profileData.user.id);
-                if (relationshipResponse.success && relationshipResponse.data) {
-                  setRelationship(relationshipResponse.data.relationship as any);
-                }
+              // Set relationship status immediately
+              if (relationshipResponse.success && relationshipResponse.data) {
+                setRelationship(relationshipResponse.data.relationship as any);
+              } else {
+                // No relationship data, set default
+                setRelationship({
+                  isFriend: false,
+                  friendRequestStatus: null,
+                  isFollowing: false,
+                  isBestFriend: false,
+                  isBlocked: false
+                });
               }
             }
           }
@@ -203,7 +223,7 @@ const ProfilePage = () => {
   ];
 
 
-  // Fetch friends when profile loads
+  // Fetch friends when profile loads and setup real-time updates
   useEffect(() => {
     const fetchFriends = async () => {
       if (!profileUser?.id) return;
@@ -229,6 +249,30 @@ const ProfilePage = () => {
     };
 
     fetchFriends();
+
+    // Setup real-time subscription for friendship changes
+    if (!profileUser?.id || isOwnProfile) return;
+
+    const channel = supabase
+      .channel('profile-friendships-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'friendships',
+          filter: `userId=eq.${profileUser.id}`,
+        },
+        () => {
+          // Refetch friends when friendships change
+          fetchFriends();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [profileUser?.id, isOwnProfile]);
 
   // Fetch groups when profile loads and setup real-time updates
@@ -263,10 +307,25 @@ const ProfilePage = () => {
 
     fetchGroups();
 
+    // Refetch relationship when viewing other user's profile
+    const refetchRelationship = async () => {
+      if (!profileUser?.id || isOwnProfile) return;
+      
+      try {
+        const relationshipResponse = await usersApi.getRelationship(profileUser.id);
+        if (relationshipResponse.success && relationshipResponse.data) {
+          setRelationship(relationshipResponse.data.relationship as any);
+        }
+      } catch (error) {
+        console.error('Error refetching relationship:', error);
+      }
+    };
+
     // Setup real-time subscription for group membership changes
     if (!profileUser?.id) return;
 
-    const channel = supabase
+    // Subscribe to group membership changes
+    const groupsChannel = supabase
       .channel('profile-groups-changes')
       .on(
         'postgres_changes',
@@ -283,10 +342,46 @@ const ProfilePage = () => {
       )
       .subscribe();
 
+    // Subscribe to friendship changes (for relationship status)
+    const friendshipsChannel = supabase
+      .channel('profile-relationship-friendships')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'friendships',
+        },
+        () => {
+          // Refetch relationship when friendships change
+          refetchRelationship();
+        }
+      )
+      .subscribe();
+
+    // Subscribe to friend request changes (for relationship status)
+    const requestsChannel = supabase
+      .channel('profile-relationship-requests')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'friend_requests',
+        },
+        () => {
+          // Refetch relationship when friend requests change
+          refetchRelationship();
+        }
+      )
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(groupsChannel);
+      supabase.removeChannel(friendshipsChannel);
+      supabase.removeChannel(requestsChannel);
     };
-  }, [profileUser?.id]);
+  }, [profileUser?.id, isOwnProfile]);
 
   // Real-time updates for bio changes
   useEffect(() => {
@@ -1713,7 +1808,7 @@ const ProfilePage = () => {
                       Place Visits
                     </p>
                     <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
-                      {profileUser?.visit_count || 0}
+                      {currentUser?.visit_count || profileUser?.visit_count || 0}
                     </p>
                   </div>
                 </div>
