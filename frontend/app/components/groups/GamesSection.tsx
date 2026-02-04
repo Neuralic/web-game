@@ -76,53 +76,55 @@ export default function GamesSection({ groupId }: GamesSectionProps) {
         )}
       </div>
 
-      {games.length > 0 ? (
-        <div className="flex gap-4 overflow-x-auto">
-          {games.map((game) => (
-            <Link
-              key={game.id}
-              href={`/games/${game.id}`}
-              className="group block flex-shrink-0"
-            >
-              <div className="w-[150px] h-[150px] border border-gray-200 dark:border-gray-700 rounded overflow-hidden bg-gray-100 dark:bg-gray-800 relative">
-                <Image
-                  src={
-                    game.thumbnail_url ||
-                    game.icon_url ||
-                    `https://robohash.org/${game.id}?set=set4`
-                  }
-                  alt={game.title}
-                  fill
-                  className="object-cover group-hover:opacity-90 transition-opacity"
-                  sizes="150px"
-                />
-              </div>
-              <div className="mt-2 w-[150px]">
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400">
-                  {game.title}
-                </h3>
-                <div className="flex items-center gap-2 mt-1 text-xs text-gray-600 dark:text-gray-400">
-                  <span className="flex items-center gap-1">
-                    👍 {calculateLikePercentage(game.likes, game.dislikes)}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    👥 {game.current_players}
-                  </span>
+      <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded p-4">
+        {games.length > 0 ? (
+          <div className="flex gap-4 overflow-x-auto">
+            {games.map((game) => (
+              <Link
+                key={game.id}
+                href={`/games/${game.id}`}
+                className="group block flex-shrink-0"
+              >
+                <div className="w-[150px] h-[150px] border border-gray-200 dark:border-gray-700 rounded overflow-hidden bg-gray-100 dark:bg-gray-800 relative">
+                  <Image
+                    src={
+                      game.thumbnail_url ||
+                      game.icon_url ||
+                      `https://robohash.org/${game.id}?set=set4`
+                    }
+                    alt={game.title}
+                    fill
+                    className="object-cover group-hover:opacity-90 transition-opacity"
+                    sizes="150px"
+                  />
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                  {game.visits.toLocaleString()} visits
-                </p>
-              </div>
-            </Link>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-8">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            No games yet.
-          </p>
-        </div>
-      )}
+                <div className="mt-2 w-[150px]">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                    {game.title}
+                  </h3>
+                  <div className="flex items-center gap-2 mt-1 text-xs text-gray-600 dark:text-gray-400">
+                    <span className="flex items-center gap-1">
+                      👍 {calculateLikePercentage(game.likes, game.dislikes)}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      👥 {game.current_players}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                    {game.visits.toLocaleString()} visits
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              No games yet.
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
