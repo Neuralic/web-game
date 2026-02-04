@@ -252,15 +252,6 @@ export default function Sidebar({
 
             <nav className="py-1">
               <Link
-                href="/blog"
-                className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                onClick={onClose}
-              >
-                <MessageSquare className="w-4 h-4" />
-                <span className="font-medium text-sm">Blog</span>
-              </Link>
-
-              <Link
                 href="/gift-cards"
                 className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                 onClick={onClose}

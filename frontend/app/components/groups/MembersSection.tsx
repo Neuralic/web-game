@@ -146,8 +146,7 @@ export default function MembersSection({ groupId }: MembersSectionProps) {
         </div>
       </div>
 
-      <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded p-4">
-        <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-3">
           {filteredMembers.length > 0 ? (
             filteredMembers.map((member) => (
               <a
@@ -174,7 +173,6 @@ export default function MembersSection({ groupId }: MembersSectionProps) {
               No members found with this role.
             </p>
           )}
-        </div>
       </div>
     </div>
   );

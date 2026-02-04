@@ -76,9 +76,8 @@ export default function GamesSection({ groupId }: GamesSectionProps) {
         )}
       </div>
 
-      <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded p-4">
-        {games.length > 0 ? (
-          <div className="flex gap-4 overflow-x-auto">
+      {games.length > 0 ? (
+        <div className="flex gap-4 overflow-x-auto">
             {games.map((game) => (
               <Link
                 key={game.id}
@@ -116,15 +115,14 @@ export default function GamesSection({ groupId }: GamesSectionProps) {
                 </div>
               </Link>
             ))}
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              No games yet.
-            </p>
-          </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="text-center py-8">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            No games yet.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
