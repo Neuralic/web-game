@@ -843,7 +843,7 @@ const GroupDetailPage = () => {
           {activeTab === "About" && (
             <>
               {/* Description Section */}
-              <div className="mx-6">
+              <div className="p-6">
                 <DescriptionSection description={currentGroup?.description} />
               </div>
 
