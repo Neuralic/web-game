@@ -843,7 +843,7 @@ const GroupDetailPage = () => {
           {activeTab === "About" && (
             <>
               {/* Description Section */}
-              <div className="p-6">
+              <div className="mx-6">
                 <DescriptionSection description={currentGroup?.description} />
               </div>
 
@@ -940,10 +940,14 @@ const GroupDetailPage = () => {
               </div>
 
               {/* Games Section */}
-              <GamesSection groupId={currentGroup?.id} />
+              <div className="mx-6">
+                <GamesSection groupId={currentGroup?.id} />
+              </div>
 
               {/* Members Section */}
-              <MembersSection groupId={currentGroup?.id} />
+              <div className="mx-6">
+                <MembersSection groupId={currentGroup?.id} />
+              </div>
 
               {/* Social Links */}
               <SocialLinksSection groupId={currentGroup?.id} />
