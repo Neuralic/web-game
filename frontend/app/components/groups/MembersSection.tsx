@@ -34,8 +34,6 @@ export default function MembersSection({ groupId }: MembersSectionProps) {
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
-
   // Fetch members and roles
   useEffect(() => {
     const fetchData = async () => {
@@ -65,17 +63,9 @@ export default function MembersSection({ groupId }: MembersSectionProps) {
     fetchData();
   }, [groupId]);
 
-  // Filter members by role and search query
+  // Filter members by role
   const filteredMembers = members.filter((member) => {
-    // Filter by role
-    const roleMatch = selectedRole === "all" || member.role_id === selectedRole;
-    
-    // Filter by search query (semantic search on username and display name)
-    const searchMatch = searchQuery.trim() === "" || 
-      member.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (member.display_name && member.display_name.toLowerCase().includes(searchQuery.toLowerCase()));
-    
-    return roleMatch && searchMatch;
+    return selectedRole === "all" || member.role_id === selectedRole;
   });
   return (
     <div className="p-4 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
@@ -154,15 +144,6 @@ export default function MembersSection({ groupId }: MembersSectionProps) {
           </div>
           </div>
         </div>
-
-        {/* Search Input */}
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search members by username..."
-          className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
       </div>
 
       <div className="flex flex-wrap gap-3">
@@ -173,16 +154,16 @@ export default function MembersSection({ groupId }: MembersSectionProps) {
               href={`/profile/${member.username}`}
               className="group flex flex-col items-center"
             >
-              <div className="w-[60px] h-[60px] border border-gray-200 dark:border-gray-700 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 relative">
+              <div className="w-[80px] h-[80px] border border-gray-200 dark:border-gray-700 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 relative">
                 <Image
                   src={`https://robohash.org/${member.username}?set=set3`}
                   alt={member.display_name || member.username}
                   fill
                   className="object-cover group-hover:opacity-90 transition-opacity"
-                  sizes="60px"
+                  sizes="80px"
                 />
               </div>
-              <p className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-1 truncate w-[60px] text-center">
+              <p className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-1 truncate w-[80px] text-center">
                 {member.display_name || member.username}
               </p>
             </a>

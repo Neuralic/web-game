@@ -952,18 +952,27 @@ const ProfilePage = () => {
                         // Other user's profile - show appropriate buttons based on relationship
                         <>
                           {relationship?.isFriend ? (
-                            // Already friends - show Message button
-                            <button 
-                              onClick={() => openChatWithUser(
-                                profileUser.id,
-                                profileUser.username,
-                                profileUser.display_name,
-                                profileUser.avatar_url
-                              )}
-                              className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium rounded-lg text-sm transition-colors"
-                            >
-                              Message
-                            </button>
+                            // Already friends - show Message and Unfriend buttons
+                            <>
+                              <button 
+                                onClick={() => openChatWithUser(
+                                  profileUser.id,
+                                  profileUser.username,
+                                  profileUser.display_name,
+                                  profileUser.avatar_url
+                                )}
+                                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium rounded-lg text-sm transition-colors"
+                              >
+                                Message
+                              </button>
+                              <button 
+                                onClick={handleUnfriend}
+                                disabled={isLoadingAction}
+                                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg text-sm transition-colors disabled:opacity-50"
+                              >
+                                Unfriend
+                              </button>
+                            </>
                           ) : relationship?.friendRequestStatus === 'sent' ? (
                             // Friend request sent
                             <button 
@@ -1028,15 +1037,6 @@ const ProfilePage = () => {
                           <>
                             {relationship?.isFriend && (
                               <>
-                                <button
-                                  className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                  onClick={() => {
-                                    handleUnfriend();
-                                    setShowProfileMenu(false);
-                                  }}
-                                >
-                                  Unfriend
-                                </button>
                                 <button
                                   className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
                                   onClick={() => {

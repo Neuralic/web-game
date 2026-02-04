@@ -281,58 +281,6 @@ export default function Sidebar({
               </Link>
             </div>
 
-            {/* Events Section */}
-            <div className="px-4 pb-4">
-              <h3 className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase mb-2">
-                Events
-              </h3>
-              <div className="space-y-2">
-                {/* Event Card 1 */}
-                <Link
-                  href="/events/1"
-                  className="block rounded-lg overflow-hidden hover:opacity-80 transition-opacity"
-                  onClick={onClose}
-                >
-                  <div className="relative aspect-[2/1] bg-gradient-to-br from-red-500 to-pink-600">
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-white font-bold text-xs">
-                        ❤️ iHeart LAND
-                      </span>
-                    </div>
-                  </div>
-                </Link>
-
-                {/* Event Card 2 */}
-                <Link
-                  href="/events/2"
-                  className="block rounded-lg overflow-hidden hover:opacity-80 transition-opacity"
-                  onClick={onClose}
-                >
-                  <div className="relative aspect-[2/1] bg-gradient-to-br from-orange-500 to-yellow-500">
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-white font-bold text-xs">
-                        🎮 MORE TYCOON
-                      </span>
-                    </div>
-                  </div>
-                </Link>
-
-                {/* Event Card 3 */}
-                <Link
-                  href="/events/3"
-                  className="block rounded-lg overflow-hidden hover:opacity-80 transition-opacity"
-                  onClick={onClose}
-                >
-                  <div className="relative aspect-[2/1] bg-gradient-to-br from-purple-600 to-blue-600">
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-white font-bold text-xs">
-                        ⚔️ ANIME MARATHON
-                      </span>
-                    </div>
-                  </div>
-                </Link>
-              </div>
-            </div>
           </>
         )}
       </div>
