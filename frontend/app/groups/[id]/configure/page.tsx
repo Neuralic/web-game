@@ -36,14 +36,12 @@ const ToggleSwitch = ({
   return (
     <button
       onClick={() => onChange(!enabled)}
-      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-        enabled ? "bg-blue-600" : "bg-gray-300 dark:bg-gray-600"
-      }`}
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${enabled ? "bg-blue-600" : "bg-gray-300 dark:bg-gray-600"
+        }`}
     >
       <span
-        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-          enabled ? "translate-x-6" : "translate-x-1"
-        }`}
+        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${enabled ? "translate-x-6" : "translate-x-1"
+          }`}
       />
     </button>
   );
@@ -98,7 +96,7 @@ const ConfigureGroupPage = () => {
   const [openMemberMenu, setOpenMemberMenu] = useState<string | null>(null);
   const [joinRequests, setJoinRequests] = useState<any[]>([]);
   const [loadingRequests, setLoadingRequests] = useState(false);
-  
+
   // Role assignment confirmation modal states
   const [showRoleConfirmModal, setShowRoleConfirmModal] = useState(false);
   const [pendingRoleChange, setPendingRoleChange] = useState<{
@@ -238,7 +236,7 @@ const ConfigureGroupPage = () => {
           const manualApprovalValue = settings.manual_approval || false;
           setManualApproval(manualApprovalValue);
           setAccountAge(settings.account_age_requirement || "none");
-          
+
           // Sync joinSetting with manual approval
           if (manualApprovalValue && joinSetting === "open") {
             setJoinSetting("approval");
@@ -1122,11 +1120,10 @@ const ConfigureGroupPage = () => {
                   <button
                     key={section.name}
                     onClick={() => setActiveSection(section.name)}
-                    className={`w-full px-4 py-3 text-left text-sm flex items-center justify-between transition-colors ${
-                      activeSection === section.name
+                    className={`w-full px-4 py-3 text-left text-sm flex items-center justify-between transition-colors ${activeSection === section.name
                         ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium border-l-4 border-blue-600"
                         : "text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 border-l-4 border-transparent"
-                    }`}
+                      }`}
                   >
                     <span>{section.name}</span>
                     {section.hasNew && (
@@ -1472,7 +1469,7 @@ const ConfigureGroupPage = () => {
                       </div>
                     </div>
 
-                    <button 
+                    <button
                       onClick={handleSaveSettings}
                       disabled={saving}
                       className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1592,7 +1589,7 @@ const ConfigureGroupPage = () => {
                       />
                     </div>
 
-                    <button 
+                    <button
                       onClick={handleSaveSocialLinks}
                       disabled={saving}
                       className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
@@ -1679,11 +1676,10 @@ const ConfigureGroupPage = () => {
                     <div className="flex border-b border-gray-300 dark:border-gray-600">
                       <button
                         onClick={() => setMembersTab("members")}
-                        className={`px-6 py-3 text-sm font-semibold transition-colors relative ${
-                          membersTab === "members"
+                        className={`px-6 py-3 text-sm font-semibold transition-colors relative ${membersTab === "members"
                             ? "text-gray-900 dark:text-gray-100"
                             : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-                        }`}
+                          }`}
                       >
                         Members
                         {membersTab === "members" && (
@@ -1692,11 +1688,10 @@ const ConfigureGroupPage = () => {
                       </button>
                       <button
                         onClick={() => setMembersTab("requests")}
-                        className={`px-6 py-3 text-sm font-semibold transition-colors relative ${
-                          membersTab === "requests"
+                        className={`px-6 py-3 text-sm font-semibold transition-colors relative ${membersTab === "requests"
                             ? "text-gray-900 dark:text-gray-100"
                             : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-                        }`}
+                          }`}
                       >
                         Requests
                         {membersTab === "requests" && (
@@ -1750,9 +1745,9 @@ const ConfigureGroupPage = () => {
                                 const matchesSearch = member.username
                                   ?.toLowerCase()
                                   .includes(memberSearch.toLowerCase());
-                                
+
                                 const matchesRole = memberRoleFilter === "All" || member.role_id === memberRoleFilter;
-                                
+
                                 return matchesSearch && matchesRole;
                               })
                               .map((member) => (
@@ -1977,24 +1972,7 @@ const ConfigureGroupPage = () => {
 
                 {activeSection === "Roles" && (
                   <div className="space-y-6">
-                    {/* Info Banner */}
-                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 flex items-start gap-3">
-                      <div className="flex-shrink-0 mt-0.5">
-                        <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                          <span className="text-white text-lg">ℹ</span>
-                        </div>
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm text-blue-900 dark:text-blue-200">
-                          We have improved permissions and membership management
-                          within Creator Hub and recommend you head there if you
-                          want to manage collaborators.
-                        </p>
-                        <button className="mt-2 px-4 py-1.5 bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 text-sm rounded border border-blue-300 dark:border-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/30">
-                          Go to Creator Hub
-                        </button>
-                      </div>
-                    </div>
+
 
                     <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
                       Roles
@@ -2016,11 +1994,10 @@ const ConfigureGroupPage = () => {
                             <button
                               key={role.id}
                               onClick={() => handleSelectRole(role)}
-                              className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${
-                                selectedRole?.id === role.id
+                              className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${selectedRole?.id === role.id
                                   ? "bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600"
                                   : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                              }`}
+                                }`}
                             >
                               <div className="font-semibold text-gray-900 dark:text-gray-100">
                                 {role.name}
@@ -2088,7 +2065,7 @@ const ConfigureGroupPage = () => {
 
                         {/* Posts Section */}
                         <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
-                          <button 
+                          <button
                             onClick={() => setPermissionSectionsCollapsed(prev => ({ ...prev, posts: !prev.posts }))}
                             className="w-full bg-gray-50 dark:bg-gray-700/50 px-5 py-3 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                           >
@@ -2105,15 +2082,15 @@ const ConfigureGroupPage = () => {
                                 <span className="text-sm text-gray-700 dark:text-gray-100">
                                   Post on community wall
                                 </span>
-                              <ToggleSwitch
-                                enabled={rolePermissions.postWall}
-                                onChange={(val) =>
-                                  setRolePermissions({
-                                    ...rolePermissions,
-                                    postWall: val,
-                                  })
-                                }
-                              />
+                                <ToggleSwitch
+                                  enabled={rolePermissions.postWall}
+                                  onChange={(val) =>
+                                    setRolePermissions({
+                                      ...rolePermissions,
+                                      postWall: val,
+                                    })
+                                  }
+                                />
                               </div>
                               <div className="flex items-center justify-between">
                                 <span className="text-sm text-gray-700 dark:text-gray-100">
@@ -2149,7 +2126,7 @@ const ConfigureGroupPage = () => {
 
                         {/* Members Section */}
                         <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
-                          <button 
+                          <button
                             onClick={() => setPermissionSectionsCollapsed(prev => ({ ...prev, members: !prev.members }))}
                             className="w-full bg-gray-50 dark:bg-gray-700/50 px-5 py-3 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                           >
@@ -2210,7 +2187,7 @@ const ConfigureGroupPage = () => {
 
                         {/* Administration Section */}
                         <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
-                          <button 
+                          <button
                             onClick={() => setPermissionSectionsCollapsed(prev => ({ ...prev, moderation: !prev.moderation }))}
                             className="w-full bg-gray-50 dark:bg-gray-700/50 px-5 py-3 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                           >
@@ -2340,7 +2317,7 @@ const ConfigureGroupPage = () => {
                         </div>
 
                         {/* Save Button at Bottom */}
-                        <button 
+                        <button
                           onClick={handleSaveRole}
                           disabled={!roleName.trim() || saving}
                           className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-6"
@@ -2416,21 +2393,19 @@ const ConfigureGroupPage = () => {
                       <div className="flex gap-4">
                         <button
                           onClick={() => setAlliancesTab("allies")}
-                          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                            alliancesTab === "allies"
+                          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${alliancesTab === "allies"
                               ? "border-blue-600 text-blue-600 dark:text-blue-400"
                               : "border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-                          }`}
+                            }`}
                         >
                           Allies ({alliances.length})
                         </button>
                         <button
                           onClick={() => setAlliancesTab("requests")}
-                          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                            alliancesTab === "requests"
+                          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${alliancesTab === "requests"
                               ? "border-blue-600 text-blue-600 dark:text-blue-400"
                               : "border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-                          }`}
+                            }`}
                         >
                           Requests ({allianceRequests.length})
                         </button>
@@ -2700,11 +2675,10 @@ const ConfigureGroupPage = () => {
                     <div className="flex border-b border-gray-200 dark:border-gray-700">
                       <button
                         onClick={() => setAdTab("create")}
-                        className={`px-6 py-3 text-sm font-semibold transition-colors relative ${
-                          adTab === "create"
+                        className={`px-6 py-3 text-sm font-semibold transition-colors relative ${adTab === "create"
                             ? "text-gray-900 dark:text-gray-100"
                             : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-                        }`}
+                          }`}
                       >
                         Create Ad
                         {adTab === "create" && (
@@ -2713,11 +2687,10 @@ const ConfigureGroupPage = () => {
                       </button>
                       <button
                         onClick={() => setAdTab("manage")}
-                        className={`px-6 py-3 text-sm font-semibold transition-colors relative ${
-                          adTab === "manage"
+                        className={`px-6 py-3 text-sm font-semibold transition-colors relative ${adTab === "manage"
                             ? "text-gray-900 dark:text-gray-100"
                             : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-                        }`}
+                          }`}
                       >
                         Manage Ads
                         {adTab === "manage" && (
@@ -2740,31 +2713,28 @@ const ConfigureGroupPage = () => {
                           <div className="flex gap-3">
                             <button
                               onClick={() => setAdFormat("banner")}
-                              className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
-                                adFormat === "banner"
+                              className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${adFormat === "banner"
                                   ? "bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900"
                                   : "bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-600"
-                              }`}
+                                }`}
                             >
                               728 x 90 Banner
                             </button>
                             <button
                               onClick={() => setAdFormat("skyscraper")}
-                              className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
-                                adFormat === "skyscraper"
+                              className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${adFormat === "skyscraper"
                                   ? "bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900"
                                   : "bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-600"
-                              }`}
+                                }`}
                             >
                               160 x 600 Skyscraper
                             </button>
                             <button
                               onClick={() => setAdFormat("rectangle")}
-                              className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
-                                adFormat === "rectangle"
+                              className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${adFormat === "rectangle"
                                   ? "bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900"
                                   : "bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-600"
-                              }`}
+                                }`}
                             >
                               300 x 250 Rectangle
                             </button>
@@ -3057,11 +3027,10 @@ const ConfigureGroupPage = () => {
                                     </td>
                                     <td className="px-4 py-3">
                                       <span
-                                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                          ad.status === "Running"
+                                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${ad.status === "Running"
                                             ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400"
                                             : "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-400"
-                                        }`}
+                                          }`}
                                       >
                                         {ad.status}
                                       </span>

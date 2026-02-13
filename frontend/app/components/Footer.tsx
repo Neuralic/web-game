@@ -4,7 +4,7 @@ const Footer = () => {
       {/* Copyright */}
       <div className="flex items-center justify-center">
         <p className="text-foreground/60 text-xs text-center">
-          ©2025 AdventureBlox Corporation. AdventureBlox, the AdventureBlox logo and Powering Imagination are among our registered and unregistered trademarks.
+          ©2026 AdventureBlox Corporation. AdventureBlox, the AdventureBlox logo and Powering Imagination are among our registered and unregistered trademarks.
         </p>
       </div>
     </footer>
