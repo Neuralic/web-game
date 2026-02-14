@@ -14,6 +14,7 @@ import uploadRoutes from './modules/upload/upload.routes.js';
 import messagesRoutes from './modules/messages/messages.routes.js';
 import notificationsRoutes from './modules/notifications/notifications.routes.js';
 import socialLinksRoutes from './modules/users/socialLinks.routes.js';
+import catalogRoutes from './modules/catalog/catalog.routes.js';
 
 dotenv.config();
 
@@ -51,6 +52,7 @@ app.use('/api/v1/upload', uploadRoutes);
 app.use('/api/v1/messages', messagesRoutes);
 app.use('/api/v1/notifications', notificationsRoutes);
 app.use('/api/v1/users/social-links', socialLinksRoutes);
+app.use('/api/v1/catalog', catalogRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'Route not found' });

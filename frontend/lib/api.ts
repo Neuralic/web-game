@@ -1690,3 +1690,86 @@ export const storage = {
     }
   },
 };
+
+// Catalog API
+export const catalogApi = {
+  getItems: async (params: {
+    category?: string;
+    subcategory?: string;
+    search?: string;
+    sort?: string;
+    page?: number;
+    limit?: number;
+    itemType?: string;
+    available?: string;
+  } = {}) => {
+    const queryParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "" && value !== "All") {
+        queryParams.append(key, String(value));
+      }
+    });
+    const queryString = queryParams.toString();
+    return apiCall<{
+      items: Array<{
+        id: string;
+        name: string;
+        description: string;
+        creatorName: string;
+        category: string;
+        subcategory: string;
+        itemType: string;
+        thumbnailUrl: string;
+        robloxAssetId: string;
+        isAvailable: boolean;
+        isFeatured: boolean;
+        tags: string[];
+        favoriteCount: number;
+        salesCount: number;
+        createdAt: string;
+        updatedAt: string;
+      }>;
+      pagination: {
+        page: number;
+        limit: number;
+        totalItems: number;
+        totalPages: number;
+      };
+    }>(`/catalog/items${queryString ? `?${queryString}` : ""}`);
+  },
+
+  getItemById: async (id: string) => {
+    return apiCall<{
+      item: {
+        id: string;
+        name: string;
+        description: string;
+        creatorName: string;
+        category: string;
+        subcategory: string;
+        itemType: string;
+        thumbnailUrl: string;
+        robloxAssetId: string;
+        isAvailable: boolean;
+        isFeatured: boolean;
+        tags: string[];
+        favoriteCount: number;
+        salesCount: number;
+        createdAt: string;
+        updatedAt: string;
+      };
+    }>(`/catalog/items/${id}`);
+  },
+
+  getCategories: async () => {
+    return apiCall<{
+      categories: Array<{ category: string; itemCount: string }>;
+    }>("/catalog/categories");
+  },
+
+  getSubcategories: async (category: string) => {
+    return apiCall<{
+      subcategories: Array<{ subcategory: string; itemCount: string }>;
+    }>(`/catalog/subcategories/${encodeURIComponent(category)}`);
+  },
+};

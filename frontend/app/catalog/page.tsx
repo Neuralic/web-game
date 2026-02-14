@@ -1,30 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import Image from "next/image";
-import { Search, ShoppingCart, X } from "lucide-react";
+import { Search, X, Loader2 } from "lucide-react";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
 import Footer from "../components/Footer";
+import { catalogApi } from "@/lib/api";
 
 interface CatalogItem {
-  id: number;
-  title: string;
-  creator: string;
-  image: string;
-  favorited: boolean;
+  id: string;
+  name: string;
+  description: string;
+  creatorName: string;
   category: string;
-  isPet?: boolean;
+  subcategory: string;
+  itemType: string;
+  thumbnailUrl: string;
+  robloxAssetId: string;
+  isAvailable: boolean;
+  isFeatured: boolean;
+  tags: string[];
+  favoriteCount: number;
+  salesCount: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 const CatalogPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [catalogSearch, setCatalogSearch] = useState("");
+  const [searchDebounce, setSearchDebounce] = useState("");
   const [tagScrollPosition, setTagScrollPosition] = useState(0);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [showCartModal, setShowCartModal] = useState(false);
 
   // Filter states
   const [categoryFilter, setCategoryFilter] = useState("All");
@@ -40,9 +49,62 @@ const CatalogPage = () => {
     "Hide Unavailable Items",
   );
 
-  // Cart count and items
-  const [cartCount, setCartCount] = useState(0);
-  const [cartItems, setCartItems] = useState<CatalogItem[]>([]);
+  // Data states
+  const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchDebounce(catalogSearch);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [catalogSearch]);
+
+  // Fetch catalog items from API
+  const fetchItems = useCallback(async (page: number = 1) => {
+    setLoading(true);
+    try {
+      // Map unavailable filter to API param
+      let availableParam: string | undefined;
+      if (unavailableItemsFilter === "Hide Unavailable Items") {
+        availableParam = "true";
+      } else if (unavailableItemsFilter === "Show Only Unavailable Items") {
+        availableParam = "false";
+      }
+
+      const response = await catalogApi.getItems({
+        category: categoryFilter !== "All" ? categoryFilter : undefined,
+        search: searchDebounce || undefined,
+        sort: sortBy,
+        page,
+        limit: 30,
+        available: availableParam,
+      });
+
+      if (response.success && response.data) {
+        setCatalogItems(response.data.items);
+        setTotalPages(response.data.pagination.totalPages);
+        setTotalItems(response.data.pagination.totalItems);
+        setCurrentPage(response.data.pagination.page);
+      } else {
+        setCatalogItems([]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch catalog:", error);
+      setCatalogItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [categoryFilter, searchDebounce, sortBy, unavailableItemsFilter]);
+
+  // Refetch when filters change
+  useEffect(() => {
+    fetchItems(1);
+  }, [fetchItems]);
 
   // Tag scrolling functions
   const scrollTags = (direction: "left" | "right") => {
@@ -65,11 +127,16 @@ const CatalogPage = () => {
       setSelectedTags(selectedTags.filter((t) => t !== tag));
     } else {
       setSelectedTags([tag, ...selectedTags]);
+      // Also search for the tag
+      setCatalogSearch(tag);
     }
   };
 
   const removeTag = (tag: string) => {
     setSelectedTags(selectedTags.filter((t) => t !== tag));
+    if (catalogSearch === tag) {
+      setCatalogSearch("");
+    }
   };
 
   // Get tags to display (selected tags first, then unselected)
@@ -102,59 +169,26 @@ const CatalogPage = () => {
 
   // Popular tags with sub-tags
   const tagData: { [key: string]: string[] } = {
-    beard: [
-      "white",
-      "stubble",
-      "brown",
-      "black",
-      "santa",
-      "long",
-      "grey",
-      "blonde",
-      "chin",
-      "face",
-      "wizard",
-    ],
+    beard: ["white", "stubble", "brown", "black", "santa", "long", "grey", "blonde", "chin", "face", "wizard"],
     dreads: ["white", "black", "brown", "blonde", "long", "short", "rainbow"],
-    steven: ["universe", "face", "gem", "shield"],
     emotes: ["dance", "wave", "laugh", "cry", "point", "sit"],
     face: ["happy", "sad", "angry", "smile", "frown", "eyes"],
-    monkey: ["brown", "banana", "tail", "king"],
     fedora: ["black", "brown", "white", "red", "blue"],
     scarf: ["red", "blue", "winter", "striped", "long"],
     beanie: ["black", "red", "blue", "winter", "warm"],
     sunglasses: ["black", "aviator", "round", "cool"],
     aura: ["blue", "red", "purple", "golden", "rainbow"],
-    shades: ["black", "cool", "dark", "aviator"],
     monster: ["scary", "green", "horns", "teeth"],
-    eyeless: ["horror", "creepy", "dark"],
-    keffiyeh: ["traditional", "white", "black", "red"],
     afro: ["black", "brown", "rainbow", "big"],
-    fang: ["vampire", "white", "sharp"],
-    cross: ["gold", "silver", "necklace"],
-    initial: ["gold", "silver", "letter"],
-    gift: ["box", "present", "wrapped"],
-    mullet: ["blonde", "brown", "80s"],
-    pose: ["standing", "sitting", "dancing"],
-    axolotl: ["pink", "blue", "cute"],
     halo: ["gold", "angel", "holy"],
-    ushanka: ["russian", "winter", "fur"],
-    balaclava: ["black", "tactical", "mask"],
-    animatronic: ["robot", "metal", "fnaf"],
     necklace: ["gold", "silver", "chain"],
-    eyepatch: ["pirate", "black", "leather"],
-    blindfold: ["black", "white", "cloth"],
-    mouthless: ["creepy", "horror"],
-    cheeks: ["rosy", "blushing", "red"],
     mustache: ["black", "brown", "curly", "handlebar"],
     pet: ["dog", "cat", "bird", "dragon", "companion", "animal", "cute"],
     dragon: ["mini", "fire", "ice", "mythical", "wings", "scales"],
-    companion: ["pet", "friend", "buddy", "animal", "following"],
-    dog: ["puppy", "golden", "retriever", "wolf", "space", "cute"],
-    cat: ["black", "ninja", "feline", "kitten", "companion"],
-    unicorn: ["mythical", "rainbow", "horn", "magical", "fantasy"],
-    phoenix: ["fire", "bird", "legendary", "ice", "mythical"],
-    panda: ["baby", "cute", "bear", "bamboo", "black", "white"],
+    hair: ["black", "brown", "blonde", "red", "messy", "curly", "long", "short"],
+    body: ["athletic", "slim", "muscular", "tall"],
+    shirt: ["classic", "graphic", "polo", "casual"],
+    pants: ["jeans", "cargo", "shorts", "classic"],
   };
 
   const popularTags = Object.keys(tagData);
@@ -184,188 +218,34 @@ const CatalogPage = () => {
     "Show Only Unavailable Items",
   ];
 
-  // Dummy catalog items
-  const catalogItems = [
-    {
-      id: 1,
-      title: "!showspeed",
-      creator: "___sam.antha",
-      image: "https://robohash.org/catalog1?set=set4",
-      favorited: false,
-      category: "Clothing",
-    },
-    {
-      id: 2,
-      title: "adidas Community Animation Pack",
-      creator: "Roblox",
-      image: "https://robohash.org/catalog2?set=set4",
-      favorited: false,
-      category: "Animations",
-    },
-    {
-      id: 3,
-      title: "Teen Gojo",
-      creator: "Realistic Bundles",
-      image: "https://robohash.org/catalog3?set=set4",
-      favorited: false,
-      category: "Body",
-    },
-    {
-      id: 4,
-      title: "Black Messy Wolfcut w/ Bandage",
-      creator: "smellyFartUGC",
-      image: "https://robohash.org/catalog4?set=set4",
-      favorited: false,
-      category: "Accessories",
-    },
-    {
-      id: 5,
-      title: "Sung Jin Woo",
-      creator: "LORD Store",
-      image: "https://robohash.org/catalog5?set=set4",
-      favorited: false,
-      category: "Body",
-    },
-    {
-      id: 6,
-      title: "Doakes (Dexter)",
-      creator: "Face Station",
-      image: "https://robohash.org/catalog6?set=set4",
-      favorited: false,
-      category: "Body",
-    },
-    {
-      id: 7,
-      title: "Cute Toothless Dragon Suit",
-      creator: "welcome to forever",
-      image: "https://robohash.org/catalog7?set=set4",
-      favorited: false,
-      category: "Clothing",
-    },
-    {
-      id: 8,
-      title: "Demonic Black Hair w/ Fiery Red Horns & Rage Face",
-      creator: "GarlCON",
-      image: "https://robohash.org/catalog8?set=set4",
-      favorited: false,
-      category: "Accessories",
-    },
-    {
-      id: 9,
-      title: "Golden Retriever Puppy",
-      creator: "Pet Paradise",
-      image: "https://robohash.org/pet1?set=set4",
-      favorited: false,
-      category: "Pets",
-    },
-    {
-      id: 10,
-      title: "Mini Dragon Companion",
-      creator: "Mythical Pets",
-      image: "https://robohash.org/pet2?set=set4",
-      favorited: false,
-      category: "Pets",
-    },
-    {
-      id: 11,
-      title: "Black Cat",
-      creator: "Pet Paradise",
-      image: "https://robohash.org/pet3?set=set4",
-      favorited: false,
-      category: "Pets",
-    },
-    {
-      id: 12,
-      title: "Phoenix Companion",
-      creator: "Legendary Pets",
-      image: "https://robohash.org/pet4?set=set4",
-      favorited: false,
-      category: "Pets",
-    },
-    {
-      id: 13,
-      title: "Blue Parrot",
-      creator: "Pet Paradise",
-      image: "https://robohash.org/pet5?set=set4",
-      favorited: false,
-      category: "Pets",
-    },
-    {
-      id: 14,
-      title: "White Wolf",
-      creator: "Wild Companions",
-      image: "https://robohash.org/pet6?set=set4",
-      favorited: false,
-      category: "Pets",
-    },
-    {
-      id: 15,
-      title: "Axolotl Friend",
-      creator: "Aquatic Pets",
-      image: "https://robohash.org/pet7?set=set4",
-      favorited: false,
-      category: "Pets",
-    },
-    {
-      id: 16,
-      title: "Unicorn Companion",
-      creator: "Mythical Pets",
-      image: "https://robohash.org/pet8?set=set4",
-      favorited: false,
-      category: "Pets",
-    },
-    {
-      id: 17,
-      title: "Baby Panda",
-      creator: "Cute Critters",
-      image: "https://robohash.org/pet9?set=set4",
-      favorited: false,
-      category: "Pets",
-    },
-    {
-      id: 18,
-      title: "Cool Sunglasses",
-      creator: "Accessories Pro",
-      image: "https://robohash.org/catalog13?set=set4",
-      favorited: false,
-      category: "Accessories",
-    },
-    {
-      id: 19,
-      title: "Winter Scarf",
-      creator: "Fashion Items",
-      image: "https://robohash.org/catalog14?set=set4",
-      favorited: false,
-      category: "Accessories",
-    },
-    {
-      id: 20,
-      title: "Beanie Hat",
-      creator: "Hats Collection",
-      image: "https://robohash.org/catalog15?set=set4",
-      favorited: false,
-      category: "Accessories",
-    },
-  ];
-
   const CatalogItemCard = ({ item }: { item: CatalogItem }) => (
     <Link href={`/catalog/${item.id}`} className="block group">
       <div className="rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
         <div className="relative aspect-square bg-gray-100 dark:bg-gray-700">
-          <Image
-            src={item.image}
-            alt={item.title}
-            fill
-            className="object-cover"
-          />
+          {item.thumbnailUrl ? (
+            <img
+              src={item.thumbnailUrl}
+              alt={item.name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-gray-400">
+              <span className="text-4xl">🎮</span>
+            </div>
+          )}
+          <span className="absolute top-1 left-1 bg-green-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+            FREE
+          </span>
         </div>
         <div className="pt-2">
           <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 mb-1 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400">
-            {item.title}
+            {item.name}
           </h3>
-          <p className="text-xs text-gray-600 dark:text-gray-400">
-            By <span className="hover:underline">{item.creator}</span>
-          </p>
+          {item.creatorName && (
+            <p className="text-xs text-gray-600 dark:text-gray-400">
+              By <span className="hover:underline">{item.creatorName}</span>
+            </p>
+          )}
         </div>
       </div>
     </Link>
@@ -593,18 +473,52 @@ const CatalogPage = () => {
 
         {/* Catalog Items Grid */}
         <div className="px-4 py-6">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {catalogItems.map((item) => (
-              <CatalogItemCard key={item.id} item={item} />
-            ))}
-          </div>
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <Loader2 className="w-8 h-8 animate-spin text-blue-500 mb-3" />
+              <p className="text-gray-500 dark:text-gray-400 text-sm">Loading catalog...</p>
+            </div>
+          ) : catalogItems.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <span className="text-5xl mb-4">🔍</span>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">No items found</h3>
+              <p className="text-gray-500 dark:text-gray-400 text-sm">Try adjusting your filters or search query</p>
+            </div>
+          ) : (
+            <>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                Showing {catalogItems.length} of {totalItems} items
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                {catalogItems.map((item) => (
+                  <CatalogItemCard key={item.id} item={item} />
+                ))}
+              </div>
 
-          {/* Load More Button */}
-          <div className="flex justify-center mt-8 pb-8">
-            <button className="px-6 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 font-medium rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm">
-              Load More
-            </button>
-          </div>
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-8 pb-8">
+                  <button
+                    onClick={() => fetchItems(currentPage - 1)}
+                    disabled={currentPage <= 1}
+                    className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 font-medium rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-sm text-gray-600 dark:text-gray-400 px-3">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <button
+                    onClick={() => fetchItems(currentPage + 1)}
+                    disabled={currentPage >= totalPages}
+                    className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 font-medium rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </main>
 
