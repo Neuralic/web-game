@@ -142,10 +142,11 @@ export const getCatalogItemById = async (req: Request, res: Response) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: "Catalog item not found",
       });
+      return;
     }
 
     res.json({
