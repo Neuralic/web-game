@@ -125,9 +125,9 @@ const ConfigureGroupPage = () => {
   const [roleDescription, setRoleDescription] = useState("");
   const [roleRank, setRoleRank] = useState(0);
   const [permissionSectionsCollapsed, setPermissionSectionsCollapsed] = useState({
-    posts: false,
-    members: false,
-    moderation: false,
+    posts: true,
+    members: true,
+    moderation: true,
   });
   const [rolePermissions, setRolePermissions] = useState({
     postWall: true,
@@ -924,6 +924,7 @@ const ConfigureGroupPage = () => {
   // Handle selecting an existing role
   const handleSelectRole = (role: any) => {
     setSelectedRole(role);
+    setIsCreatingRole(false);
     setRoleName(role.name || "");
     setRoleDescription(role.description || "");
     setRoleRank(role.rank || 0);
@@ -2008,6 +2009,17 @@ const ConfigureGroupPage = () => {
                             </button>
                           ))
                         )}
+
+                        {/* Create Role Button */}
+                        <button
+                          onClick={() => {
+                            handleClearForm();
+                            setIsCreatingRole(true);
+                          }}
+                          className="w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors mt-2"
+                        >
+                          + Create Role
+                        </button>
                       </div>
 
                       {/* Right: Role Details */}
@@ -2316,14 +2328,24 @@ const ConfigureGroupPage = () => {
                           )}
                         </div>
 
-                        {/* Save Button at Bottom */}
-                        <button
-                          onClick={handleSaveRole}
-                          disabled={!roleName.trim() || saving}
-                          className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-6"
-                        >
-                          {saving ? "Saving..." : (selectedRole ? "Save Changes" : "Create Role")}
-                        </button>
+                        {/* Action Button at Bottom */}
+                        {selectedRole ? (
+                          <button
+                            onClick={handleSaveRole}
+                            disabled={!roleName.trim() || saving}
+                            className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-6"
+                          >
+                            {saving ? "Saving..." : "Save Changes"}
+                          </button>
+                        ) : isCreatingRole ? (
+                          <button
+                            onClick={handleSaveRole}
+                            disabled={!roleName.trim() || saving}
+                            className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-6"
+                          >
+                            {saving ? "Creating..." : "Create Role"}
+                          </button>
+                        ) : null}
                       </div>
                     </div>
                   </div>
