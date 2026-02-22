@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { MessageSquare, X, Settings, Minimize2, Send } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { messagesApi, friendsApi } from "@/lib/api";
 import { sendChatMessage, subscribeToMessages, unsubscribeFromMessages, markMessagesAsRead, subscribeToTyping, unsubscribeFromTyping, broadcastTyping } from "@/lib/realtime";
 import { useRealtime } from "@/contexts/RealtimeContext";
@@ -46,6 +47,10 @@ export const openChatWithUser = (userId: string, username: string, displayName?:
 };
 
 export default function ChatWidget() {
+  const pathname = usePathname();
+  const hiddenPaths = ['/messages', '/login', '/signup', '/continue'];
+  const isHidden = hiddenPaths.some(p => pathname === p || pathname?.startsWith(p + '/'));
+
   const [isChatListOpen, setIsChatListOpen] = useState(false);
   const [openChats, setOpenChats] = useState<ChatWindow[]>([]);
   const [messageInputs, setMessageInputs] = useState<{ [key: string]: string }>({});
@@ -513,13 +518,15 @@ export default function ChatWidget() {
         </div>
       ))}
 
-      {/* Chat Toggle Button */}
-      <button
-        onClick={() => setIsChatListOpen(!isChatListOpen)}
-        className="fixed bottom-4 right-4 w-12 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-colors z-40"
-      >
-        <MessageSquare className="w-6 h-6" />
-      </button>
+      {/* Chat Toggle Button — hidden on /messages and auth pages */}
+      {!isHidden && (
+        <button
+          onClick={() => setIsChatListOpen(!isChatListOpen)}
+          className="fixed bottom-4 right-4 w-12 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-colors z-40"
+        >
+          <MessageSquare className="w-6 h-6" />
+        </button>
+      )}
     </>
   );
 }

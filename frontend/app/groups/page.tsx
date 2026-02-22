@@ -12,6 +12,7 @@ import { groupsApi } from "@/lib/api";
 
 interface Group {
   id: string;
+  group_number?: number;
   name: string;
   description?: string;
   icon_url?: string;
@@ -23,6 +24,14 @@ interface Group {
   owner_username?: string;
   owner_display_name?: string;
 }
+
+const groupSlug = (name: string) =>
+  name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+const groupHref = (group: Group) =>
+  group.group_number
+    ? `/groups/${group.group_number}/${groupSlug(group.name)}`
+    : `/groups/${group.id}`;
 
 const GroupsPage = () => {
   const router = useRouter();
@@ -52,7 +61,11 @@ const GroupsPage = () => {
           
           // Only redirect if user has groups AND didn't intentionally come to discover page
           if (groups.length > 0 && !isIntentional) {
-            router.push(`/groups/${groups[0].id}`);
+            const g = groups[0];
+            const href = g.group_number
+              ? `/groups/${g.group_number}/${groupSlug(g.name)}`
+              : `/groups/${g.id}`;
+            router.push(href);
             return;
           }
         }
@@ -75,78 +88,6 @@ const GroupsPage = () => {
 
     fetchGroups();
   }, [router]);
-
-  // Mock groups data
-  const friendsGroups = [
-    { id: 1, name: "AdventureBlox", icon: "🎮", verified: true },
-    { id: 2, name: "Kool closet", icon: "🎨", verified: false },
-    { id: 3, name: "Sol's Studio", icon: "⭐", verified: false },
-    { id: 4, name: "DuckXander", icon: "🦆", verified: true },
-    { id: 5, name: "AdventureBlox Building R...", icon: "🏗️", verified: false },
-    { id: 6, name: "BlockGame Devel...", icon: "🎲", verified: false },
-  ];
-
-  const experienceStudios = [
-    {
-      id: 7,
-      name: "Scriptbloxian St...",
-      members: "28,963,318 Members",
-      icon: "💎",
-      verified: true,
-    },
-    {
-      id: 8,
-      name: "Chillz Studios",
-      members: "16,444,239 Members",
-      icon: "❄️",
-      verified: true,
-    },
-    {
-      id: 9,
-      name: "Rumble Studios",
-      members: "11,113,420 Members",
-      icon: "⚔️",
-      verified: false,
-    },
-    {
-      id: 10,
-      name: "Sonar Studios",
-      members: "11,413,293 Members",
-      icon: "🎵",
-      verified: true,
-    },
-    {
-      id: 11,
-      name: "BIG Games Pets",
-      members: "29,006,098 Members",
-      icon: "🐾",
-      verified: true,
-    },
-    {
-      id: 12,
-      name: "Double Bandit ...",
-      members: "6,109,383 Members",
-      icon: "🎭",
-      verified: true,
-    },
-  ];
-
-  const buildingGroups = [
-    {
-      id: 13,
-      name: "Adventure Builders",
-      members: "5,234 Members",
-      icon: "🏗️",
-      verified: false,
-    },
-    {
-      id: 14,
-      name: "Creative Studios",
-      members: "12,456 Members",
-      icon: "🎨",
-      verified: true,
-    },
-  ];
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
@@ -224,7 +165,7 @@ const GroupsPage = () => {
               {userGroups.slice(0, 6).map((group) => (
                 <Link
                   key={group.id}
-                  href={`/groups/${group.id}`}
+                  href={groupHref(group)}
                   className="group cursor-pointer"
                 >
                   <div className="aspect-square bg-gray-200 dark:bg-gray-700 rounded-lg mb-2 flex items-center justify-center overflow-hidden group-hover:ring-2 ring-blue-500 transition-all relative">
@@ -273,7 +214,7 @@ const GroupsPage = () => {
               {allGroups.slice(0, 12).map((group) => (
                 <Link
                   key={group.id}
-                  href={`/groups/${group.id}`}
+                  href={groupHref(group)}
                   className="group cursor-pointer"
                 >
                   <div className="aspect-square bg-gray-200 dark:bg-gray-700 rounded-lg mb-2 flex items-center justify-center overflow-hidden group-hover:ring-2 ring-blue-500 transition-all relative">
@@ -312,114 +253,65 @@ const GroupsPage = () => {
           </section>
         )}
 
-        {/* Friends' Groups */}
-        <section className="mb-12">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-              Friends&apos; Groups
-            </h2>
-            <button className="text-blue-600 dark:text-blue-400 text-sm font-medium hover:underline">
-              See All →
-            </button>
-          </div>
+        {/* Job Roleplay Groups */}
+        {!loading && allGroups.filter(g => g.name.toLowerCase().includes('role') || g.name.toLowerCase().includes('job')).length > 0 && (
+          <section className="mb-12">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Job Roleplay</h2>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {allGroups.filter(g => g.name.toLowerCase().includes('role') || g.name.toLowerCase().includes('job')).slice(0, 6).map((group) => (
+                <Link key={group.id} href={groupHref(group)} className="group cursor-pointer">
+                  <div className="aspect-square bg-gray-200 dark:bg-gray-700 rounded-lg mb-2 flex items-center justify-center overflow-hidden group-hover:ring-2 ring-blue-500 transition-all relative">
+                    {group.icon_url ? <Image src={group.icon_url} alt={group.name} fill className="object-cover" sizes="16vw" /> : <span className="text-4xl">🎭</span>}
+                  </div>
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{group.name}</h3>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{group.member_count?.toLocaleString() || 0} Members</p>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {friendsGroups.map((group) => (
-              <Link
-                key={group.id}
-                href={`/groups/${group.id}`}
-                className="group cursor-pointer"
-              >
-                <div className="aspect-square bg-gray-200 dark:bg-gray-700 rounded-lg mb-2 flex items-center justify-center text-4xl group-hover:ring-2 ring-blue-500 transition-all">
-                  {group.icon}
-                </div>
-                <div className="flex items-center gap-1">
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
-                    {group.name}
-                  </h3>
-                  {group.verified && (
-                    <span className="text-blue-500 text-xs">✓</span>
-                  )}
-                </div>
-                <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full mt-1"></div>
-              </Link>
-            ))}
-          </div>
-        </section>
+        {/* Studios Groups */}
+        {!loading && allGroups.filter(g => g.name.toLowerCase().includes('studio')).length > 0 && (
+          <section className="mb-12">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Studios</h2>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {allGroups.filter(g => g.name.toLowerCase().includes('studio')).slice(0, 6).map((group) => (
+                <Link key={group.id} href={groupHref(group)} className="group cursor-pointer">
+                  <div className="aspect-square bg-gray-200 dark:bg-gray-700 rounded-lg mb-2 flex items-center justify-center overflow-hidden group-hover:ring-2 ring-blue-500 transition-all relative">
+                    {group.icon_url ? <Image src={group.icon_url} alt={group.name} fill className="object-cover" sizes="16vw" /> : <span className="text-4xl">🎬</span>}
+                  </div>
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{group.name}</h3>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{group.member_count?.toLocaleString() || 0} Members</p>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
 
-        {/* Experience Studios */}
-        <section className="mb-12">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-              Experience Studios
-            </h2>
-            <button className="text-blue-600 dark:text-blue-400 text-sm font-medium hover:underline">
-              See All →
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {experienceStudios.map((group) => (
-              <Link
-                key={group.id}
-                href={`/groups/${group.id}`}
-                className="group cursor-pointer"
-              >
-                <div className="aspect-square bg-gray-200 dark:bg-gray-700 rounded-lg mb-2 flex items-center justify-center text-4xl group-hover:ring-2 ring-blue-500 transition-all">
-                  {group.icon}
-                </div>
-                <div className="flex items-center gap-1">
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
-                    {group.name}
-                  </h3>
-                  {group.verified && (
-                    <span className="text-blue-500 text-xs">✓</span>
-                  )}
-                </div>
-                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                  {group.members}
-                </p>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        {/* Building */}
-        <section className="mb-12">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-              Building
-            </h2>
-            <button className="text-blue-600 dark:text-blue-400 text-sm font-medium hover:underline">
-              See All →
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {buildingGroups.map((group) => (
-              <Link
-                key={group.id}
-                href={`/groups/${group.id}`}
-                className="group cursor-pointer"
-              >
-                <div className="aspect-square bg-gray-200 dark:bg-gray-700 rounded-lg mb-2 flex items-center justify-center text-4xl group-hover:ring-2 ring-blue-500 transition-all">
-                  {group.icon}
-                </div>
-                <div className="flex items-center gap-1">
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
-                    {group.name}
-                  </h3>
-                  {group.verified && (
-                    <span className="text-blue-500 text-xs">✓</span>
-                  )}
-                </div>
-                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                  {group.members}
-                </p>
-              </Link>
-            ))}
-          </div>
-        </section>
+        {/* Fan Groups */}
+        {!loading && allGroups.filter(g => g.name.toLowerCase().includes('fan') || g.name.toLowerCase().includes('build')).length > 0 && (
+          <section className="mb-12">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Fan</h2>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {allGroups.filter(g => g.name.toLowerCase().includes('fan') || g.name.toLowerCase().includes('build')).slice(0, 6).map((group) => (
+                <Link key={group.id} href={groupHref(group)} className="group cursor-pointer">
+                  <div className="aspect-square bg-gray-200 dark:bg-gray-700 rounded-lg mb-2 flex items-center justify-center overflow-hidden group-hover:ring-2 ring-blue-500 transition-all relative">
+                    {group.icon_url ? <Image src={group.icon_url} alt={group.name} fill className="object-cover" sizes="16vw" /> : <span className="text-4xl">⭐</span>}
+                  </div>
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{group.name}</h3>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{group.member_count?.toLocaleString() || 0} Members</p>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
       </main>
 
       {/* Footer */}

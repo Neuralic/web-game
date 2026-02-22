@@ -247,9 +247,15 @@ export const getGroupById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
+    // Support lookup by UUID id OR by groupNumber
+    const isNumeric = /^\d+$/.test(id);
+    const whereClause = isNumeric ? `g."groupNumber" = $1` : `g.id = $1`;
+    const lookupParam = isNumeric ? parseInt(id) : id;
+
     const groupResult = await db.query(
       `SELECT
         g.id,
+        g."groupNumber" as group_number,
         g.name,
         g.description,
         g."iconUrl" as icon_url,
@@ -270,8 +276,8 @@ export const getGroupById = async (req: Request, res: Response) => {
       FROM groups g
       LEFT JOIN users u ON g."ownerId" = u.id
       LEFT JOIN users shout_user ON g."shoutPostedBy" = shout_user.id
-      WHERE g.id = $1`,
-      [id],
+      WHERE ${whereClause}`,
+      [lookupParam],
     );
 
     if (groupResult.rows.length === 0) {
@@ -286,22 +292,20 @@ export const getGroupById = async (req: Request, res: Response) => {
     // Check if there's an authenticated user and get their role
     const userId = (req as any).userId;
     if (userId) {
-      // Check if user is owner
-      if (group.owner_id === userId) {
-        group.role = "Owner";
-      } else {
-        // Check if user is a member and get their role
-        const memberResult = await db.query(
-          `SELECT gm.id, gr.name as role_name
-           FROM group_members gm
-           LEFT JOIN group_roles gr ON gm."roleId" = gr.id
-           WHERE gm."groupId" = $1 AND gm."userId" = $2`,
-          [id, userId],
-        );
+      // Always look up actual role name from group_roles (works for Owner too)
+      const memberResult = await db.query(
+        `SELECT gr.name as role_name
+         FROM group_members gm
+         LEFT JOIN group_roles gr ON gm."roleId" = gr.id
+         WHERE gm."groupId" = $1 AND gm."userId" = $2`,
+        [group.id, userId],
+      );
 
-        if (memberResult.rows.length > 0) {
-          group.role = memberResult.rows[0].role_name || "Member";
-        }
+      if (memberResult.rows.length > 0) {
+        group.role = memberResult.rows[0].role_name || "Member";
+      } else if (group.owner_id === userId) {
+        // Fallback: if somehow not in group_members but is owner
+        group.role = "Owner";
       }
     }
 
@@ -336,6 +340,7 @@ export const getAllGroups = async (req: Request, res: Response) => {
     let query = `
       SELECT
         g.id,
+        g."groupNumber" as group_number,
         g.name,
         g.description,
         g."iconUrl" as icon_url,
@@ -1191,6 +1196,7 @@ export const getUserGroups = async (req: AuthRequest, res: Response) => {
     const groupsResult = await db.query(
       `SELECT
         g.id,
+        g."groupNumber" as group_number,
         g.name,
         g.description,
         g."iconUrl" as icon_url,
@@ -1199,12 +1205,10 @@ export const getUserGroups = async (req: AuthRequest, res: Response) => {
         g."memberCount" as member_count,
         g."isVerified" as is_verified,
         g."createdAt" as created_at,
-        CASE
-          WHEN g."ownerId" = $1 THEN 'Owner'
-          ELSE 'Member'
-        END as role
+        gr.name as role
       FROM groups g
       INNER JOIN group_members gm ON g.id = gm."groupId"
+      LEFT JOIN group_roles gr ON gm."roleId" = gr.id
       WHERE gm."userId" = $1
       ORDER BY g."createdAt" DESC`,
       [userId],

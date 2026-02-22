@@ -19,6 +19,7 @@ import { groupsApi } from "@/lib/api";
 
 interface Group {
   id: string;
+  group_number?: number;
   name: string;
   description?: string;
   icon_url?: string;
@@ -38,6 +39,9 @@ interface Group {
   join_setting?: string;
   created_at?: string;
 }
+
+const groupSlug = (name: string) =>
+  name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 const GroupDetailPage = () => {
   const params = useParams();
@@ -529,12 +533,19 @@ const GroupDetailPage = () => {
                 </p>
               </div>
             ) : (
-              userGroups.map((group) => (
+              userGroups.map((group) => {
+                const href = group.group_number
+                  ? `/groups/${group.group_number}/${groupSlug(group.name)}`
+                  : `/groups/${group.id}`;
+                const isActive = groupId === group.id ||
+                  groupId === String(group.group_number) ||
+                  params.id === String(group.group_number);
+                return (
                 <Link
                   key={group.id}
-                  href={`/groups/${group.id}`}
+                  href={href}
                   className={`flex items-center gap-3 py-2 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ${
-                    groupId === group.id ? "bg-gray-100 dark:bg-gray-800" : ""
+                    isActive ? "bg-gray-100 dark:bg-gray-800" : ""
                   }`}
                 >
                   <div className="w-10 h-10 rounded overflow-hidden bg-gray-200 dark:bg-gray-600 flex-shrink-0 relative">
@@ -561,7 +572,8 @@ const GroupDetailPage = () => {
                     </p>
                   </div>
                 </Link>
-              ))
+              );
+              })
             )}
           </div>
 
@@ -912,18 +924,21 @@ const GroupDetailPage = () => {
                   </p>
                 )}
 
-                {/* Shout Input - Only for Admin/Owner */}
-                {currentGroup && currentGroup.role === "Owner" && (
+                {/* Shout Input - Only for members with shout permission */}
+                {currentGroup && currentGroup.role && (
                   <div className="space-y-3">
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={shoutText}
-                        onChange={(e) => setShoutText(e.target.value)}
-                        placeholder="Enter your shout"
-                        maxLength={255}
-                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
+                    <textarea
+                      value={shoutText}
+                      onChange={(e) => setShoutText(e.target.value)}
+                      placeholder="Enter your shout"
+                      maxLength={1000}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    />
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {shoutText.length}/1000 characters
+                      </p>
                       <button
                         onClick={handleShoutSubmit}
                         disabled={!shoutText.trim()}
@@ -932,9 +947,6 @@ const GroupDetailPage = () => {
                         Group Shout
                       </button>
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {shoutText.length}/255 characters
-                    </p>
                   </div>
                 )}
               </div>
