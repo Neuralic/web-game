@@ -1370,7 +1370,7 @@ const ConfigureGroupPage = () => {
                     </div>
                   )}
 
-                {activeSection === "Settings" && (
+                  {activeSection === "Settings" && (
                   <div className="space-y-8">
                     <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
                       Join Requirements
@@ -1494,7 +1494,7 @@ const ConfigureGroupPage = () => {
                   </div>
                 )}
 
-                {activeSection === "Social Links" && (
+                  {activeSection === "Social Links" && (
                   <div className="space-y-6">
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                       Social Links
@@ -1615,7 +1615,7 @@ const ConfigureGroupPage = () => {
                   </div>
                 )}
 
-                {activeSection === "Revenue" && (
+                  {activeSection === "Revenue" && (
                   <div className="space-y-6">
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                       Group Revenue
@@ -1660,7 +1660,7 @@ const ConfigureGroupPage = () => {
                   </div>
                 )}
 
-                {activeSection === "Payouts" && (
+                  {activeSection === "Payouts" && (
                   <div className="space-y-6">
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                       Group Payouts
@@ -1685,7 +1685,7 @@ const ConfigureGroupPage = () => {
                   </div>
                 )}
 
-                {activeSection === "Members" && (
+                  {activeSection === "Members" && (
                   <div className="space-y-6">
                     {/* Tabs */}
                     <div className="flex border-b border-gray-300 dark:border-gray-600">
@@ -1985,7 +1985,7 @@ const ConfigureGroupPage = () => {
                   </div>
                 )}
 
-                {activeSection === "Roles" && (
+                  {activeSection === "Roles" && (
                   <div className="space-y-6">
 
 
@@ -2365,7 +2365,7 @@ const ConfigureGroupPage = () => {
                   </div>
                 )}
 
-                {activeSection === "Alliances" && (
+                  {activeSection === "Alliances" && (
                   <div className="space-y-6">
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                       Alliances Management
@@ -2541,7 +2541,7 @@ const ConfigureGroupPage = () => {
                   </div>
                 )}
 
-                {activeSection === "Wall" && (
+                  {activeSection === "Wall" && (
                   <div className="space-y-6">
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                       Wall Settings
@@ -2580,7 +2580,7 @@ const ConfigureGroupPage = () => {
                   </div>
                 )}
 
-                {activeSection === "Analytics" && (
+                  {activeSection === "Analytics" && (
                   <div className="space-y-6">
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                       Group Analytics
@@ -2626,7 +2626,7 @@ const ConfigureGroupPage = () => {
                   </div>
                 )}
 
-                {activeSection === "Audit Log" && (
+                  {activeSection === "Audit Log" && (
                   <div className="space-y-6">
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                       Audit Log
@@ -2671,7 +2671,7 @@ const ConfigureGroupPage = () => {
                   </div>
                 )}
 
-                {activeSection === "Verification" && (
+                  {activeSection === "Verification" && (
                   <div className="space-y-6">
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                       Group Verification
@@ -2705,7 +2705,7 @@ const ConfigureGroupPage = () => {
                   </div>
                 )}
 
-                {activeSection === "Advertise Group" && (
+                  {activeSection === "Advertise Group" && (
                   <div className="space-y-6">
                     {/* Tabs */}
                     <div className="flex border-b border-gray-200 dark:border-gray-700">
