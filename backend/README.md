@@ -1,4 +1,4 @@
-# AdventureBlox Backend API
+#AdventureBlox Backend API
 
 Backend server for AdventureBlox platform built with Node.js, Express, TypeScript, and Prisma.
 
