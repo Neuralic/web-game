@@ -9,6 +9,7 @@ import {
   getFollowing,
   getFollowers,
   getRelationship,
+  updatePresence,
 } from './users.controller.js';
 import { verifyToken, optionalAuth } from '../../middleware/auth.middleware.js';
 
@@ -69,6 +70,13 @@ router.delete("/:userId/follow", verifyToken, unfollowUser);
  * @access  Private
  */
 router.get("/:userId/relationship", verifyToken, getRelationship);
+
+/**
+ * @route   PUT /api/v1/users/presence
+ * @desc    Update current user's presence status
+ * @access  Private
+ */
+router.put("/presence", verifyToken, updatePresence);
 
 /**
  * @route   GET /api/v1/users/:username

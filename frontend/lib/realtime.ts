@@ -130,26 +130,28 @@ export const updatePresenceStatus = async (
 };
 
 /**
- * Update presence in database
+ * Update presence in database via backend API (uses JWT so RLS is not an issue)
  */
 const updatePresenceInDatabase = async (
-  userId: string,
+  _userId: string,
   status: 'online' | 'offline' | 'in-game',
   currentGame?: string
 ) => {
   try {
-    const { error } = await supabase
-      .from('users')
-      .update({
-        presenceStatus: status,
-        lastOnline: new Date().toISOString(),
-        currentGame: currentGame || null,
-      })
-      .eq('id', userId);
+    const token = storage.getAccessToken();
+    if (!token) return;
 
-    if (error) {
-      console.error('Error updating presence in database:', error);
-    }
+    const API_BASE_URL =
+      process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+
+    await fetch(`${API_BASE_URL}/users/presence`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ presenceStatus: status, currentGame: currentGame || null }),
+    });
   } catch (error) {
     console.error('Error updating presence:', error);
   }
@@ -355,6 +357,16 @@ export const sendChatMessage = async (
       .select('username, displayName, avatarUrl')
       .eq('id', senderId)
       .single();
+
+    // Create a notification for the receiver so the bell + toast fire
+    await supabase.from('notifications').insert({
+      userId: receiverId,
+      type: 'new_message',
+      content: content.trim().slice(0, 100),
+      relatedUserId: senderId,
+      isRead: false,
+      createdAt: new Date().toISOString(),
+    });
 
     const messageWithSender: ChatMessage = {
       id: data.id,

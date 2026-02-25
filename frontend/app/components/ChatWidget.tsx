@@ -522,9 +522,16 @@ export default function ChatWidget() {
       {!isHidden && (
         <button
           onClick={() => setIsChatListOpen(!isChatListOpen)}
-          className="fixed bottom-4 right-4 w-12 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-colors z-40"
+          className="fixed bottom-4 right-4 w-12 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-colors z-40 relative"
         >
           <MessageSquare className="w-6 h-6" />
+          {conversations.reduce((sum, c) => sum + (c.unread_count || 0), 0) > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center px-1">
+              {conversations.reduce((sum, c) => sum + (c.unread_count || 0), 0) > 9
+                ? '9+'
+                : conversations.reduce((sum, c) => sum + (c.unread_count || 0), 0)}
+            </span>
+          )}
         </button>
       )}
     </>

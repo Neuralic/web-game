@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { friendsApi } from '@/lib/api';
+import { openChatWithUser } from './ChatWidget';
 
 interface NotificationDropdownProps {
   isOpen: boolean;
@@ -134,7 +135,13 @@ export default function NotificationDropdown({ isOpen, onClose }: NotificationDr
                       </span>
                       {notification.type === 'friend_request' && ' sent you a friend request'}
                       {notification.type === 'friend_request_accepted' && ' accepted your friend request'}
+                      {notification.type === 'new_message' && ' sent you a message'}
                     </p>
+                    {notification.type === 'new_message' && notification.content && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate italic">
+                        &ldquo;{notification.content}&rdquo;
+                      </p>
+                    )}
                     {!notification.is_read && (
                       <div className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0 mt-1.5"></div>
                     )}
@@ -177,6 +184,26 @@ export default function NotificationDropdown({ isOpen, onClose }: NotificationDr
                     >
                       Chat
                     </Link>
+                  )}
+
+                  {/* Reply button for new messages */}
+                  {notification.type === 'new_message' && notification.related_user_id && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        markAsRead(notification.id);
+                        openChatWithUser(
+                          notification.related_user_id!,
+                          notification.related_username || '',
+                          notification.related_display_name || undefined,
+                          notification.related_avatar_url || undefined,
+                        );
+                        onClose();
+                      }}
+                      className="inline-block mt-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded transition-colors"
+                    >
+                      Reply
+                    </button>
                   )}
                 </div>
               </div>

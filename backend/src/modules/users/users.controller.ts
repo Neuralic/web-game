@@ -796,3 +796,37 @@ export const getRelationship = async (req: Request, res: Response) => {
     });
   }
 };
+
+/**
+ * @route   PUT /api/v1/users/presence
+ * @desc    Update current user's presence status in the database
+ * @access  Private
+ */
+export const updatePresence = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    const { presenceStatus, currentGame } = req.body;
+
+    const validStatuses = ['online', 'offline', 'in-game'];
+    if (!presenceStatus || !validStatuses.includes(presenceStatus)) {
+      return res.status(400).json({ success: false, message: "Invalid presenceStatus" });
+    }
+
+    await db.query(
+      `UPDATE users
+       SET "presenceStatus" = $1, "lastOnline" = NOW(), "currentGame" = $2
+       WHERE id = $3`,
+      [presenceStatus, currentGame || null, userId]
+    );
+
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    console.error("Update presence error:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
