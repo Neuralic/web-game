@@ -16,11 +16,15 @@ import notificationsRoutes from './modules/notifications/notifications.routes.js
 import socialLinksRoutes from './modules/users/socialLinks.routes.js';
 import catalogRoutes from './modules/catalog/catalog.routes.js';
 import adminRoutes from './modules/admin/admin.routes.js';
+import { generalLimiter, signupLimiter, loginLimiter } from './middleware/rateLimiter.js';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Trust Vercel/proxy headers so real client IPs are used for rate limiting
+app.set('trust proxy', 1);
 
 app.use(helmet());
 app.use(cors({
@@ -30,6 +34,9 @@ app.use(cors({
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Global rate limit — 200 req/min per IP
+app.use(generalLimiter);
 
 app.get('/', (_req, res) => {
   res.json({ 
@@ -43,6 +50,8 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+app.use('/api/v1/auth/signup', signupLimiter);
+app.use('/api/v1/auth/login', loginLimiter);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', usersRoutes);
 app.use('/api/v1/accounts', accountsRoutes);

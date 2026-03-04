@@ -44,6 +44,7 @@ import {
   removeAlliance,
 } from './groups.alliances.controller.js';
 import { authMiddleware, optionalAuth } from '../../middleware/auth.middleware.js';
+import { createGroupLimiter } from '../../middleware/rateLimiter.js';
 
 const router = Router();
 
@@ -64,7 +65,7 @@ router.get("/:id/alliances/requests", authMiddleware, getAllianceRequests);
 // Protected routes - Group management
 router.get("/user/me", authMiddleware, getUserGroups);
 router.get("/user/:userId", getUserGroups);
-router.post("/", authMiddleware, createGroup);
+router.post("/", authMiddleware, createGroupLimiter, createGroup);
 router.put("/:id", authMiddleware, updateGroup);
 router.post("/:id/join", authMiddleware, joinGroup);
 router.get("/:id/join-requests", authMiddleware, getJoinRequests);

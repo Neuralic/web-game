@@ -35,9 +35,29 @@ const generateTokens = (userId: string, username: string) => {
  * @desc    Register a new user
  * @access  Public
  */
+const SPAM_USERNAME_PREFIXES = ['benisgay', 'fucku', 'fuckу', 'spam', 'bot', 'script'];
+
 export const signup = async (req: Request, res: Response) => {
   try {
     const { username, password, month, day, year, gender } = req.body;
+
+    // Basic field validation
+    if (!username || !password) {
+      return res.status(400).json({ success: false, message: 'Username and password are required' });
+    }
+    if (typeof username !== 'string' || username.length < 3 || username.length > 20) {
+      return res.status(400).json({ success: false, message: 'Username must be 3–20 characters' });
+    }
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      return res.status(400).json({ success: false, message: 'Username can only contain letters, numbers, and underscores' });
+    }
+    if (typeof password !== 'string' || password.length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
+    }
+    const usernameLower = username.toLowerCase();
+    if (SPAM_USERNAME_PREFIXES.some(prefix => usernameLower.startsWith(prefix))) {
+      return res.status(400).json({ success: false, message: 'Username not allowed' });
+    }
 
     // Check if username already exists
     const existingUserResult = await db.query(

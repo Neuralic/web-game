@@ -41,6 +41,16 @@ export const createGroup = async (req: AuthRequest, res: Response) => {
       });
     }
 
+    if (typeof name !== 'string' || name.trim().length < 3 || name.trim().length > 50) {
+      return res.status(400).json({ success: false, message: "Group name must be 3–50 characters" });
+    }
+
+    const SPAM_GROUP_PATTERNS = ['fuck', 'benisgay', 'fucku', 'spam', 'bot'];
+    const nameLower = name.toLowerCase();
+    if (SPAM_GROUP_PATTERNS.some(p => nameLower.includes(p))) {
+      return res.status(400).json({ success: false, message: "Group name contains disallowed words" });
+    }
+
     // Check if group name already exists
     const existingGroup = await db.query(
       "SELECT id FROM groups WHERE LOWER(name) = LOWER($1)",
