@@ -38,10 +38,16 @@ export const validateSignup = [
     .matches(/^[a-zA-Z0-9_]+$/)
     .withMessage('Username can only contain letters, numbers, and underscores')
     .custom((value) => {
+      const lower = value.toLowerCase();
       // Reserved/blocked usernames
       const blocked = ['admin', 'administrator', 'moderator', 'staff', 'support', 'adventureblox', 'roblox'];
-      if (blocked.includes(value.toLowerCase())) {
+      if (blocked.includes(lower)) {
         throw new Error('This username is not available');
+      }
+      // Spam/attack prefix blocklist
+      const spamPrefixes = ['benisgay', 'daw', 'fucku', 'fuckу', 'spam', 'bot_', 'script'];
+      if (spamPrefixes.some(prefix => lower.startsWith(prefix))) {
+        throw new Error('Username not allowed');
       }
       return true;
     }),
