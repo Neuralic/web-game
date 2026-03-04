@@ -128,7 +128,13 @@ export const signup = async (req: Request, res: Response) => {
         refreshToken,
       },
     });
-  } catch (error) {
+  } catch (error: any) {
+    // DB trigger raises exceptions with code P0001 — return clean error instead of 500
+    if (error?.code === 'P0001' || error?.routine === 'exec_stmt_raise') {
+      const msg: string = error?.message || '';
+      const status = msg.toLowerCase().includes('too many') ? 429 : 400;
+      return res.status(status).json({ success: false, message: msg });
+    }
     console.error("Signup error:", error);
     return res.status(500).json({
       success: false,
