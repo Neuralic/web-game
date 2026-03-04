@@ -19,6 +19,7 @@ interface SignupData {
   day: string;
   year: string;
   gender?: string;
+  turnstileToken?: string;
 }
 
 interface LoginData {

@@ -14,6 +14,22 @@ const JWT_REFRESH_SECRET =
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
 const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || "30d";
 const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS || "10");
+const TURNSTILE_SECRET = process.env.TURNSTILE_SECRET_KEY || '';
+
+const verifyTurnstile = async (token: string, ip: string): Promise<boolean> => {
+  if (!TURNSTILE_SECRET) return true; // skip if not configured (dev mode)
+  try {
+    const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ secret: TURNSTILE_SECRET, response: token, remoteip: ip }),
+    });
+    const data = await res.json() as { success: boolean };
+    return data.success === true;
+  } catch {
+    return false;
+  }
+};
 
 /**
  * Generate JWT tokens (access + refresh)
@@ -39,7 +55,19 @@ const SPAM_USERNAME_PREFIXES = ['benisgay', 'fucku', 'fuckу', 'spam', 'bot', 's
 
 export const signup = async (req: Request, res: Response) => {
   try {
-    const { username, password, month, day, year, gender } = req.body;
+    const { username, password, month, day, year, gender, turnstileToken } = req.body;
+
+    // Verify Turnstile CAPTCHA token (if secret key is configured)
+    if (TURNSTILE_SECRET) {
+      if (!turnstileToken) {
+        return res.status(400).json({ success: false, message: 'Security check required. Please complete the CAPTCHA.' });
+      }
+      const ip = req.ip || req.socket.remoteAddress || '';
+      const valid = await verifyTurnstile(turnstileToken, ip);
+      if (!valid) {
+        return res.status(403).json({ success: false, message: 'Security check failed. Please try again.' });
+      }
+    }
 
     // Basic field validation
     if (!username || !password) {

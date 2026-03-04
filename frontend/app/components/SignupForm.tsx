@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faMars, faVenus } from "@fortawesome/free-solid-svg-icons";
 import { authApi, storage, accountsApi } from "@/lib/api";
+import { Turnstile, TurnstileInstance } from "@marsidev/react-turnstile";
 
 const months = [
   "January",
@@ -37,6 +38,8 @@ const SignupForm = () => {
   const [errors, setErrors] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [isAddingAccount, setIsAddingAccount] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileInstance>(null);
 
   // Check if we're adding an account on mount
   useEffect(() => {
@@ -53,6 +56,12 @@ const SignupForm = () => {
     setErrors([]);
     setLoading(true);
 
+    if (!turnstileToken) {
+      setErrors(["Please wait for the security check to complete."]);
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await authApi.signup({
         username,
@@ -61,6 +70,7 @@ const SignupForm = () => {
         day,
         year,
         gender: gender || undefined,
+        turnstileToken,
       });
 
       if (response.success && response.data) {
@@ -99,6 +109,9 @@ const SignupForm = () => {
           router.push("/home");
         }
       } else {
+        // Reset turnstile on failure so user can retry
+        turnstileRef.current?.reset();
+        setTurnstileToken(null);
         // Handle validation errors from backend
         if (
           response.errors &&
@@ -118,6 +131,8 @@ const SignupForm = () => {
         }
       }
     } catch {
+      turnstileRef.current?.reset();
+      setTurnstileToken(null);
       setErrors(["An error occurred. Please try again."]);
     } finally {
       setLoading(false);
@@ -257,6 +272,18 @@ const SignupForm = () => {
             </button>
           </div>
         </div>
+
+        {/* Turnstile CAPTCHA */}
+        {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
+          <Turnstile
+            ref={turnstileRef}
+            siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+            onSuccess={(token) => setTurnstileToken(token)}
+            onExpire={() => setTurnstileToken(null)}
+            onError={() => setTurnstileToken(null)}
+            options={{ theme: "auto", size: "normal" }}
+          />
+        )}
 
         {/* Terms */}
         <p className="text-xs text-muted-foreground leading-relaxed">
