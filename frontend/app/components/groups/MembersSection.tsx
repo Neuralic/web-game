@@ -89,7 +89,7 @@ export default function MembersSection({ groupId }: MembersSectionProps) {
           <div className="relative">
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="flex items-center justify-between gap-2 min-w-[140px] px-3 py-1.5 border border-gray-200 dark:border-gray-700 rounded text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              className="flex items-center justify-between gap-2 min-w-[200px] px-3 py-1.5 border border-gray-200 dark:border-gray-700 rounded text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             >
               <span>
                 {selectedRole === "all" 
@@ -108,7 +108,7 @@ export default function MembersSection({ groupId }: MembersSectionProps) {
                 />
 
                 {/* Dropdown Menu */}
-                <div className="absolute right-0 top-full mt-1 w-full min-w-[140px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-lg z-20 py-1 max-h-[300px] overflow-y-auto">
+                <div className="absolute right-0 top-full mt-1 w-full min-w-[200px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-lg z-20 py-1 max-h-[300px] overflow-y-auto">
                   <button
                     onClick={() => {
                       setSelectedRole("all");
@@ -129,7 +129,7 @@ export default function MembersSection({ groupId }: MembersSectionProps) {
                         setSelectedRole(role.id);
                         setIsDropdownOpen(false);
                       }}
-                      className={`w-full px-3 py-2 text-left text-sm transition-colors ${
+                      className={`w-full px-3 py-2 text-left text-sm whitespace-nowrap transition-colors ${
                         selectedRole === role.id
                           ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium"
                           : "text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"

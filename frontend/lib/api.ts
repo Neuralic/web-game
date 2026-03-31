@@ -880,6 +880,14 @@ export const groupsApi = {
       instagram?: string;
       tiktok?: string;
       website?: string;
+      discord_title?: string;
+      twitter_title?: string;
+      youtube_title?: string;
+      twitch_title?: string;
+      facebook_title?: string;
+      instagram_title?: string;
+      tiktok_title?: string;
+      website_title?: string;
     },
   ): Promise<ApiResponse<{ socialLinks: unknown }>> => {
     const token = storage.getAccessToken();

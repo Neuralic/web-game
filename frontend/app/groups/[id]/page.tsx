@@ -964,18 +964,14 @@ const GroupDetailPage = () => {
                   <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded border border-gray-100 dark:border-gray-700 mb-4">
                     <div className="flex items-start gap-3">
                       {/* Avatar */}
-                      <div className="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-600 flex-shrink-0 overflow-hidden">
-                        {currentGroup.shout_posted_by_avatar ? (
-                          <img 
-                            src={currentGroup.shout_posted_by_avatar} 
-                            alt={currentGroup.shout_posted_by_username || "User"}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-600 dark:text-gray-300 font-semibold">
-                            {currentGroup.shout_posted_by_username?.charAt(0).toUpperCase() || "?"}
-                          </div>
-                        )}
+                      <div className="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-600 flex-shrink-0 overflow-hidden relative">
+                        <Image
+                          src={currentGroup.shout_posted_by_avatar || `https://robohash.org/${currentGroup.shout_posted_by_username}?set=set3`}
+                          alt={currentGroup.shout_posted_by_username || "User"}
+                          fill
+                          className="object-cover"
+                          sizes="40px"
+                        />
                       </div>
                       
                       {/* Content */}
