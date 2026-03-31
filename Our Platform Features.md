@@ -2,7 +2,7 @@
 
 **Group Features:**
 
-•You can create a group for free 
+•You can create group for free 
 
 •You can create roles for free 
 
