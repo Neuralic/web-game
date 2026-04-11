@@ -124,7 +124,6 @@ export const createGroup = async (req: AuthRequest, res: Response) => {
           "canManageMembers",
           "canDeleteMembers",
           "canBanMembers",
-          "canViewAuditLogs",
           "canSpendGroupFunds",
           "canAdvertiseGroup",
           "canManageAds",
@@ -132,7 +131,7 @@ export const createGroup = async (req: AuthRequest, res: Response) => {
           "canManageRoles",
           "canManageStore",
           "canManageGames"
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)`,
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
         [
           ownerRoleId,
           group.id,
@@ -145,7 +144,6 @@ export const createGroup = async (req: AuthRequest, res: Response) => {
           true, // canManageMembers
           true, // canDeleteMembers
           true, // canBanMembers
-          true, // canViewAuditLogs
           true, // canSpendGroupFunds
           true, // canAdvertiseGroup
           true, // canManageAds
@@ -173,7 +171,6 @@ export const createGroup = async (req: AuthRequest, res: Response) => {
           "canManageMembers",
           "canDeleteMembers",
           "canBanMembers",
-          "canViewAuditLogs",
           "canSpendGroupFunds",
           "canAdvertiseGroup",
           "canManageAds",
@@ -181,7 +178,7 @@ export const createGroup = async (req: AuthRequest, res: Response) => {
           "canManageRoles",
           "canManageStore",
           "canManageGames"
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)`,
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
         [
           memberRoleId,
           group.id,
@@ -194,7 +191,6 @@ export const createGroup = async (req: AuthRequest, res: Response) => {
           false, // canManageMembers
           false, // canDeleteMembers
           false, // canBanMembers
-          false, // canViewAuditLogs
           false, // canSpendGroupFunds
           false, // canAdvertiseGroup
           false, // canManageAds
@@ -2204,7 +2200,6 @@ export const getGroupRoles = async (req: Request, res: Response) => {
         "canPostShout" as can_post_shout,
         "canManageStore" as can_manage_store,
         "canManageGames" as can_manage_games,
-        "canViewAuditLogs" as can_view_audit_logs,
         "canManageAlliances" as can_manage_alliances,
         "createdAt" as created_at
       FROM group_roles
@@ -2247,7 +2242,6 @@ export const createGroupRole = async (req: AuthRequest, res: Response) => {
       canPostShout,
       canManageStore,
       canManageGames,
-      canViewAuditLogs,
       canManageAlliances,
     } = req.body;
 
@@ -2300,11 +2294,10 @@ export const createGroupRole = async (req: AuthRequest, res: Response) => {
         "canPostShout",
         "canManageStore",
         "canManageGames",
-        "canViewAuditLogs",
         "canManageAlliances",
         "createdAt",
         "updatedAt"
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW())
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
       RETURNING
         id,
         "groupId" as group_id,
@@ -2317,7 +2310,6 @@ export const createGroupRole = async (req: AuthRequest, res: Response) => {
         "canPostShout" as can_post_shout,
         "canManageStore" as can_manage_store,
         "canManageGames" as can_manage_games,
-        "canViewAuditLogs" as can_view_audit_logs,
         "canManageAlliances" as can_manage_alliances`,
       [
         roleId,
@@ -2331,7 +2323,6 @@ export const createGroupRole = async (req: AuthRequest, res: Response) => {
         canPostShout || false,
         canManageStore || false,
         canManageGames || false,
-        canViewAuditLogs || false,
         canManageAlliances || false,
       ],
     );
@@ -2370,7 +2361,6 @@ export const updateGroupRole = async (req: AuthRequest, res: Response) => {
       canPostShout,
       canManageStore,
       canManageGames,
-      canViewAuditLogs,
       canManageAlliances,
     } = req.body;
 
@@ -2442,10 +2432,6 @@ export const updateGroupRole = async (req: AuthRequest, res: Response) => {
       updates.push(`"canManageGames" = $${paramCount++}`);
       values.push(canManageGames);
     }
-    if (canViewAuditLogs !== undefined) {
-      updates.push(`"canViewAuditLogs" = $${paramCount++}`);
-      values.push(canViewAuditLogs);
-    }
     if (canManageAlliances !== undefined) {
       updates.push(`"canManageAlliances" = $${paramCount++}`);
       values.push(canManageAlliances);
@@ -2476,7 +2462,6 @@ export const updateGroupRole = async (req: AuthRequest, res: Response) => {
         "canPostShout" as can_post_shout,
         "canManageStore" as can_manage_store,
         "canManageGames" as can_manage_games,
-        "canViewAuditLogs" as can_view_audit_logs,
         "canManageAlliances" as can_manage_alliances`,
       values,
     );

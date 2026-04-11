@@ -920,7 +920,6 @@ export const groupsApi = {
       canManageMembers?: boolean;
       canDeleteMembers?: boolean;
       canBanMembers?: boolean;
-      canViewAuditLogs?: boolean;
       canSpendGroupFunds?: boolean;
       canAdvertiseGroup?: boolean;
       canManageAds?: boolean;
@@ -961,7 +960,6 @@ export const groupsApi = {
       canManageMembers?: boolean;
       canDeleteMembers?: boolean;
       canBanMembers?: boolean;
-      canViewAuditLogs?: boolean;
       canSpendGroupFunds?: boolean;
       canAdvertiseGroup?: boolean;
       canManageAds?: boolean;

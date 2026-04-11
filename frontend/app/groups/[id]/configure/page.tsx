@@ -160,7 +160,6 @@ const ConfigureGroupPage = () => {
     manageMembers: false,
     deleteMembers: false,
     banMembers: false,
-    viewAuditLog: false,
     spendGroupFunds: false,
     advertiseGroup: false,
     manageAds: false,
@@ -976,7 +975,6 @@ const ConfigureGroupPage = () => {
       manageMembers: role.can_manage_members || false,
       deleteMembers: role.can_delete_members || false,
       banMembers: role.can_ban_members || false,
-      viewAuditLog: role.can_view_audit_logs || false,
       spendGroupFunds: role.can_spend_group_funds || false,
       advertiseGroup: role.can_advertise_group || false,
       manageAds: role.can_manage_ads || false,
@@ -1003,7 +1001,6 @@ const ConfigureGroupPage = () => {
         canManageMembers: rolePermissions.manageMembers,
         canDeleteMembers: rolePermissions.deleteMembers,
         canBanMembers: rolePermissions.banMembers,
-        canViewAuditLogs: rolePermissions.viewAuditLog,
         canSpendGroupFunds: rolePermissions.spendGroupFunds,
         canAdvertiseGroup: rolePermissions.advertiseGroup,
         canManageAds: rolePermissions.manageAds,
@@ -2325,20 +2322,6 @@ const ConfigureGroupPage = () => {
                           </button>
                           {!permissionSectionsCollapsed.moderation && (
                             <div className="p-5 space-y-4 bg-gray-50 dark:bg-gray-800">
-                              <div className="flex items-center justify-between">
-                                <span className="text-sm text-gray-700 dark:text-gray-100">
-                                  View audit log
-                                </span>
-                                <ToggleSwitch
-                                  enabled={rolePermissions.viewAuditLog}
-                                  onChange={(val) =>
-                                    setRolePermissions({
-                                      ...rolePermissions,
-                                      viewAuditLog: val,
-                                    })
-                                  }
-                                />
-                              </div>
                               <div className="flex items-center justify-between">
                                 <span className="text-sm text-gray-700 dark:text-gray-100">
                                   Spend group funds
