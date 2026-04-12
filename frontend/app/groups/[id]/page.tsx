@@ -800,15 +800,6 @@ const GroupDetailPage = () => {
                                       Configure Group
                                     </button>
                                   </Link>
-                                  <button
-                                    onClick={() => {
-                                      alert("Group Admin Panel");
-                                      setGroupMenuOpen(false);
-                                    }}
-                                    className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                                  >
-                                    Group Admin
-                                  </button>
                                   <Link
                                     href={`/groups/${groupId}/configure?section=Advertise Group`}
                                   >
