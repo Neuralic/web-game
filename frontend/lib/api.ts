@@ -1241,6 +1241,50 @@ export const groupsApi = {
       method: "GET",
     });
   },
+
+  // Get group events
+  getGroupEvents: async (id: string): Promise<ApiResponse<{ events: unknown[] }>> => {
+    return apiCall(`/groups/${id}/events`, {
+      method: "GET",
+    });
+  },
+
+  // Create group event
+  createGroupEvent: async (
+    id: string,
+    data: {
+      title: string;
+      description?: string;
+      imageUrl?: string;
+      startDate: string;
+      endDate: string;
+      location?: string;
+    },
+  ): Promise<ApiResponse<{ event: unknown }>> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return { success: false, error: "No authentication token found" };
+    }
+
+    return apiCall(`/groups/${id}/events`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Delete group event
+  deleteGroupEvent: async (id: string, eventId: string): Promise<ApiResponse> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return { success: false, error: "No authentication token found" };
+    }
+
+    return apiCall(`/groups/${id}/events/${eventId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  },
 };
 
 // Upload API

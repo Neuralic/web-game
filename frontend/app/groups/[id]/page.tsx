@@ -122,6 +122,17 @@ const GroupDetailPage = () => {
     }>
   >([]);
   const [loadingAlliances, setLoadingAlliances] = useState(true);
+  const [events, setEvents] = useState<any[]>([]);
+  const [loadingEvents, setLoadingEvents] = useState(true);
+  const [showCreateEvent, setShowCreateEvent] = useState(false);
+  const [creatingEvent, setCreatingEvent] = useState(false);
+  const [eventForm, setEventForm] = useState({
+    title: "",
+    description: "",
+    startDate: "",
+    endDate: "",
+    location: "",
+  });
 
   // Fetch user's groups for sidebar + primary group
   useEffect(() => {
@@ -194,6 +205,65 @@ const GroupDetailPage = () => {
 
     fetchAlliances();
   }, [groupId]);
+
+  // Fetch events
+  useEffect(() => {
+    const fetchEvents = async () => {
+      if (!groupId) return;
+      setLoadingEvents(true);
+      try {
+        const response = await groupsApi.getGroupEvents(groupId);
+        if (response.success && response.data) {
+          setEvents((response.data.events as any[]) || []);
+        }
+      } catch (error) {
+        console.error("Error fetching events:", error);
+      } finally {
+        setLoadingEvents(false);
+      }
+    };
+    fetchEvents();
+  }, [groupId]);
+
+  // Handle create event
+  const handleCreateEvent = async () => {
+    const groupUuid = currentGroupDetails?.id;
+    if (!groupUuid || !eventForm.title || !eventForm.startDate || !eventForm.endDate) return;
+    setCreatingEvent(true);
+    try {
+      const response = await groupsApi.createGroupEvent(groupUuid, {
+        title: eventForm.title,
+        description: eventForm.description || undefined,
+        startDate: eventForm.startDate,
+        endDate: eventForm.endDate,
+        location: eventForm.location || undefined,
+      });
+      if (response.success && response.data) {
+        setEvents([...events, response.data.event as any]);
+        setShowCreateEvent(false);
+        setEventForm({ title: "", description: "", startDate: "", endDate: "", location: "" });
+      }
+    } catch (error) {
+      console.error("Error creating event:", error);
+    } finally {
+      setCreatingEvent(false);
+    }
+  };
+
+  // Handle delete event
+  const handleDeleteEvent = async (eventId: string) => {
+    const groupUuid = currentGroupDetails?.id;
+    if (!groupUuid) return;
+    if (!confirm("Are you sure you want to delete this event?")) return;
+    try {
+      const response = await groupsApi.deleteGroupEvent(groupUuid, eventId);
+      if (response.success) {
+        setEvents(events.filter(e => e.id !== eventId));
+      }
+    } catch (error) {
+      console.error("Error deleting event:", error);
+    }
+  };
 
   // Get current group - prefer detailed data, fallback to sidebar data
   const currentGroup =
@@ -1454,25 +1524,165 @@ const GroupDetailPage = () => {
                   Events
                 </h2>
                 {currentGroup?.owner_id === currentUserId && (
-                  <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors">
-                    Create Event
+                  <button
+                    onClick={() => setShowCreateEvent(!showCreateEvent)}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors"
+                  >
+                    {showCreateEvent ? "Cancel" : "Create Event"}
                   </button>
                 )}
               </div>
 
-              <div className="text-center py-16">
-                <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
-                  <svg className="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
+              {/* Create Event Form */}
+              {showCreateEvent && (
+                <div className="mb-6 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-5 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Event Title *</label>
+                    <input
+                      type="text"
+                      value={eventForm.title}
+                      onChange={(e) => setEventForm({ ...eventForm, title: e.target.value })}
+                      placeholder="Enter event title"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                    <textarea
+                      value={eventForm.description}
+                      onChange={(e) => setEventForm({ ...eventForm, description: e.target.value })}
+                      placeholder="Describe your event..."
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Start Date & Time *</label>
+                      <input
+                        type="datetime-local"
+                        value={eventForm.startDate}
+                        onChange={(e) => setEventForm({ ...eventForm, startDate: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">End Date & Time *</label>
+                      <input
+                        type="datetime-local"
+                        value={eventForm.endDate}
+                        onChange={(e) => setEventForm({ ...eventForm, endDate: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location</label>
+                    <input
+                      type="text"
+                      value={eventForm.location}
+                      onChange={(e) => setEventForm({ ...eventForm, location: e.target.value })}
+                      placeholder="e.g. In-game, Discord, etc."
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <button
+                    onClick={handleCreateEvent}
+                    disabled={!eventForm.title || !eventForm.startDate || !eventForm.endDate || creatingEvent}
+                    className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {creatingEvent ? "Creating..." : "Create Event"}
+                  </button>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                  No Upcoming Events
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 max-w-md mx-auto">
-                  This group doesn&apos;t have any upcoming events. Check back later or ask the group owner to create one.
-                </p>
-              </div>
+              )}
+
+              {/* Events List */}
+              {loadingEvents ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+                </div>
+              ) : events.length > 0 ? (
+                <div className="space-y-4">
+                  {events.map((event: any) => {
+                    const startDate = new Date(event.start_date);
+                    const endDate = new Date(event.end_date);
+                    const isUpcoming = startDate > new Date();
+                    const isOngoing = startDate <= new Date() && endDate >= new Date();
+
+                    return (
+                      <div
+                        key={event.id}
+                        className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-5"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                                {event.title}
+                              </h3>
+                              {isOngoing && (
+                                <span className="px-2 py-0.5 text-xs font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full">
+                                  Live Now
+                                </span>
+                              )}
+                              {isUpcoming && (
+                                <span className="px-2 py-0.5 text-xs font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full">
+                                  Upcoming
+                                </span>
+                              )}
+                            </div>
+                            {event.description && (
+                              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                                {event.description}
+                              </p>
+                            )}
+                            <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+                              <span>
+                                📅 {startDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} at {startDate.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })}
+                              </span>
+                              <span>
+                                → {endDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} at {endDate.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })}
+                              </span>
+                              {event.location && <span>📍 {event.location}</span>}
+                            </div>
+                            {event.created_by_username && (
+                              <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+                                Created by{" "}
+                                <Link href={`/profile/${event.created_by_username}`} className="text-blue-500 hover:underline">
+                                  {event.created_by_display_name || event.created_by_username}
+                                </Link>
+                              </p>
+                            )}
+                          </div>
+                          {currentGroup?.owner_id === currentUserId && (
+                            <button
+                              onClick={() => handleDeleteEvent(event.id)}
+                              className="ml-3 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors flex-shrink-0"
+                              title="Delete event"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-16">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+                    <svg className="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                    No Upcoming Events
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+                    This group doesn&apos;t have any upcoming events. Check back later or ask the group owner to create one.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 

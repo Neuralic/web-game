@@ -44,6 +44,11 @@ import {
   respondToAllianceRequest,
   removeAlliance,
 } from './groups.alliances.controller.js';
+import {
+  getGroupEvents,
+  createGroupEvent,
+  deleteGroupEvent,
+} from './groups.events.controller.js';
 import { authMiddleware, optionalAuth } from '../../middleware/auth.middleware.js';
 import { createGroupLimiter } from '../../middleware/rateLimiter.js';
 
@@ -62,6 +67,7 @@ router.get("/:id/roles", getGroupRoles);
 router.get("/:id/settings", getGroupSettings);
 router.get("/:id/social-links", getGroupSocialLinks);
 router.get("/:id/alliances", getGroupAlliances);
+router.get("/:id/events", getGroupEvents);
 router.get("/:id/alliances/requests", authMiddleware, getAllianceRequests);
 
 // Protected routes - Group management
@@ -98,5 +104,9 @@ router.put("/:id/shout", authMiddleware, updateGroupShout);
 router.post("/:id/alliances", authMiddleware, sendAllianceRequest);
 router.patch("/:id/alliances/:allianceId", authMiddleware, respondToAllianceRequest);
 router.delete("/:id/alliances/:allianceId", authMiddleware, removeAlliance);
+
+// Protected routes - Event management
+router.post("/:id/events", authMiddleware, createGroupEvent);
+router.delete("/:id/events/:eventId", authMiddleware, deleteGroupEvent);
 
 export default router;
