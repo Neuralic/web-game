@@ -116,17 +116,7 @@ const HomePage = () => {
     }
   };
 
-  // Placeholder game data
-  const games = [
-    { id: 1, title: "Adventure Quest", rating: "86% Rating" },
-    { id: 2, title: "Battle Arena", rating: "91% Rating" },
-    { id: 3, title: "City Builder", rating: "85% Rating" },
-    { id: 4, title: "Racing Legends", rating: "59% Rating" },
-    { id: 5, title: "Space Explorer", rating: "91% Rating" },
-    { id: 6, title: "Fantasy World", rating: "83% Rating" },
-    { id: 7, title: "Zombie Survival", rating: "55% Rating" },
-    { id: 8, title: "Parkour Master", rating: "56% Rating" },
-  ];
+  // Game data removed - will come from real API
 
 
   return (
@@ -273,33 +263,7 @@ const HomePage = () => {
                   See All
                 </Link>
               </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                {games.slice(0, 6).map((game) => (
-                  <div
-                    key={`recent-${game.id}`}
-                    className="cursor-pointer group"
-                  >
-                    <div className="aspect-video bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden relative">
-                      <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-500 text-xs">
-                        Game Thumbnail
-                      </div>
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <button className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-1.5 rounded text-xs">
-                          PLAY
-                        </button>
-                      </div>
-                    </div>
-                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-xs mt-1.5 truncate">
-                      {game.title}
-                    </h3>
-                    <div className="flex items-center gap-2 text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
-                      <span className="text-green-600 dark:text-green-500">👍 {game.rating}</span>
-                      <span>👤 1.2K</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 py-6 text-center">No recently played games yet.</p>
             </section>
 
             {/* My Favorites Section */}
@@ -315,33 +279,7 @@ const HomePage = () => {
                   See All
                 </Link>
               </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                {games.slice(0, 6).map((game) => (
-                  <div
-                    key={`favorites-${game.id}`}
-                    className="cursor-pointer group"
-                  >
-                    <div className="aspect-video bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden relative">
-                      <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-500 text-xs">
-                        Game Thumbnail
-                      </div>
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <button className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-1.5 rounded text-xs">
-                          PLAY
-                        </button>
-                      </div>
-                    </div>
-                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-xs mt-1.5 truncate">
-                      {game.title}
-                    </h3>
-                    <div className="flex items-center gap-2 text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
-                      <span className="text-green-600 dark:text-green-500">👍 {game.rating}</span>
-                      <span>👤 856</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 py-6 text-center">No favorite games yet.</p>
             </section>
 
             {/* My Feed Section */}
@@ -350,53 +288,7 @@ const HomePage = () => {
                 My Feed
               </h2>
 
-              {/* Post Composer */}
-              {userGroupsList.length > 0 && (
-                <div className="mb-6 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <select
-                      value={selectedFeedGroup}
-                      onChange={(e) => setSelectedFeedGroup(e.target.value)}
-                      className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="">Post to group...</option>
-                      {userGroupsList.map((g: any) => (
-                        <option key={g.id} value={g.id}>{g.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex gap-2">
-                    <textarea
-                      value={feedPostText}
-                      onChange={(e) => setFeedPostText(e.target.value)}
-                      placeholder="What's on your mind?"
-                      rows={2}
-                      className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                    />
-                    <div className="flex flex-col gap-1">
-                      <label className="p-2 h-fit hover:bg-gray-200 dark:hover:bg-gray-600 rounded cursor-pointer transition-colors" title="Attach image">
-                        <ImagePlus className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                        <input type="file" accept="image/*" onChange={handleFeedImageSelect} className="hidden" />
-                      </label>
-                      <button
-                        onClick={handleFeedPost}
-                        disabled={!selectedFeedGroup || (!feedPostText.trim() && !feedPostImage) || postingFeed}
-                        className="px-4 py-2 h-fit bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {postingFeed ? "..." : "Post"}
-                      </button>
-                    </div>
-                  </div>
-                  {feedPostImagePreview && (
-                    <div className="mt-2 relative inline-block">
-                      <img src={feedPostImagePreview} alt="Preview" className="max-h-24 rounded border border-gray-300 dark:border-gray-600" />
-                      <button onClick={handleRemoveFeedImage} className="absolute -top-2 -right-2 p-0.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors">
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
+              {/* Feed shows posts from groups you're in */}
 
               {/* Feed Posts */}
               {loadingFeed ? (

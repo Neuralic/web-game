@@ -112,7 +112,9 @@ const ConfigureGroupPage = () => {
   const [websiteTitle, setWebsiteTitle] = useState("");
 
   // Members states
-  const [membersTab, setMembersTab] = useState<"members" | "requests">("members");
+  const [membersTab, setMembersTab] = useState<"members" | "requests" | "banned">("members");
+  const [bannedUsers, setBannedUsers] = useState<any[]>([]);
+  const [bannedSearch, setBannedSearch] = useState("");
   const [memberSearch, setMemberSearch] = useState("");
   const [memberRoleFilter, setMemberRoleFilter] = useState("All");
   const [members, setMembers] = useState<any[]>([]);
@@ -1773,6 +1775,18 @@ const ConfigureGroupPage = () => {
                         )}
                       </button>
                       <button
+                        onClick={() => setMembersTab("banned")}
+                        className={`px-6 py-3 text-sm font-semibold transition-colors relative ${membersTab === "banned"
+                            ? "text-gray-900 dark:text-gray-100"
+                            : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                          }`}
+                      >
+                        Banned
+                        {membersTab === "banned" && (
+                          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></div>
+                        )}
+                      </button>
+                      <button
                         onClick={() => setMembersTab("requests")}
                         className={`px-6 py-3 text-sm font-semibold transition-colors relative ${membersTab === "requests"
                             ? "text-gray-900 dark:text-gray-100"
@@ -2049,6 +2063,64 @@ const ConfigureGroupPage = () => {
                             <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
                               Join requests will appear here when manual approval is enabled
                             </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {/* Banned Tab */}
+                    {membersTab === "banned" && (
+                      <div className="space-y-4">
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={bannedSearch}
+                            onChange={(e) => setBannedSearch(e.target.value)}
+                            placeholder="Search Banned Users"
+                            className="w-full px-4 py-2 pl-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
+                        </div>
+                        {bannedUsers.length === 0 ? (
+                          <div className="text-center py-12">
+                            <p className="text-gray-600 dark:text-gray-400">No users are banned from this community</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {bannedUsers
+                              .filter((u: any) => !bannedSearch || u.username?.toLowerCase().includes(bannedSearch.toLowerCase()))
+                              .map((banned: any) => (
+                              <div key={banned.id} className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-600 overflow-hidden relative">
+                                    <Image
+                                      src={`https://robohash.org/${banned.username}?set=set3`}
+                                      alt={banned.username}
+                                      fill
+                                      className="object-cover"
+                                      sizes="40px"
+                                    />
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{banned.username}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">Banned {banned.created_at ? new Date(banned.created_at).toLocaleDateString() : ''}</p>
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={async () => {
+                                    if (!confirm(`Unban ${banned.username}?`)) return;
+                                    try {
+                                      const response = await groupsApi.removeMember(groupUuid || groupId, banned.user_id);
+                                      if (response.success) {
+                                        setBannedUsers(bannedUsers.filter((b: any) => b.id !== banned.id));
+                                      }
+                                    } catch (err) { console.error(err); }
+                                  }}
+                                  className="px-3 py-1.5 text-xs bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded hover:bg-red-200 dark:hover:bg-red-900/40 font-medium transition-colors"
+                                >
+                                  Unban
+                                </button>
+                              </div>
+                            ))}
                           </div>
                         )}
                       </div>

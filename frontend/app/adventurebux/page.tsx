@@ -43,7 +43,7 @@ const AdventureBuxPage = () => {
     monthlyBux: "1000 AdventureBux each month",
     bonusPercent: "Up to 35% more on AdventureBux purchases",
     trading: "Trade, resell and publish avatar items",
-    price: "US$9.99/month",
+    price: "US$4.99/month",
   };
 
   const faqs = [
