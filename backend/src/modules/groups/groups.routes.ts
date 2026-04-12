@@ -49,6 +49,12 @@ import {
   createGroupEvent,
   deleteGroupEvent,
 } from './groups.events.controller.js';
+import {
+  getGroupAds,
+  createGroupAd,
+  updateGroupAd,
+  deleteGroupAd,
+} from './groups.ads.controller.js';
 import { authMiddleware, optionalAuth } from '../../middleware/auth.middleware.js';
 import { createGroupLimiter } from '../../middleware/rateLimiter.js';
 
@@ -108,5 +114,11 @@ router.delete("/:id/alliances/:allianceId", authMiddleware, removeAlliance);
 // Protected routes - Event management
 router.post("/:id/events", authMiddleware, createGroupEvent);
 router.delete("/:id/events/:eventId", authMiddleware, deleteGroupEvent);
+
+// Protected routes - Ad management
+router.get("/:id/ads", authMiddleware, getGroupAds);
+router.post("/:id/ads", authMiddleware, createGroupAd);
+router.patch("/:id/ads/:adId", authMiddleware, updateGroupAd);
+router.delete("/:id/ads/:adId", authMiddleware, deleteGroupAd);
 
 export default router;

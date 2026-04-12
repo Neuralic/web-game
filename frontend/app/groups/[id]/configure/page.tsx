@@ -1065,39 +1065,96 @@ const ConfigureGroupPage = () => {
     }
   };
 
-  // Mock existing ads data
-  const existingAds = [
-    {
-      id: 1,
-      name: "Summer Sale Banner",
-      format: "728 x 90",
-      status: "Running",
-      impressions: 15234,
-      clicks: 432,
-      spent: 45.5,
-      bid: 0.12,
-    },
-    {
-      id: 2,
-      name: "New Collection Skyscraper",
-      format: "160 x 600",
-      status: "Paused",
-      impressions: 8921,
-      clicks: 156,
-      spent: 22.3,
-      bid: 0.1,
-    },
-    {
-      id: 3,
-      name: "Group Promo Rectangle",
-      format: "300 x 250",
-      status: "Running",
-      impressions: 12456,
-      clicks: 289,
-      spent: 35.2,
-      bid: 0.15,
-    },
-  ];
+  // Ads state
+  const [existingAds, setExistingAds] = useState<any[]>([]);
+  const [loadingAds, setLoadingAds] = useState(false);
+  const [creatingAd, setCreatingAd] = useState(false);
+
+  // Fetch ads when Advertise Group section is active
+  useEffect(() => {
+    const fetchAds = async () => {
+      if (activeSection !== "Advertise Group" || !groupUuid) return;
+      setLoadingAds(true);
+      try {
+        const response = await groupsApi.getGroupAds(groupUuid);
+        if (response.success && response.data) {
+          setExistingAds((response.data.ads as any[]) || []);
+        }
+      } catch (error) {
+        console.error("Error fetching ads:", error);
+      } finally {
+        setLoadingAds(false);
+      }
+    };
+    fetchAds();
+  }, [activeSection, groupUuid]);
+
+  const handleCreateAd = async () => {
+    if (!groupUuid || !adName || !adImage) return;
+    setCreatingAd(true);
+    try {
+      // Upload ad image first
+      const file = await fetch(adImage).then(r => r.blob());
+      const imageFile = new File([file], "ad-image.png", { type: "image/png" });
+      const uploadResponse = await uploadApi.uploadImage(imageFile, "group-ad");
+      if (!uploadResponse.success || !uploadResponse.data) {
+        alert("Failed to upload ad image");
+        setCreatingAd(false);
+        return;
+      }
+      const imageUrl = (uploadResponse.data as { url: string }).url;
+
+      const response = await groupsApi.createGroupAd(groupUuid, {
+        name: adName,
+        format: getAdDimensions(),
+        imageUrl,
+        adSetName: adSetName || undefined,
+        maxBid: parseFloat(maxBid) || 0.10,
+      });
+      if (response.success && response.data) {
+        setExistingAds([response.data.ad as any, ...existingAds]);
+        setAdName("");
+        setAdImage(null);
+        setAdSetName("");
+        setMaxBid("0.10");
+        setAdTab("manage");
+        setSuccessMessage({ title: "Success", message: "Ad created! It will be reviewed by a moderator." });
+        setShowSuccessModal(true);
+      } else {
+        alert(response.error || "Failed to create ad");
+      }
+    } catch (error) {
+      console.error("Error creating ad:", error);
+      alert("Failed to create ad");
+    } finally {
+      setCreatingAd(false);
+    }
+  };
+
+  const handleToggleAdStatus = async (adId: string, currentStatus: string) => {
+    if (!groupUuid) return;
+    const newStatus = currentStatus === "running" ? "paused" : "running";
+    try {
+      const response = await groupsApi.updateGroupAd(groupUuid, adId, newStatus);
+      if (response.success) {
+        setExistingAds(existingAds.map(ad => ad.id === adId ? { ...ad, status: newStatus } : ad));
+      }
+    } catch (error) {
+      console.error("Error toggling ad:", error);
+    }
+  };
+
+  const handleDeleteAd = async (adId: string) => {
+    if (!groupUuid || !confirm("Delete this ad?")) return;
+    try {
+      const response = await groupsApi.deleteGroupAd(groupUuid, adId);
+      if (response.success) {
+        setExistingAds(existingAds.filter(ad => ad.id !== adId));
+      }
+    } catch (error) {
+      console.error("Error deleting ad:", error);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
@@ -2780,10 +2837,17 @@ const ConfigureGroupPage = () => {
 
                         {/* Action Buttons */}
                         <div className="flex gap-3 pt-4">
-                          <button className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors text-sm">
-                            Upload
+                          <button
+                            onClick={handleCreateAd}
+                            disabled={!adName || !adImage || creatingAd}
+                            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {creatingAd ? "Uploading..." : "Upload"}
                           </button>
-                          <button className="px-6 py-2.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium rounded-lg transition-colors text-sm">
+                          <button
+                            onClick={() => { setAdName(""); setAdImage(null); setAdSetName(""); setMaxBid("0.10"); }}
+                            className="px-6 py-2.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium rounded-lg transition-colors text-sm"
+                          >
                             Cancel
                           </button>
                         </div>
@@ -2791,67 +2855,48 @@ const ConfigureGroupPage = () => {
                     ) : (
                       <div className="space-y-6">
                         {/* Stats Overview */}
+                        {(() => {
+                          const totalSpent = existingAds.reduce((sum: number, ad: any) => sum + (parseFloat(ad.spent) || 0), 0);
+                          const totalImpressions = existingAds.reduce((sum: number, ad: any) => sum + (ad.impressions || 0), 0);
+                          const totalClicks = existingAds.reduce((sum: number, ad: any) => sum + (ad.clicks || 0), 0);
+                          const ctr = totalImpressions > 0 ? ((totalClicks / totalImpressions) * 100).toFixed(1) : "0.0";
+                          return (
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                           <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
                             <div className="flex items-center justify-between mb-2">
-                              <span className="text-sm text-gray-600 dark:text-gray-400">
-                                Total Spent
-                              </span>
+                              <span className="text-sm text-gray-600 dark:text-gray-400">Total Spent</span>
                               <TrendingUp className="w-5 h-5 text-green-500" />
                             </div>
-                            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                              ◈ 103.00
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                              All time
-                            </p>
+                            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">◈ {totalSpent.toFixed(2)}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">All time</p>
                           </div>
-
                           <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
                             <div className="flex items-center justify-between mb-2">
-                              <span className="text-sm text-gray-600 dark:text-gray-400">
-                                Impressions
-                              </span>
+                              <span className="text-sm text-gray-600 dark:text-gray-400">Impressions</span>
                               <BarChart3 className="w-5 h-5 text-blue-500" />
                             </div>
-                            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                              36,611
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                              Total views
-                            </p>
+                            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{totalImpressions.toLocaleString()}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Total views</p>
                           </div>
-
                           <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
                             <div className="flex items-center justify-between mb-2">
-                              <span className="text-sm text-gray-600 dark:text-gray-400">
-                                Clicks
-                              </span>
+                              <span className="text-sm text-gray-600 dark:text-gray-400">Clicks</span>
                               <BarChart3 className="w-5 h-5 text-purple-500" />
                             </div>
-                            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                              877
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                              Total clicks
-                            </p>
+                            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{totalClicks.toLocaleString()}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Total clicks</p>
                           </div>
-
                           <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
                             <div className="flex items-center justify-between mb-2">
-                              <span className="text-sm text-gray-600 dark:text-gray-400">
-                                CTR
-                              </span>
+                              <span className="text-sm text-gray-600 dark:text-gray-400">CTR</span>
                               <BarChart3 className="w-5 h-5 text-orange-500" />
                             </div>
-                            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                              2.4%
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                              Click-through rate
-                            </p>
+                            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{ctr}%</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Click-through rate</p>
                           </div>
                         </div>
+                          );
+                        })()}
 
                         {/* Ads Table */}
                         <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
@@ -2899,34 +2944,40 @@ const ConfigureGroupPage = () => {
                                     </td>
                                     <td className="px-4 py-3">
                                       <span
-                                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${ad.status === "Running"
+                                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full capitalize ${ad.status === "running"
                                             ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400"
-                                            : "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-400"
+                                            : ad.status === "pending"
+                                              ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400"
+                                              : "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-400"
                                           }`}
                                       >
                                         {ad.status}
                                       </span>
                                     </td>
                                     <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                                      {ad.impressions.toLocaleString()}
+                                      {(ad.impressions || 0).toLocaleString()}
                                     </td>
                                     <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                                      {ad.clicks}
+                                      {ad.clicks || 0}
                                     </td>
                                     <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                                      ◈ {ad.spent.toFixed(2)}
+                                      ◈ {parseFloat(ad.spent || 0).toFixed(2)}
                                     </td>
                                     <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                                      {ad.bid.toFixed(2)}
+                                      {parseFloat(ad.max_bid || 0).toFixed(2)}
                                     </td>
                                     <td className="px-4 py-3 text-right">
-                                      <button className="text-sm text-blue-600 dark:text-blue-400 hover:underline mr-3">
-                                        Edit
+                                      <button
+                                        onClick={() => handleToggleAdStatus(ad.id, ad.status)}
+                                        className="text-sm text-blue-600 dark:text-blue-400 hover:underline mr-3"
+                                      >
+                                        {ad.status === "running" ? "Pause" : "Resume"}
                                       </button>
-                                      <button className="text-sm text-red-600 dark:text-red-400 hover:underline">
-                                        {ad.status === "Running"
-                                          ? "Pause"
-                                          : "Resume"}
+                                      <button
+                                        onClick={() => handleDeleteAd(ad.id)}
+                                        className="text-sm text-red-600 dark:text-red-400 hover:underline"
+                                      >
+                                        Delete
                                       </button>
                                     </td>
                                   </tr>

@@ -1273,6 +1273,51 @@ export const groupsApi = {
     });
   },
 
+  // Get group ads
+  getGroupAds: async (id: string): Promise<ApiResponse<{ ads: unknown[] }>> => {
+    const token = storage.getAccessToken();
+    if (!token) return { success: false, error: "No authentication token found" };
+    return apiCall(`/groups/${id}/ads`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+
+  // Create group ad
+  createGroupAd: async (
+    id: string,
+    data: { name: string; format: string; imageUrl: string; adSetName?: string; maxBid?: number },
+  ): Promise<ApiResponse<{ ad: unknown }>> => {
+    const token = storage.getAccessToken();
+    if (!token) return { success: false, error: "No authentication token found" };
+    return apiCall(`/groups/${id}/ads`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Update group ad (pause/resume)
+  updateGroupAd: async (id: string, adId: string, status: string): Promise<ApiResponse> => {
+    const token = storage.getAccessToken();
+    if (!token) return { success: false, error: "No authentication token found" };
+    return apiCall(`/groups/${id}/ads/${adId}`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ status }),
+    });
+  },
+
+  // Delete group ad
+  deleteGroupAd: async (id: string, adId: string): Promise<ApiResponse> => {
+    const token = storage.getAccessToken();
+    if (!token) return { success: false, error: "No authentication token found" };
+    return apiCall(`/groups/${id}/ads/${adId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+
   // Delete group event
   deleteGroupEvent: async (id: string, eventId: string): Promise<ApiResponse> => {
     const token = storage.getAccessToken();
