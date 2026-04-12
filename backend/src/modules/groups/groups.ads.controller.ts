@@ -22,7 +22,7 @@ const resolveGroupId = async (id: string): Promise<string | null> => {
 export const getGroupAds = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId;
-    const { id } = req.params;
+    const id = String(req.params.id);
 
     if (!userId) {
       return res.status(401).json({ success: false, message: "Unauthorized" });
@@ -73,7 +73,7 @@ export const getGroupAds = async (req: AuthRequest, res: Response) => {
 export const createGroupAd = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId;
-    const { id } = req.params;
+    const id = String(req.params.id);
     const { name, format, imageUrl, adSetName, maxBid } = req.body;
 
     if (!userId) {
@@ -130,7 +130,8 @@ export const createGroupAd = async (req: AuthRequest, res: Response) => {
 export const updateGroupAd = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId;
-    const { id, adId } = req.params;
+    const id = String(req.params.id);
+    const adId = String(req.params.adId);
     const { status } = req.body;
 
     if (!userId) {
@@ -186,7 +187,8 @@ export const updateGroupAd = async (req: AuthRequest, res: Response) => {
 export const deleteGroupAd = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId;
-    const { id, adId } = req.params;
+    const id = String(req.params.id);
+    const adId = String(req.params.adId);
 
     if (!userId) {
       return res.status(401).json({ success: false, message: "Unauthorized" });

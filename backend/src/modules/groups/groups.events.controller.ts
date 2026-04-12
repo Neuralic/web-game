@@ -21,7 +21,7 @@ const resolveGroupId = async (id: string): Promise<string | null> => {
  */
 export const getGroupEvents = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id);
 
     const groupId = await resolveGroupId(id);
     if (!groupId) {
@@ -73,7 +73,7 @@ export const getGroupEvents = async (req: Request, res: Response) => {
 export const createGroupEvent = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId;
-    const { id } = req.params;
+    const id = String(req.params.id);
     const { title, description, imageUrl, startDate, endDate, location } = req.body;
 
     if (!userId) {
@@ -149,7 +149,8 @@ export const createGroupEvent = async (req: AuthRequest, res: Response) => {
 export const deleteGroupEvent = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId;
-    const { id, eventId } = req.params;
+    const id = String(req.params.id);
+    const eventId = String(req.params.eventId);
 
     if (!userId) {
       return res.status(401).json({ success: false, message: "Unauthorized" });
