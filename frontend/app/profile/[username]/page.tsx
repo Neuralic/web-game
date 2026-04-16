@@ -1439,116 +1439,90 @@ const ProfilePage = () => {
                   </div>
                 </div>
 
-                {/* Carousel View - Roblox Communities style (smaller horizontal row) */}
-                {groupsViewMode === "carousel" && (
+                {/* Landscape View - Single card with icon left, info right, arrows */}
+                {groupsViewMode === "carousel" && groups.length > 0 && (
                   <div className="relative">
                     {/* Left Arrow */}
-                    {showPrevGroup && (
+                    {currentGroupIndex > 0 && (
                       <button
-                        onClick={handlePrevGroup}
-                        className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors shadow-md -ml-3"
+                        onClick={() => setCurrentGroupIndex(Math.max(0, currentGroupIndex - 1))}
+                        className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/90 dark:bg-gray-800/90 border border-gray-300 dark:border-gray-600 flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 transition-colors shadow-lg"
                       >
-                        <ChevronLeft className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                        <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
                       </button>
                     )}
 
-                    {/* Group Cards - Multiple per row, smaller */}
-                    <div className="grid grid-cols-3 gap-4">
-                      {visibleGroups.map((group) => (
-                        <Link
-                          key={group.id}
-                          href={`/groups/${group.id}`}
-                          className="block group/card"
-                        >
-                          <div className="w-full aspect-square rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700 relative">
-                            <Image
-                              src={group.image}
-                              alt={group.name}
-                              fill
-                              className="object-cover group-hover/card:opacity-90 transition-opacity"
-                            />
+                    {/* Landscape Card */}
+                    <Link
+                      href={`/groups/${groups[currentGroupIndex]?.id}`}
+                      className="block border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex">
+                        {/* Group Icon - Large square */}
+                        <div className="w-40 h-40 flex-shrink-0 bg-gray-200 dark:bg-gray-700 relative">
+                          <Image
+                            src={groups[currentGroupIndex]?.image || `https://robohash.org/${groups[currentGroupIndex]?.name}?set=set3`}
+                            alt={groups[currentGroupIndex]?.name || ""}
+                            fill
+                            className="object-cover"
+                            sizes="160px"
+                          />
+                        </div>
+                        {/* Group Info */}
+                        <div className="flex-1 p-5 flex flex-col justify-center">
+                          <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">
+                            {groups[currentGroupIndex]?.name}
+                          </h3>
+                          <div className="flex gap-8">
+                            <div>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 uppercase">Members</p>
+                              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{groups[currentGroupIndex]?.members?.toLocaleString()}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 uppercase">Rank</p>
+                              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{groups[currentGroupIndex]?.rank || "Member"}</p>
+                            </div>
                           </div>
-                          <div className="mt-2">
-                            <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 flex items-center gap-1 truncate">
-                              {group.name}
-                              {group.verified && (
-                                <svg
-                                  className="w-3.5 h-3.5 text-blue-500 flex-shrink-0"
-                                  fill="currentColor"
-                                  viewBox="0 0 20 20"
-                                >
-                                  <path
-                                    fillRule="evenodd"
-                                    d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                    clipRule="evenodd"
-                                  />
-                                </svg>
-                              )}
-                            </h3>
-                            <p className="text-xs text-gray-600 dark:text-gray-400">
-                              {group.members} Members
-                            </p>
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
+                        </div>
+                      </div>
+                    </Link>
 
                     {/* Right Arrow */}
-                    {showNextGroup && (
+                    {currentGroupIndex < groups.length - 1 && (
                       <button
-                        onClick={handleNextGroup}
-                        className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors shadow-md -mr-3"
+                        onClick={() => setCurrentGroupIndex(Math.min(groups.length - 1, currentGroupIndex + 1))}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/90 dark:bg-gray-800/90 border border-gray-300 dark:border-gray-600 flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 transition-colors shadow-lg"
                       >
-                        <ChevronRight className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                        <ChevronRight className="w-5 h-5 text-gray-700 dark:text-gray-300" />
                       </button>
                     )}
                   </div>
                 )}
 
-                {/* Grid View - SMALL cards showing ALL groups */}
+                {/* Grid View - Square icon cards in grid */}
                 {groupsViewMode === "grid" && (
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                     {groups.map((group) => (
                       <Link
                         key={group.id}
                         href={`/groups/${group.id}`}
-                        className="block"
+                        className="block group/card"
                       >
-                        <div className="rounded-lg overflow-hidden hover:opacity-90 transition-opacity">
-                          {/* Small square icon */}
-                          <div className="aspect-square bg-gray-200 dark:bg-gray-700 overflow-hidden rounded-lg relative">
-                            <Image
-                              src={group.image}
-                              alt={group.name}
-                              fill
-                              className="object-cover"
-                            />
-                          </div>
-                          <div className="pt-2">
-                            <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 flex items-center gap-1 truncate">
-                              {group.name}
-                              {group.verified && (
-                                <svg
-                                  className="w-3 h-3 text-blue-500 flex-shrink-0"
-                                  fill="currentColor"
-                                  viewBox="0 0 20 20"
-                                >
-                                  <path
-                                    fillRule="evenodd"
-                                    d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                    clipRule="evenodd"
-                                  />
-                                </svg>
-                              )}
-                            </h3>
-                            <p className="text-xs text-gray-600 dark:text-gray-400">
-                              {group.members} Members
-                            </p>
-                            <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1">
-                              👑 {group.rank}
-                            </p>
-                          </div>
+                        <div className="aspect-square bg-gray-200 dark:bg-gray-700 overflow-hidden rounded-lg relative">
+                          <Image
+                            src={group.image}
+                            alt={group.name}
+                            fill
+                            className="object-cover group-hover/card:opacity-90 transition-opacity"
+                            sizes="(max-width: 640px) 33vw, 25vw"
+                          />
                         </div>
+                        <h3 className="text-xs font-bold text-gray-900 dark:text-gray-100 mt-1.5 truncate">
+                          {group.name}
+                        </h3>
+                        <p className="text-[10px] text-gray-500 dark:text-gray-400">
+                          {group.members} Members · {group.rank || "Member"}
+                        </p>
                       </Link>
                     ))}
                   </div>
