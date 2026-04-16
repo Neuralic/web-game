@@ -1441,61 +1441,59 @@ const ProfilePage = () => {
 
                 {/* Landscape View - Single card with icon left, info right, arrows */}
                 {groupsViewMode === "carousel" && groups.length > 0 && (
-                  <div className="relative">
-                    {/* Left Arrow */}
-                    {currentGroupIndex > 0 && (
-                      <button
-                        onClick={() => setCurrentGroupIndex(Math.max(0, currentGroupIndex - 1))}
-                        className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/90 dark:bg-gray-800/90 border border-gray-300 dark:border-gray-600 flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 transition-colors shadow-lg"
-                      >
-                        <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                      </button>
-                    )}
+                  <div className="relative border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-800">
+                    <div className="flex h-[180px]">
+                      {/* Left Arrow - overlaid on image */}
+                      {currentGroupIndex > 0 && (
+                        <button
+                          onClick={(e) => { e.preventDefault(); setCurrentGroupIndex(Math.max(0, currentGroupIndex - 1)); }}
+                          className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white/80 dark:bg-gray-900/80 flex items-center justify-center hover:bg-white dark:hover:bg-gray-900 transition-colors shadow"
+                        >
+                          <ChevronLeft className="w-4 h-4 text-gray-700 dark:text-gray-300" />
+                        </button>
+                      )}
 
-                    {/* Landscape Card */}
-                    <Link
-                      href={`/groups/${groups[currentGroupIndex]?.id}`}
-                      className="block border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex">
-                        {/* Group Icon - Large square */}
-                        <div className="w-40 h-40 flex-shrink-0 bg-gray-200 dark:bg-gray-700 relative">
-                          <Image
-                            src={groups[currentGroupIndex]?.image || `https://robohash.org/${groups[currentGroupIndex]?.name}?set=set3`}
-                            alt={groups[currentGroupIndex]?.name || ""}
-                            fill
-                            className="object-cover"
-                            sizes="160px"
-                          />
-                        </div>
-                        {/* Group Info */}
-                        <div className="flex-1 p-5 flex flex-col justify-center">
-                          <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">
+                      {/* Group Icon - Left half */}
+                      <Link href={`/groups/${groups[currentGroupIndex]?.id}`} className="w-[180px] h-full flex-shrink-0 bg-blue-500 dark:bg-gray-700 relative block">
+                        <Image
+                          src={groups[currentGroupIndex]?.image || `https://robohash.org/${groups[currentGroupIndex]?.name}?set=set3`}
+                          alt={groups[currentGroupIndex]?.name || ""}
+                          fill
+                          className="object-cover"
+                          sizes="180px"
+                        />
+                      </Link>
+
+                      {/* Group Info - Right half */}
+                      <Link href={`/groups/${groups[currentGroupIndex]?.id}`} className="flex-1 p-6 flex flex-col justify-between block">
+                        <div>
+                          <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1 line-clamp-2">
                             {groups[currentGroupIndex]?.name}
                           </h3>
-                          <div className="flex gap-8">
-                            <div>
-                              <p className="text-xs text-gray-500 dark:text-gray-400 uppercase">Members</p>
-                              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{groups[currentGroupIndex]?.members?.toLocaleString()}</p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-gray-500 dark:text-gray-400 uppercase">Rank</p>
-                              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{groups[currentGroupIndex]?.rank || "Member"}</p>
-                            </div>
+                          <div className="w-full h-px bg-gray-200 dark:bg-gray-700 my-3" />
+                        </div>
+                        <div className="flex gap-10">
+                          <div>
+                            <p className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider font-medium">Members</p>
+                            <p className="text-base font-bold text-gray-900 dark:text-gray-100">{groups[currentGroupIndex]?.members?.toLocaleString()}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider font-medium">Rank</p>
+                            <p className="text-base font-bold text-gray-900 dark:text-gray-100">{groups[currentGroupIndex]?.rank || "Member"}</p>
                           </div>
                         </div>
-                      </div>
-                    </Link>
+                      </Link>
 
-                    {/* Right Arrow */}
-                    {currentGroupIndex < groups.length - 1 && (
-                      <button
-                        onClick={() => setCurrentGroupIndex(Math.min(groups.length - 1, currentGroupIndex + 1))}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/90 dark:bg-gray-800/90 border border-gray-300 dark:border-gray-600 flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 transition-colors shadow-lg"
-                      >
-                        <ChevronRight className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                      </button>
-                    )}
+                      {/* Right Arrow - overlaid on right side */}
+                      {currentGroupIndex < groups.length - 1 && (
+                        <button
+                          onClick={(e) => { e.preventDefault(); setCurrentGroupIndex(Math.min(groups.length - 1, currentGroupIndex + 1)); }}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white/80 dark:bg-gray-900/80 flex items-center justify-center hover:bg-white dark:hover:bg-gray-900 transition-colors shadow"
+                        >
+                          <ChevronRight className="w-4 h-4 text-gray-700 dark:text-gray-300" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
 
