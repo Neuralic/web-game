@@ -86,11 +86,20 @@ useEffect(() => {
           if (response.success && response.data) {
             setUser(response.data.user as typeof user);
           } else {
-            // If token is invalid, clear auth state
-            setIsLoggedIn(false);
+            // API failed but token might still be valid (refresh in progress)
+            // Only mark as logged out if token is actually gone
+            const tokenStillExists = isAuthenticated();
+            if (!tokenStillExists) {
+              setIsLoggedIn(false);
+            }
+            // If token exists, keep showing logged-in state — user data will load on next render
           }
         } catch {
-          setIsLoggedIn(false);
+          // Network error — don't change auth state if token exists
+          const tokenStillExists = isAuthenticated();
+          if (!tokenStillExists) {
+            setIsLoggedIn(false);
+          }
         }
       }
     };
