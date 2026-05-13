@@ -12,7 +12,7 @@ const RedeemPage = () => {
 
   const handleRedeem = () => {
     if (!redeemCode.trim()) return;
-    alert("Redeem functionality coming soon!");
+    alert("Whoops! This doesn't work yet! We are actively working on this functionally.");
     setRedeemCode("");
   };
 
