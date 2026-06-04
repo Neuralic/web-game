@@ -17,6 +17,7 @@ import socialLinksRoutes from './modules/users/socialLinks.routes.js';
 import catalogRoutes from './modules/catalog/catalog.routes.js';
 import adminRoutes from './modules/admin/admin.routes.js';
 import feedRoutes from './modules/feed/feed.routes.js';
+import gamesRoutes from './modules/games/games.routes.js';
 import { generalLimiter, signupLimiter, loginLimiter } from './middleware/rateLimiter.js';
 
 dotenv.config();
@@ -66,6 +67,7 @@ app.use('/api/v1/users/social-links', socialLinksRoutes);
 app.use('/api/v1/catalog', catalogRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/feed', feedRoutes);
+app.use('/api/v1/games', gamesRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'Route not found' });
