@@ -1,4 +1,4 @@
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { Request, Response } from 'express';
 
 const getRealIp = (req: Request): string => {
@@ -18,7 +18,7 @@ const limitReached = (message: string) => (_req: Request, res: Response) => {
 export const signupLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 5,
-  keyGenerator: getRealIp,
+  keyGenerator: (req) => ipKeyGenerator(getRealIp(req)),
   handler: limitReached('Too many accounts created from this IP. Try again later.'),
   standardHeaders: true,
   legacyHeaders: false,
@@ -28,7 +28,7 @@ export const signupLimiter = rateLimit({
 export const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
-  keyGenerator: getRealIp,
+  keyGenerator: (req) => ipKeyGenerator(getRealIp(req)),
   handler: limitReached('Too many login attempts. Try again in 15 minutes.'),
   standardHeaders: true,
   legacyHeaders: false,
@@ -41,7 +41,7 @@ export const createGroupLimiter = rateLimit({
   keyGenerator: (req: Request): string => {
     const auth = req.headers['authorization'];
     if (auth) return auth;
-    return getRealIp(req);
+    return ipKeyGenerator(getRealIp(req));
   },
   handler: limitReached('You are creating groups too fast. Limit is 3 per hour.'),
   standardHeaders: true,
@@ -52,7 +52,7 @@ export const createGroupLimiter = rateLimit({
 export const generalLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 200,
-  keyGenerator: getRealIp,
+  keyGenerator: (req) => ipKeyGenerator(getRealIp(req)),
   handler: limitReached('Too many requests. Slow down.'),
   standardHeaders: true,
   legacyHeaders: false,
