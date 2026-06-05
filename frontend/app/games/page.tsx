@@ -104,7 +104,7 @@ const GamesPage = () => {
                     {game.visits?.toLocaleString() || 0} visits
                   </p>
                   
-                    <a href={`roblox://experiences/start?placeId=${game.id}`}
+                    href={`roblox://experiences/start?placeId=${game.id}`}
                     className="mt-2 block text-center bg-green-500 hover:bg-green-600 text-white text-xs font-semibold py-1.5 rounded transition-colors"
                   >
                     Play
