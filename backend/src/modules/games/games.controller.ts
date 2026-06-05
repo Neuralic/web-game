@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import pool from "../../lib/db.js";
+import { fetchRobloxGameData } from "./roblox.service.js";
 
 // GET /api/v1/games
 export const getGames = async (req: Request, res: Response) => {
@@ -132,8 +133,8 @@ export const publishGame = async (req: Request, res: Response) => {
     }
 
     const result = await pool.query(
-      `INSERT INTO games (title, description, "thumbnailUrl", "iconUrl", "creatorId", genre, "maxPlayers", "isPublished")
-       VALUES ($1, $2, $3, $4, $5, $6, $7, true)
+      `INSERT INTO games (id, title, description, "thumbnailUrl", "iconUrl", "creatorId", genre, "maxPlayers", "isPublished", "createdAt", "updatedAt")
+       VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, true, NOW(), NOW())
        RETURNING *`,
       [title, description, thumbnailUrl, iconUrl, creatorId, genre, maxPlayers || 10]
     );
@@ -144,6 +145,60 @@ export const publishGame = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Error publishing game:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to publish game",
+    });
+  }
+};
+
+// POST /api/v1/games/publish-by-place-id
+export const publishGameByPlaceId = async (req: Request, res: Response) => {
+  try {
+    const { universeId, genre, maxPlayers } = req.body;
+    const creatorId = (req as any).userId;
+
+    if (!universeId) {
+      res.status(400).json({
+        success: false,
+        message: "universeId is required",
+      });
+      return;
+    }
+
+    const robloxData = await fetchRobloxGameData(parseInt(universeId));
+
+    if (!robloxData) {
+      res.status(400).json({
+        success: false,
+        message: "Could not fetch game data from Roblox. Make sure the universeId is correct and the game is public.",
+      });
+      return;
+    }
+
+    const result = await pool.query(
+      `INSERT INTO games (id, title, description, "thumbnailUrl", "creatorId", genre, "maxPlayers", "isPublished", visits, "currentPlayers", favorites, "createdAt", "updatedAt", "publishedAt")
+       VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, true, $7, $8, $9, NOW(), NOW(), NOW())
+       RETURNING *`,
+      [
+        robloxData.name,
+        robloxData.description,
+        robloxData.thumbnailUrl,
+        creatorId,
+        genre || "All",
+        maxPlayers || 10,
+        robloxData.visits,
+        robloxData.playing,
+        robloxData.favoritedCount,
+      ]
+    );
+
+    res.status(201).json({
+      success: true,
+      data: { game: result.rows[0] },
+    });
+  } catch (error) {
+    console.error("Error publishing game by place ID:", error);
     res.status(500).json({
       success: false,
       message: "Failed to publish game",
