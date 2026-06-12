@@ -394,6 +394,25 @@ export const usersApi = {
       },
     });
   },
+connectRoblox: async (robloxUsername: string): Promise<ApiResponse<unknown>> => {
+    const token = storage.getAccessToken();
+    if (!token) return { success: false, error: "No authentication token found" };
+    return apiCall("/users/roblox/connect", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ robloxUsername }),
+    });
+  },
+
+  disconnectRoblox: async (): Promise<ApiResponse<unknown>> => {
+    const token = storage.getAccessToken();
+    if (!token) return { success: false, error: "No authentication token found" };
+    return apiCall("/users/roblox/disconnect", {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+
 };
 
 // Accounts API
