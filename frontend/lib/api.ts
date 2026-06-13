@@ -2010,6 +2010,14 @@ getUserInventory: async (params: {
       method: "GET",
       headers: { Authorization: `Bearer ${token}` },
     });
+},
+addToInventory: async (itemId: string) => {
+    const token = storage.getAccessToken();
+    if (!token) return { success: false, error: "No authentication token found" };
+    return apiCall(`/catalog/inventory/${itemId}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
   },
 searchRobloxCatalog: async (params: {
     keyword?: string;
