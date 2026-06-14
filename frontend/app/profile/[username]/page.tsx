@@ -443,9 +443,16 @@ useEffect(() => {
 
   const getPresenceStatus = (): { color: string; hasIcon: boolean; label: string } | null => {
     const status = realtimePresence?.presenceStatus || profileUser?.presence_status || 'offline';
+    const lastOnline = realtimePresence?.lastOnline || profileUser?.last_online;
     const currentGame = realtimePresence?.currentGame || profileUser?.current_game;
-    if (status === 'online') return { color: 'bg-blue-500', hasIcon: false, label: 'Online' };
-    if (status === 'in-game') return { color: 'bg-green-500', hasIcon: true, label: currentGame ? `Playing ${currentGame}` : 'In Game' };
+    
+    // Check if last online was within the last 5 minutes
+    const isRecentlyActive = lastOnline && (new Date().getTime() - new Date(lastOnline).getTime()) < 5 * 60 * 1000;
+    
+    if ((status === 'online' || status === 'in-game') && isRecentlyActive) {
+      if (status === 'in-game') return { color: 'bg-green-500', hasIcon: true, label: currentGame ? `Playing ${currentGame}` : 'In Game' };
+      return { color: 'bg-blue-500', hasIcon: false, label: 'Online' };
+    }
     return null;
   };
 
@@ -887,11 +894,17 @@ return (
                       <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{formatDate(profileUser?.created_at)}</p>
                     </div>
                     <div className="text-center flex-1">
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Last Online</p>
-                      <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
-                        {(realtimePresence?.presenceStatus === 'online' || realtimePresence?.presenceStatus === 'in-game') || (profileUser?.presence_status === 'online' || profileUser?.presence_status === 'in-game') ? 'Now' : formatLastOnline(realtimePresence?.lastOnline || profileUser?.last_online)}
-                      </p>
-                    </div>
+  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Last Online</p>
+  <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
+    {(() => {
+      const lastOnline = realtimePresence?.lastOnline || profileUser?.last_online;
+      const status = realtimePresence?.presenceStatus || profileUser?.presence_status;
+      const isRecentlyActive = lastOnline && (new Date().getTime() - new Date(lastOnline).getTime()) < 5 * 60 * 1000;
+      if ((status === 'online' || status === 'in-game') && isRecentlyActive) return 'Now';
+      return formatLastOnline(lastOnline);
+    })()}
+  </p>
+</div>
                     <div className="text-center flex-1">
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Place Visits</p>
                       <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{currentUser?.visit_count || profileUser?.visit_count || 0}</p>
