@@ -371,7 +371,7 @@ useEffect(() => {
           : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
       }`}
     >
-      Roblox Catalog
+      All Items
     </button>
   </div>
 </div>
@@ -585,7 +585,7 @@ useEffect(() => {
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
         <input
           type="text"
-          placeholder="Search Roblox catalog..."
+          placeholder="Search all items..."
           value={robloxSearch}
           onChange={(e) => setRobloxSearch(e.target.value)}
           className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded pl-8 pr-3 py-1.5 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -630,9 +630,9 @@ useEffect(() => {
           <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 mb-1 line-clamp-2">
             {item.name}
           </h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            {item.priceStatus === "Free" ? "Free" : item.price ? `◈ ${item.price}` : "Free"}
-          </p>
+          <p className="text-xs text-green-600 dark:text-green-400">
+  Free
+</p>
         </div>
       </div>
     </div>
