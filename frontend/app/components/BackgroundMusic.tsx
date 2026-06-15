@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 
-const STREAM_URL = "https://playerservices.streamtheworld.com/api/livestream-redirect/WXRXHD2.mp3";
-
+const STREAM_URL = "https://ice2.somafm.com/seventies-128-mp3";
 const BackgroundMusic = () => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -36,7 +35,7 @@ const BackgroundMusic = () => {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <audio ref={audioRef} src={STREAM_URL} preload="none" />
+      <audio ref={audioRef} src={STREAM_URL} preload="auto" />
       
       {isHovered && (
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg px-3 py-2 flex items-center gap-3">
