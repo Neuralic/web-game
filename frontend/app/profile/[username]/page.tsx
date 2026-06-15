@@ -578,8 +578,8 @@ return (
 </h1>
                     <p className="text-sm text-gray-600 dark:text-gray-400">@{username || "user"}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
-                      ID: {profileUser?.user_number || ''}
-                    </p>
+  ID: {profileUser?.user_number || ''}
+</p>
                     {statusMessage && <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 italic">"{statusMessage}"</p>}
                   </div>
 
