@@ -646,15 +646,15 @@ return (
                 </div>
 
                 <div className="flex items-center gap-6 mt-3">
-                  <Link href="/connect" className="flex items-center gap-1 hover:underline">
+                  <Link href="/friends" className="flex items-center gap-1 hover:underline">
                     <span className="font-bold text-gray-900 dark:text-gray-100">{friends.length}</span>
                     <span className="text-gray-600 dark:text-gray-400 text-sm">Friends</span>
                   </Link>
-                  <Link href="/connect?tab=Followers" className="flex items-center gap-1 hover:underline">
+                  <Link href="/friends?tab=Followers" className="flex items-center gap-1 hover:underline">
                     <span className="font-bold text-gray-900 dark:text-gray-100">{profileUser?.follower_count || 0}</span>
                     <span className="text-gray-600 dark:text-gray-400 text-sm">Follower{profileUser?.follower_count !== 1 ? 's' : ''}</span>
                   </Link>
-                  <Link href="/connect?tab=Following" className="flex items-center gap-1 hover:underline">
+                  <Link href="/friends?tab=Following" className="flex items-center gap-1 hover:underline">
                     <span className="font-bold text-gray-900 dark:text-gray-100">{profileUser?.following_count || 0}</span>
                     <span className="text-gray-600 dark:text-gray-400 text-sm">Following</span>
                   </Link>
@@ -766,7 +766,7 @@ return (
                 <div className="py-6 border-b border-gray-200 dark:border-gray-800">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Friends ({friends.length})</h2>
-                    <Link href="/connect" className="flex items-center gap-1 text-sm text-gray-900 dark:text-gray-100 hover:underline">See All<ChevronRight className="w-4 h-4" /></Link>
+                    <Link href="/friends" className="flex items-center gap-1 text-sm text-gray-900 dark:text-gray-100 hover:underline">See All<ChevronRight className="w-4 h-4" /></Link>
                   </div>
                   <div className="flex gap-6">
                     {friends.map((connection) => (
