@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 
-const STREAM_URL = "https://ice2.somafm.com/seventies-128-mp3";
-const BackgroundMusic = () => {
+const STREAM_URL = "https://playerservices.streamtheworld.com/api/livestream-redirect/WXRXHD2.mp3";const BackgroundMusic = () => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(0.3);
