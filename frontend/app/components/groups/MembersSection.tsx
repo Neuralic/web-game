@@ -26,31 +26,31 @@ interface MembersSectionProps {
   groupId?: string;
 }
 
-
 export default function MembersSection({ groupId }: MembersSectionProps) {
-  const [selectedRole, setSelectedRole] = useState("");
+  const [selectedRole, setSelectedRole] = useState<string>("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [members, setMembers] = useState<Member[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  // Fetch members and roles
+
   useEffect(() => {
     const fetchData = async () => {
       if (!groupId) return;
-
       setLoading(true);
       try {
-        // Fetch members
         const membersResponse = await groupsApi.getGroupMembers(groupId);
         if (membersResponse.success && membersResponse.data) {
           setMembers((membersResponse.data.members as Member[]) || []);
         }
-
-        // Fetch roles
         const rolesResponse = await groupsApi.getGroupRoles(groupId);
         if (rolesResponse.success && rolesResponse.data) {
-          setRoles((rolesResponse.data.roles as Role[]) || []);
+          const fetchedRoles = (rolesResponse.data.roles as Role[]) || [];
+          setRoles(fetchedRoles);
+          const lowestRank = fetchedRoles
+            .filter(r => r.name !== 'Owner')
+            .sort((a, b) => a.rank - b.rank)[0];
+          if (lowestRank) setSelectedRole(lowestRank.id);
         }
       } catch (err) {
         console.error("Error fetching data:", err);
@@ -59,105 +59,64 @@ export default function MembersSection({ groupId }: MembersSectionProps) {
         setLoading(false);
       }
     };
-
     fetchData();
   }, [groupId]);
 
-  // Filter members by role
   const filteredMembers = members.filter((member) => {
     return selectedRole === "" || member.role_id === selectedRole;
   });
+
   return (
     <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700 mb-4">
       <div className="flex flex-col gap-3 mb-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-            Members
-          </h2>
-
+          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Members</h2>
           <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-            <button className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors">
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <span>Page 1</span>
-            <button className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors">
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-
-          <div className="relative">
-            <button
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="flex items-center justify-between gap-2 min-w-[200px] px-3 py-1.5 border border-gray-200 dark:border-gray-700 rounded text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            >
-              <span>
-                {roles.find(r => r.id === selectedRole)?.name || "Select Role"}
-              </span>
-              <ChevronDown className="w-4 h-4 flex-shrink-0" />
-            </button>
-
-            {isDropdownOpen && (
-              <>
-                {/* Backdrop to close dropdown */}
-                <div
-                  className="fixed inset-0 z-10"
-                  onClick={() => setIsDropdownOpen(false)}
-                />
-
-                {/* Dropdown Menu */}
-                <div className="absolute right-0 top-full mt-1 w-full min-w-[200px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-lg z-20 py-1 max-h-[300px] overflow-y-auto">
-{roles.map((role) => (
-                    <button
-                      key={role.id}
-                      onClick={() => {
-                        setSelectedRole(role.id);
-                        setIsDropdownOpen(false);
-                      }}
-                      className={`w-full px-3 py-2 text-left text-sm whitespace-nowrap transition-colors ${
-                        selectedRole === role.id
-                          ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium"
-                          : "text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
-                      }`}
-                    >
-                      {role.name}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
+            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+              <button className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors">
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span>Page 1</span>
+              <button className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors">
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="relative">
+              <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center justify-between gap-2 min-w-[200px] px-3 py-1.5 border border-gray-200 dark:border-gray-700 rounded text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                <span>{roles.find(r => r.id === selectedRole)?.name || "Select Role"}</span>
+                <ChevronDown className="w-4 h-4 flex-shrink-0" />
+              </button>
+              {isDropdownOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setIsDropdownOpen(false)} />
+                  <div className="absolute right-0 top-full mt-1 w-full min-w-[200px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-lg z-20 py-1 max-h-[300px] overflow-y-auto">
+                    {roles.map((role) => (
+                      <button key={role.id} onClick={() => { setSelectedRole(role.id); setIsDropdownOpen(false); }} className={`w-full px-3 py-2 text-left text-sm whitespace-nowrap transition-colors ${selectedRole === role.id ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium" : "text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"}`}>
+                        {role.name}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
-
       <div className="flex flex-wrap gap-3">
-          {filteredMembers.length > 0 ? (
-            filteredMembers.map((member) => (
-              <a
-                key={member.id}
-                href={`/profile/${member.username}`}
-                className="group flex flex-col items-center"
-              >
-                <div className="w-[110px] h-[110px] border border-gray-200 dark:border-gray-700 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 relative">
-                  <Image
-                    src={`https://robohash.org/${member.username}?set=set3`}
-                    alt={member.display_name || member.username}
-                    fill
-                    className="object-cover group-hover:opacity-90 transition-opacity"
-                    sizes="110px"
-                  />
-                </div>
-                <p className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-1 truncate w-[110px] text-center">
-                  {member.display_name || member.username}
-                </p>
-              </a>
-            ))
-          ) : (
-            <p className="text-sm text-gray-500 dark:text-gray-400 py-4">
-              No members found with this role.
-            </p>
-          )}
+        {filteredMembers.length > 0 ? (
+          filteredMembers.map((member) => (
+            <a key={member.id} href={`/profile/${member.username}`} className="group flex flex-col items-center">
+              <div className="w-[110px] h-[110px] border border-gray-200 dark:border-gray-700 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 relative">
+                <Image src={`https://robohash.org/${member.username}?set=set3`} alt={member.display_name || member.username} fill className="object-cover group-hover:opacity-90 transition-opacity" sizes="110px" />
+              </div>
+              <p className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-1 truncate w-[110px] text-center">
+                {member.display_name || member.username}
+              </p>
+            </a>
+          ))
+        ) : (
+          <p className="text-sm text-gray-500 dark:text-gray-400 py-4">No members found with this role.</p>
+        )}
       </div>
     </div>
   );
