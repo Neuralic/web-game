@@ -21,7 +21,7 @@ import Header from "../../components/Header";
 import VerifiedBadge from "../../components/VerifiedBadge";
 import { usersApi, friendsApi, groupsApi } from "@/lib/api";
 import { openChatWithUser } from "@/app/components/ChatWidget";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useUserPresence } from "@/hooks/useUserPresence";
 import { supabase } from "@/lib/supabase";
 
@@ -37,6 +37,7 @@ interface UserProfile {
 const ProfilePage = () => {
   const params = useParams();
   const profileUsername = params?.username as string;
+  const router = useRouter();
   
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -116,8 +117,11 @@ useEffect(() => {
             setEditedStatusMessage(currentUserData.status_message);
           }
           setRelationship(null);
-        } else if (viewedUser) {
-          setProfileUser(viewedUser);
+	} else if (viewedUser) {
+          // Redirect to numeric ID URL if visiting by username
+          if (viewedUser?.user_number && !/^\d+$/.test(profileUsername)) {
+            router.replace(`/profile/${viewedUser.user_number}`);
+          }setProfileUser(viewedUser);
           setDisplayName(viewedUser.display_name || viewedUser.username);
           setUsername(viewedUser.username);
           setBio(viewedUser.bio || "");
