@@ -233,7 +233,7 @@ const GroupDetailPage = () => {
   // Handle create event
   const handleCreateEvent = async () => {
     const groupUuid = currentGroupDetails?.id;
-    if (!groupUuid || !eventForm.title || !eventForm.startDate || !eventForm.endDate) return;
+    if (!groupUuid || !eventForm.title) return;
     setCreatingEvent(true);
     try {
       let imageUrl: string | undefined;
@@ -1486,27 +1486,7 @@ const GroupDetailPage = () => {
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                     />
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Start Date & Time *</label>
-                      <input
-                        type="datetime-local"
-                        value={eventForm.startDate}
-                        onChange={(e) => setEventForm({ ...eventForm, startDate: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">End Date & Time *</label>
-                      <input
-                        type="datetime-local"
-                        value={eventForm.endDate}
-                        onChange={(e) => setEventForm({ ...eventForm, endDate: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                  </div>
-                  <div>
+                                    <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location</label>
                     <input
                       type="text"
