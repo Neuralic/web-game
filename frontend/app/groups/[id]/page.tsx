@@ -778,7 +778,7 @@ const GroupDetailPage = () => {
                 {/* Right side: Join Button + Three Dot Menu */}
                 <div className="flex items-center gap-2">
                   {/* Join Button - Show only if user is not a member */}
-                  {!currentGroup.role && (
+                  {!currentGroup.role && currentGroupDetails !== null && (
                     <button
                       onClick={handleJoinGroup}
                       disabled={joining}
