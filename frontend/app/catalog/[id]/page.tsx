@@ -35,6 +35,21 @@ export default function CatalogItemPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [equipped, setEquipped] = useState(false);
+  const [adding, setAdding] = useState(false);
+
+useEffect(() => {
+    const checkInventory = async () => {
+      try {
+        const response = await catalogApi.getUserInventory();
+        if (response.success && response.data) {
+          const items = (response.data as any).items || [];
+          const alreadyOwned = items.some((i: any) => i.id === params.id);
+          if (alreadyOwned) setEquipped(true);
+        }
+      } catch {}
+    };
+    if (params.id) checkInventory();
+  }, [params.id]);
 
   useEffect(() => {
     const fetchItem = async () => {
@@ -164,7 +179,20 @@ export default function CatalogItemPage() {
 
             {/* Get Item Button */}
             <button
-              onClick={() => setEquipped(!equipped)}
+              onClick={async () => {
+  		if (equipped) return;
+  		setAdding(true);
+  		try {
+    		const response = await catalogApi.addToInventory(item.id);
+    		if (response.success) {
+      		setEquipped(true);
+    		}
+  		} catch (error) {
+    		console.error('Failed to add to inventory:', error);
+  		} finally {
+                setAdding(false);
+                }
+              }}
               disabled={!item.isAvailable}
               className={`w-full py-3 rounded-xl font-bold text-sm transition-colors mb-3 ${
                 equipped
@@ -174,7 +202,7 @@ export default function CatalogItemPage() {
                   : "bg-gray-300 dark:bg-gray-700 text-gray-500 cursor-not-allowed"
               }`}
             >
-              {equipped ? "✓ Equipped" : item.isAvailable ? "Get Item" : "Unavailable"}
+              {equipped ? "✓ Equipped" : adding ? "Adding..." : item.isAvailable ? "Get Item" : "Unavailable"}
             </button>
 
             {/* Stats */}
@@ -213,4 +241,3 @@ export default function CatalogItemPage() {
     </div>
   );
 }
-
