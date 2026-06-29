@@ -2,11 +2,16 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { ChevronDown, Loader2 } from "lucide-react";
+import { ChevronDown, Loader2, Link2, Unlink } from "lucide-react";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
-import { catalogApi } from "@/lib/api";
+import { catalogApi, storage } from "@/lib/api";
+import dynamic from "next/dynamic";
+
+const RobloxAvatar3D = dynamic(() => import("../components/RobloxAvatar3D"), {
+  ssr: false,
+});
 
 interface CatalogItem {
   id: string;
@@ -20,6 +25,28 @@ interface CatalogItem {
   isFeatured: boolean;
   favoriteCount: number;
 }
+
+interface AvatarState {
+  hair_item_id: string | null;
+  face_item_id: string | null;
+  head_item_id: string | null;
+  hat_item_id: string | null;
+  body_item_id: string | null;
+  shirt_item_id: string | null;
+  pants_item_id: string | null;
+  accessory_item_id: string | null;
+  roblox_user_id: string | null;
+  hair_thumbnail: string | null;
+  face_thumbnail: string | null;
+  head_thumbnail: string | null;
+  hat_thumbnail: string | null;
+  body_thumbnail: string | null;
+  shirt_thumbnail: string | null;
+  pants_thumbnail: string | null;
+  accessory_thumbnail: string | null;
+}
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
 const TAB_TO_CATEGORY: Record<string, { category?: string; subcategory?: string }> = {
   "Recently Added": { category: undefined, subcategory: undefined },
@@ -50,41 +77,70 @@ const AvatarPage = () => {
   const [equippedItems, setEquippedItems] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [avatarState, setAvatarState] = useState<AvatarState | null>(null);
+  const [avatarLoading, setAvatarLoading] = useState(true);
+  const [robloxUsername, setRobloxUsername] = useState("");
+  const [showRobloxLink, setShowRobloxLink] = useState(false);
+  const [robloxLinking, setRobloxLinking] = useState(false);
+  const [robloxThumbnail, setRobloxThumbnail] = useState<string | null>(null);
+  const [userGender, setUserGender] = useState<string | null>(null);
   const tabsRef = useRef<HTMLDivElement>(null);
   const tabsOffsetRef = useRef<number>(0);
 
-  const mainTabs = [
-    "Recent",
-    "Characters",
-    "Clothing",
-    "Accessories",
-    "Head & Body",
-    "Animations",
-    "Pets",
-  ];
+  const mainTabs = ["Recent", "Characters", "Clothing", "Accessories", "Head & Body", "Animations", "Pets"];
 
   const subTabs: { [key: string]: string[] } = {
-    Recent: [
-      "Recently Added",
-      "Recently Worn",
-      "Accessories",
-      "Clothing",
-      "Body Parts",
-      "Animations",
-      "Characters",
-      "Pets",
-    ],
+    Recent: ["Recently Added", "Recently Worn", "Accessories", "Clothing", "Body Parts", "Animations", "Characters", "Pets"],
     Characters: ["Full Bodies"],
     Clothing: ["Outerwear", "Classic"],
     Accessories: ["Neck"],
-    "Head & Body": [
-      "Hair",
-      "Classic Heads",
-      "Classic Faces",
-    ],
+    "Head & Body": ["Hair", "Classic Heads", "Classic Faces"],
     Animations: ["Emotes"],
     Pets: ["All Pets"],
   };
+
+  const fetchAvatarState = useCallback(async () => {
+    const token = storage.getAccessToken();
+    if (!token) { setAvatarLoading(false); return; }
+    try {
+      const res = await fetch(`${API_BASE}/avatar`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success && data.data) {
+        setAvatarState(data.data.avatarState);
+        const equipped = new Set<string>(
+          data.data.equippedItems.map((i: CatalogItem) => i.id)
+        );
+        setEquippedItems(equipped);
+        if (data.data.avatarState?.roblox_user_id) {
+          setRobloxThumbnail(data.data.avatarState.roblox_user_id);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch avatar state:", err);
+    } finally {
+      setAvatarLoading(false);
+    }
+
+    // Fetch gender from profile
+    try {
+      const token = storage.getAccessToken();
+      if (token) {
+        const profileRes = await fetch(`${API_BASE}/users/profile`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const profileData = await profileRes.json();
+        if (profileData.success && profileData.data?.user?.gender) {
+          setUserGender(profileData.data.user.gender);
+        }
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    fetchAvatarState();
+  }, [fetchAvatarState]);
 
   const fetchItems = useCallback(async (subTab: string, page: number = 1) => {
     setLoading(true);
@@ -95,7 +151,6 @@ const AvatarPage = () => {
         setLoading(false);
         return;
       }
-
       const response = await catalogApi.getItems({
         category: mapping.category,
         subcategory: mapping.subcategory,
@@ -104,7 +159,6 @@ const AvatarPage = () => {
         limit: 24,
         available: "true",
       });
-
       if (response.success && response.data) {
         setItems(response.data.items as CatalogItem[]);
         setTotalPages(response.data.pagination.totalPages);
@@ -123,58 +177,124 @@ const AvatarPage = () => {
     fetchItems(activeSubTab, 1);
   }, [activeSubTab, fetchItems]);
 
- const toggleEquip = (itemId: string) => {
-    setEquippedItems(prev => {
-      const next = new Set(prev);
-      if (next.has(itemId)) {
-        next.delete(itemId);
-      } else {
-        next.add(itemId);
-        try {
-          (catalogApi as any).addToInventory(itemId);
-        } catch (err) {
-          console.error("Failed to add to inventory:", err);
+  const toggleEquip = async (item: CatalogItem) => {
+    const token = storage.getAccessToken();
+    if (!token) return;
+
+    const isEquipped = equippedItems.has(item.id);
+
+    // If unequipping, just unequip directly
+    if (isEquipped) {
+      try {
+        const res = await fetch(`${API_BASE}/avatar/unequip/${item.id}`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (data.success) {
+          setEquippedItems(prev => { const next = new Set(prev); next.delete(item.id); return next; });
+          fetchAvatarState();
         }
+      } catch (err) {
+        console.error("Failed to unequip:", err);
       }
-      return next;
-    });
+      return;
+    }
+
+    // If item is a live Roblox item (numeric ID), import it first
+    let itemId = item.id;
+    const isRobloxItem = /^\d+$/.test(item.id);
+
+    if (isRobloxItem) {
+      try {
+        const importRes = await fetch(`${API_BASE}/catalog/roblox/import/${item.robloxAssetId || item.id}`, {
+          method: "POST",
+        });
+        const importData = await importRes.json();
+        if (importData.success && importData.data?.id) {
+          itemId = importData.data.id;
+        } else {
+          console.error("Failed to import Roblox item");
+          return;
+        }
+      } catch (err) {
+        console.error("Failed to import Roblox item:", err);
+        return;
+      }
+    }
+
+    // Now equip
+    try {
+      const res = await fetch(`${API_BASE}/avatar/equip/${itemId}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setEquippedItems(prev => { const next = new Set(prev); next.add(item.id); return next; });
+        fetchAvatarState();
+      }
+    } catch (err) {
+      console.error("Failed to equip:", err);
+    }
+  };
+
+  const linkRobloxAccount = async () => {
+    if (!robloxUsername.trim()) return;
+    setRobloxLinking(true);
+    const token = storage.getAccessToken();
+    if (!token) return;
+    try {
+      const lookupRes = await fetch(`${API_BASE}/avatar/roblox-lookup/${robloxUsername}`);
+      const lookupJson = await lookupRes.json();
+      if (!lookupJson.success || !lookupJson.data?.Id) {
+        alert("Roblox username not found");
+        return;
+      }
+      const res = await fetch(`${API_BASE}/avatar/roblox-link`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ robloxUserId: lookupJson.data.Id.toString() }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setShowRobloxLink(false);
+        setRobloxUsername("");
+        fetchAvatarState();
+      }
+    } catch (err) {
+      console.error("Failed to link Roblox account:", err);
+    } finally {
+      setRobloxLinking(false);
+    }
   };
 
   useEffect(() => {
     if (tabsRef.current) {
       tabsOffsetRef.current = tabsRef.current.offsetTop;
     }
-
     const handleScroll = () => {
       if (tabsOffsetRef.current > 0) {
         setIsTabsSticky(window.scrollY > tabsOffsetRef.current - 70);
       }
     };
-
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  const isFemale = userGender === "female";
+
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <Header
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        setSidebarOpen={setSidebarOpen}
-      />
+      <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} setSidebarOpen={setSidebarOpen} />
 
       <main className="flex-1">
         <div className="max-w-[1400px] mx-auto px-4 py-6">
-          {/* Header */}
           <div className="flex items-center justify-between mb-6">
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100">
-              Avatar Editor
-            </h1>
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100">Avatar Editor</h1>
             <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                Explore the catalog to find more clothes!
-              </span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">Explore the catalog to find more clothes!</span>
               <Link href="/catalog">
                 <button className="px-4 py-2 bg-gray-900 dark:bg-gray-100 hover:bg-gray-800 dark:hover:bg-gray-200 text-white dark:text-gray-900 font-semibold rounded transition-colors">
                   Get More
@@ -186,41 +306,173 @@ const AvatarPage = () => {
           <div className="flex gap-6">
             {/* Left - Avatar Preview */}
             <div className="w-[300px] flex-shrink-0 sticky top-24 self-start">
-              <div className="bg-gradient-to-br from-amber-100 to-amber-200 dark:from-amber-900 dark:to-amber-800 rounded-lg aspect-[3/4] flex items-end justify-center p-6 relative">
-                <div className="w-48 h-64 bg-gray-400 dark:bg-gray-600 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-400 text-sm">
-                  Avatar Preview
-                </div>
-                <div className="absolute bottom-4 right-4 bg-white dark:bg-gray-800 px-3 py-1 rounded font-semibold text-sm text-gray-900 dark:text-gray-100">
-                  3D
+              <div className="bg-gradient-to-br from-amber-100 to-amber-200 dark:from-amber-900 dark:to-amber-800 rounded-lg aspect-[3/4] flex items-end justify-center p-6 relative overflow-hidden">
+                {avatarLoading ? (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
+                  </div>
+                ) : robloxThumbnail ? (
+                  <RobloxAvatar3D
+                    robloxUserId={avatarState?.roblox_user_id || ""}
+                    onError={() => setRobloxThumbnail(null)}
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="relative" style={{ width: 180, height: 270 }}>
+                      <svg width="180" height="270" viewBox="0 0 120 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        {/* Legs */}
+                        <rect x="32" y="108" width="25" height="70" rx="4" fill={avatarState?.pants_thumbnail ? "#c0a080" : "#8B4513"} />
+                        <rect x="63" y="108" width="25" height="70" rx="4" fill={avatarState?.pants_thumbnail ? "#c0a080" : "#8B4513"} />
+                        {/* Body */}
+                        <rect x="30" y="55" width="60" height="50" rx="4" fill={avatarState?.shirt_thumbnail || avatarState?.body_thumbnail ? "#a8c8d8" : isFemale ? "#C4679A" : "#4A90A4"} />
+                        {!avatarState?.shirt_thumbnail && !avatarState?.body_thumbnail && (
+                          <>
+                            <rect x="30" y="65" width="60" height="6" fill={isFemale ? "#D4889B" : "#6BA8BC"} />
+                            <rect x="30" y="77" width="60" height="6" fill={isFemale ? "#D4889B" : "#6BA8BC"} />
+                            <rect x="30" y="89" width="60" height="6" fill={isFemale ? "#D4889B" : "#6BA8BC"} />
+                          </>
+                        )}
+                        {/* Arms */}
+                        <rect x="10" y="55" width="18" height="45" rx="4" fill="#F5D0C5" />
+                        <rect x="92" y="55" width="18" height="45" rx="4" fill="#F5D0C5" />
+                        {/* Head */}
+                        <rect x="35" y="2" width="50" height="50" rx="8" fill="#F5D0C5" />
+                        {/* Default hair — gender based */}
+                        {!avatarState?.hair_thumbnail && !avatarState?.head_thumbnail && (
+                          isFemale ? (
+                            <>
+                              <ellipse cx="60" cy="12" rx="28" ry="18" fill="#8B4513" />
+                              <rect x="32" y="10" width="10" height="40" rx="5" fill="#8B4513" />
+                              <rect x="78" y="10" width="10" height="40" rx="5" fill="#8B4513" />
+                              <ellipse cx="60" cy="3" rx="22" ry="14" fill="#8B4513" />
+                            </>
+                          ) : (
+                            <>
+                              <ellipse cx="60" cy="15" rx="30" ry="20" fill="#B85C38" />
+                              <ellipse cx="60" cy="5" rx="20" ry="12" fill="#B85C38" />
+                              <circle cx="75" cy="8" r="12" fill="#B85C38" />
+                            </>
+                          )
+                        )}
+                        {/* Default face */}
+                        {!avatarState?.face_thumbnail && (
+                          <>
+                            <circle cx="48" cy="30" r="3" fill="#393939" />
+                            <circle cx="72" cy="30" r="3" fill="#393939" />
+                            <path d="M52 40 Q60 48 68 40" stroke="#393939" strokeWidth="2" fill="none" />
+                          </>
+                        )}
+                      </svg>
+
+                      {/* Item layers */}
+                      {avatarState?.pants_thumbnail && (
+                        <img src={avatarState.pants_thumbnail} alt="pants"
+                          style={{ position: "absolute", left: 42, top: 155, width: 96, height: 115, objectFit: "contain", zIndex: 2 }} />
+                      )}
+                      {avatarState?.shirt_thumbnail && (
+                        <img src={avatarState.shirt_thumbnail} alt="shirt"
+                          style={{ position: "absolute", left: 30, top: 75, width: 120, height: 90, objectFit: "contain", zIndex: 3 }} />
+                      )}
+                      {avatarState?.body_thumbnail && (
+                        <img src={avatarState.body_thumbnail} alt="body"
+                          style={{ position: "absolute", left: 15, top: 45, width: 150, height: 225, objectFit: "contain", zIndex: 4 }} />
+                      )}
+                      {avatarState?.head_thumbnail && (
+                        <img src={avatarState.head_thumbnail} alt="head"
+                          style={{ position: "absolute", left: 48, top: 0, width: 84, height: 84, objectFit: "contain", zIndex: 5 }} />
+                      )}
+                      {avatarState?.face_thumbnail && (
+                        <img src={avatarState.face_thumbnail} alt="face"
+                          style={{ position: "absolute", left: 55, top: 22, width: 70, height: 50, objectFit: "contain", zIndex: 6 }} />
+                      )}
+                      {avatarState?.hair_thumbnail && (
+                        <img src={avatarState.hair_thumbnail} alt="hair"
+                          style={{ position: "absolute", left: 38, top: -8, width: 104, height: 80, objectFit: "contain", zIndex: 7 }} />
+                      )}
+                      {avatarState?.hat_thumbnail && (
+                        <img src={avatarState.hat_thumbnail} alt="hat"
+                          style={{ position: "absolute", left: 32, top: -16, width: 116, height: 72, objectFit: "contain", zIndex: 8 }} />
+                      )}
+                      {avatarState?.accessory_thumbnail && (
+                        <img src={avatarState.accessory_thumbnail} alt="accessory"
+                          style={{ position: "absolute", left: 20, top: 70, width: 140, height: 100, objectFit: "contain", zIndex: 9 }} />
+                      )}
+                    </div>
+                  </div>
+                )}
+                <div className="absolute bottom-4 right-4 bg-white dark:bg-gray-800 px-3 py-1 rounded font-semibold text-sm text-gray-900 dark:text-gray-100 z-20">
+                  {robloxThumbnail ? "3D" : "2D"}
                 </div>
               </div>
 
+              {/* Body Type Slider */}
               <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                    Body Type
-                  </span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100">Body Type</span>
                   <span className="text-sm text-gray-600 dark:text-gray-400">0%</span>
                 </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  defaultValue="0"
-                  className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer"
-                />
+                <input type="range" min="0" max="100" defaultValue="0" className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer" />
               </div>
 
-              <div className="mt-4 text-center">
-                <button className="text-sm text-gray-600 dark:text-gray-400 hover:underline">
-                  Avatar isn&apos;t loading correctly?
-                </button>
-                <Link href="/avatar" className="text-sm text-blue-600 dark:text-blue-400 hover:underline ml-2">
-                  Redraw
-                </Link>
+              {/* Roblox Link */}
+              <div className="mt-4">
+                {avatarState?.roblox_user_id ? (
+                  <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Link2 className="w-4 h-4 text-green-600" />
+                      <span className="text-sm text-green-700 dark:text-green-400 font-medium">Roblox linked</span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setAvatarState(prev => prev ? { ...prev, roblox_user_id: null } : null);
+                        setRobloxThumbnail(null);
+                      }}
+                      className="text-xs text-red-500 hover:underline flex items-center gap-1"
+                    >
+                      <Unlink className="w-3 h-3" /> Unlink
+                    </button>
+                  </div>
+                ) : showRobloxLink ? (
+                  <div className="p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">Enter your Roblox username to show your avatar</p>
+                    <input
+                      type="text"
+                      value={robloxUsername}
+                      onChange={e => setRobloxUsername(e.target.value)}
+                      placeholder="Roblox username"
+                      className="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 mb-2"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={linkRobloxAccount}
+                        disabled={robloxLinking}
+                        className="flex-1 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded transition-colors disabled:opacity-50"
+                      >
+                        {robloxLinking ? "Linking..." : "Link Account"}
+                      </button>
+                      <button
+                        onClick={() => setShowRobloxLink(false)}
+                        className="px-3 py-1.5 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs rounded"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowRobloxLink(true)}
+                    className="w-full py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center justify-center gap-2 transition-colors"
+                  >
+                    <Link2 className="w-4 h-4" /> Link Roblox Account
+                  </button>
+                )}
               </div>
 
-              {/* Equipped items count */}
+              <div className="mt-3 text-center">
+                <button className="text-sm text-gray-600 dark:text-gray-400 hover:underline">Avatar isn&apos;t loading correctly?</button>
+                <Link href="/avatar" className="text-sm text-blue-600 dark:text-blue-400 hover:underline ml-2">Redraw</Link>
+              </div>
+
               {equippedItems.size > 0 && (
                 <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
                   <p className="text-sm text-blue-700 dark:text-blue-400 font-medium">
@@ -232,35 +484,21 @@ const AvatarPage = () => {
 
             {/* Right - Items Grid */}
             <div className="flex-1">
-              {/* Main Tabs */}
-              <div
-                ref={tabsRef}
-                className={`${isTabsSticky ? "fixed top-[70px] left-0 right-0 z-40 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4" : ""}`}
-              >
+              <div ref={tabsRef} className={`${isTabsSticky ? "fixed top-[70px] left-0 right-0 z-40 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4" : ""}`}>
                 <div className={`${isTabsSticky ? "max-w-[1400px] mx-auto" : ""} flex gap-6 border-b border-gray-200 dark:border-gray-800`}>
                   {mainTabs.map((tab) => (
                     <button
                       key={tab}
                       onClick={() => {
                         setActiveTab(tab);
-                        if (subTabs[tab]) {
-                          setActiveSubTab(subTabs[tab][0]);
-                        }
+                        if (subTabs[tab]) setActiveSubTab(subTabs[tab][0]);
                       }}
-                      className={`pb-3 text-sm font-semibold transition-colors relative group ${
-                        activeTab === tab
-                          ? "text-gray-900 dark:text-gray-100"
-                          : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-                      }`}
+                      className={`pb-3 text-sm font-semibold transition-colors relative group ${activeTab === tab ? "text-gray-900 dark:text-gray-100" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"}`}
                     >
                       {tab}
                       <ChevronDown className={`w-4 h-4 inline ml-1 ${activeTab === tab ? "" : "opacity-50"}`} />
-                      {activeTab === tab && (
-                        <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gray-900 dark:bg-gray-100" />
-                      )}
-                      {activeTab !== tab && (
-                        <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gray-400 dark:bg-gray-600 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      )}
+                      {activeTab === tab && <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gray-900 dark:bg-gray-100" />}
+                      {activeTab !== tab && <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gray-400 dark:bg-gray-600 opacity-0 group-hover:opacity-100 transition-opacity" />}
                     </button>
                   ))}
                 </div>
@@ -271,11 +509,7 @@ const AvatarPage = () => {
                       <button
                         key={subTab}
                         onClick={() => setActiveSubTab(subTab)}
-                        className={`text-sm transition-colors ${
-                          activeSubTab === subTab
-                            ? "text-blue-600 dark:text-blue-400 font-semibold"
-                            : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-                        }`}
+                        className={`text-sm transition-colors ${activeSubTab === subTab ? "text-blue-600 dark:text-blue-400 font-semibold" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"}`}
                       >
                         {subTab}
                       </button>
@@ -286,7 +520,6 @@ const AvatarPage = () => {
 
               {isTabsSticky && <div className="h-24"></div>}
 
-              {/* Items Grid */}
               {loading ? (
                 <div className="flex items-center justify-center py-20">
                   <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
@@ -294,9 +527,7 @@ const AvatarPage = () => {
               ) : items.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20">
                   <p className="text-gray-500 dark:text-gray-400 text-sm">No items available for this category.</p>
-                  <Link href="/catalog" className="mt-3 text-blue-600 dark:text-blue-400 text-sm hover:underline">
-                    Browse Catalog
-                  </Link>
+                  <Link href="/catalog" className="mt-3 text-blue-600 dark:text-blue-400 text-sm hover:underline">Browse Catalog</Link>
                 </div>
               ) : (
                 <>
@@ -304,7 +535,7 @@ const AvatarPage = () => {
                     {items.map((item) => (
                       <div
                         key={item.id}
-                        onClick={() => toggleEquip(item.id)}
+                        onClick={() => toggleEquip(item)}
                         className="rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer relative"
                       >
                         {equippedItems.has(item.id) && (
@@ -314,57 +545,28 @@ const AvatarPage = () => {
                             </svg>
                           </div>
                         )}
-
-                        <div className={`aspect-square rounded-lg overflow-hidden border-2 transition-colors ${
-                          equippedItems.has(item.id)
-                            ? "border-blue-500"
-                            : "border-gray-200 dark:border-gray-700"
-                        } bg-gray-100 dark:bg-gray-800`}>
+                        <div className={`aspect-square rounded-lg overflow-hidden border-2 transition-colors ${equippedItems.has(item.id) ? "border-blue-500" : "border-gray-200 dark:border-gray-700"} bg-gray-100 dark:bg-gray-800`}>
                           {item.thumbnailUrl ? (
-                            <img
-                              src={item.thumbnailUrl}
-                              alt={item.name}
-                              className="w-full h-full object-cover"
-                            />
+                            <img src={item.thumbnailUrl} alt={item.name} className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-gray-400">
                               <span className="text-3xl">🎨</span>
                             </div>
                           )}
                         </div>
-
                         <div className="pt-2">
-                          <p className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">
-                            {item.name}
-                          </p>
-                          <p className="text-[10px] text-gray-500 dark:text-gray-400">
-                            {item.subcategory || item.category}
-                          </p>
+                          <p className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">{item.name}</p>
+                          <p className="text-[10px] text-gray-500 dark:text-gray-400">{item.subcategory || item.category}</p>
                         </div>
                       </div>
                     ))}
                   </div>
 
-                  {/* Pagination */}
                   {totalPages > 1 && (
                     <div className="flex items-center justify-center gap-2 mt-8">
-                      <button
-                        onClick={() => fetchItems(activeSubTab, currentPage - 1)}
-                        disabled={currentPage <= 1}
-                        className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-sm disabled:opacity-50"
-                      >
-                        Previous
-                      </button>
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Page {currentPage} of {totalPages}
-                      </span>
-                      <button
-                        onClick={() => fetchItems(activeSubTab, currentPage + 1)}
-                        disabled={currentPage >= totalPages}
-                        className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-sm disabled:opacity-50"
-                      >
-                        Next
-                      </button>
+                      <button onClick={() => fetchItems(activeSubTab, currentPage - 1)} disabled={currentPage <= 1} className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-sm disabled:opacity-50">Previous</button>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Page {currentPage} of {totalPages}</span>
+                      <button onClick={() => fetchItems(activeSubTab, currentPage + 1)} disabled={currentPage >= totalPages} className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-sm disabled:opacity-50">Next</button>
                     </div>
                   )}
                 </>
