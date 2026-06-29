@@ -175,7 +175,7 @@ useEffect(() => {
           const realFriends = (friendsResponse.data.friends || []).map((friend: any) => ({
             id: friend.id,
             name: friend.display_name || friend.username,
-            username: `@${friend.username}`,
+            username: friend.username,
             avatar: friend.avatar_url || `https://robohash.org/${friend.username}?set=set3`,
             status: "offline",
           }));
@@ -767,7 +767,7 @@ return (
                 <div className="py-6 border-b border-gray-200 dark:border-gray-800">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Friends ({friends.length})</h2>
-                    <Link href="/friends" className="flex items-center gap-1 text-sm text-gray-900 dark:text-gray-100 hover:underline">See All<ChevronRight className="w-4 h-4" /></Link>
+                    <Link href={isOwnProfile ? "/friends" : `/friends?userId=${profileUser?.id}`} className="flex items-center gap-1 text-sm text-gray-900 dark:text-gray-100 hover:underline">See All<ChevronRight className="w-4 h-4" /></Link>
                   </div>
                   <div className="flex gap-6">
                     {friends.map((connection) => (
