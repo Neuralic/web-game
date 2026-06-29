@@ -26,6 +26,8 @@ interface CatalogItem {
   updatedAt: string;
 }
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+
 export default function CatalogItemPage() {
   const params = useParams();
   const router = useRouter();
@@ -34,21 +36,33 @@ export default function CatalogItemPage() {
   const [error, setError] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [equipped, setEquipped] = useState(false);
+  const [inInventory, setInInventory] = useState(false);
+  const [isEquipped, setIsEquipped] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [equipping, setEquipping] = useState(false);
 
-useEffect(() => {
-    const checkInventory = async () => {
+  useEffect(() => {
+    const checkInventoryAndAvatar = async () => {
       try {
-        const response = await catalogApi.getUserInventory();
-        if (response.success && response.data) {
-          const items = (response.data as any).items || [];
-          const alreadyOwned = items.some((i: any) => i.id === params.id);
-          if (alreadyOwned) setEquipped(true);
+        const [inventoryRes, avatarRes] = await Promise.all([
+          catalogApi.getUserInventory(),
+          fetch(`${API_BASE}/avatar`, {
+            headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` },
+          }).then(r => r.json()),
+        ]);
+
+        if (inventoryRes.success && inventoryRes.data) {
+          const items = (inventoryRes.data as any).items || [];
+          if (items.some((i: any) => i.id === params.id)) setInInventory(true);
+        }
+
+        if (avatarRes.success && avatarRes.data) {
+          const equipped = avatarRes.data.equippedItems || [];
+          if (equipped.some((i: any) => i.id === params.id)) setIsEquipped(true);
         }
       } catch {}
     };
-    if (params.id) checkInventory();
+    if (params.id) checkInventoryAndAvatar();
   }, [params.id]);
 
   useEffect(() => {
@@ -71,6 +85,44 @@ useEffect(() => {
       fetchItem();
     }
   }, [params.id]);
+
+  const handleGetItem = async () => {
+    if (inInventory || !item) return;
+    setAdding(true);
+    try {
+      const response = await catalogApi.addToInventory(item.id);
+      if (response.success) {
+        setInInventory(true);
+      }
+    } catch (error) {
+      console.error('Failed to add to inventory:', error);
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const handleEquip = async () => {
+    if (!item) return;
+    setEquipping(true);
+    try {
+      const token = localStorage.getItem('accessToken');
+      if (!token) return;
+
+      const endpoint = isEquipped ? `/avatar/unequip/${item.id}` : `/avatar/equip/${item.id}`;
+      const res = await fetch(`${API_BASE}${endpoint}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setIsEquipped(!isEquipped);
+      }
+    } catch (err) {
+      console.error("Failed to equip:", err);
+    } finally {
+      setEquipping(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -111,7 +163,6 @@ useEffect(() => {
       <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} setSidebarOpen={setSidebarOpen} />
 
       <main className="flex-1 max-w-5xl mx-auto px-4 py-8 w-full">
-        {/* Back button */}
         <button
           onClick={() => router.back()}
           className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 mb-6 transition-colors"
@@ -160,7 +211,7 @@ useEffect(() => {
               </p>
             )}
 
-            {/* Free badge */}
+            {/* Badges */}
             <div className="flex items-center gap-2 mb-6">
               <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-sm font-semibold rounded-full">
                 Free
@@ -179,31 +230,33 @@ useEffect(() => {
 
             {/* Get Item Button */}
             <button
-              onClick={async () => {
-  		if (equipped) return;
-  		setAdding(true);
-  		try {
-    		const response = await catalogApi.addToInventory(item.id);
-    		if (response.success) {
-      		setEquipped(true);
-    		}
-  		} catch (error) {
-    		console.error('Failed to add to inventory:', error);
-  		} finally {
-                setAdding(false);
-                }
-              }}
-              disabled={!item.isAvailable}
+              onClick={handleGetItem}
+              disabled={!item.isAvailable || inInventory}
               className={`w-full py-3 rounded-xl font-bold text-sm transition-colors mb-3 ${
-                equipped
-                  ? "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+                inInventory
+                  ? "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 cursor-default"
                   : item.isAvailable
                   ? "bg-blue-600 hover:bg-blue-700 text-white"
                   : "bg-gray-300 dark:bg-gray-700 text-gray-500 cursor-not-allowed"
               }`}
             >
-              {equipped ? "✓ Equipped" : adding ? "Adding..." : item.isAvailable ? "Get Item" : "Unavailable"}
+              {inInventory ? "✔ In Inventory" : adding ? "Adding..." : item.isAvailable ? "Get Item" : "Unavailable"}
             </button>
+
+            {/* Equip to Avatar Button */}
+            {inInventory && (
+              <button
+                onClick={handleEquip}
+                disabled={equipping}
+                className={`w-full py-3 rounded-xl font-bold text-sm transition-colors mb-3 ${
+                  isEquipped
+                    ? "bg-orange-500 hover:bg-orange-600 text-white"
+                    : "bg-green-600 hover:bg-green-700 text-white"
+                } disabled:opacity-50`}
+              >
+                {equipping ? "..." : isEquipped ? "✔ Equipped — Click to Unequip" : "Equip to Avatar"}
+              </button>
+            )}
 
             {/* Stats */}
             <div className="grid grid-cols-2 gap-4 mt-4 p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
