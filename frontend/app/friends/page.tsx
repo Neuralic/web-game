@@ -46,7 +46,10 @@ function FriendsPageContent() {
       setIsLoading(true);
       try {
         if (activeTab === "Friends") {
-          const response = await friendsApi.getFriends();
+          const userId = searchParams.get('userId');
+	  const response = userId
+  	  	? await friendsApi.getUserFriends(userId)
+  	  	: await friendsApi.getFriends();
           if (response.success && response.data) {
             // Normalize API data to match UI format
             const realFriends = (response.data.friends || []).map((friend: any) => {
