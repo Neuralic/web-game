@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import {
   MoreHorizontal,
   ChevronRight,
@@ -19,11 +20,17 @@ import Footer from "../../components/Footer";
 import Sidebar from "../../components/Sidebar";
 import Header from "../../components/Header";
 import VerifiedBadge from "../../components/VerifiedBadge";
-import { usersApi, friendsApi, groupsApi } from "@/lib/api";
+import { usersApi, friendsApi, groupsApi, storage } from "@/lib/api";
 import { openChatWithUser } from "@/app/components/ChatWidget";
 import { useParams, useRouter } from "next/navigation";
 import { useUserPresence } from "@/hooks/useUserPresence";
 import { supabase } from "@/lib/supabase";
+
+const RobloxAvatar3D = dynamic(() => import("../../components/RobloxAvatar3D"), {
+  ssr: false,
+});
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
 interface UserProfile {
   id?: string;
@@ -32,6 +39,18 @@ interface UserProfile {
   bio?: string;
   status_message?: string;
   is_verified?: boolean;
+}
+
+interface AvatarStateData {
+  roblox_user_id: string | null;
+  hair_thumbnail: string | null;
+  face_thumbnail: string | null;
+  head_thumbnail: string | null;
+  hat_thumbnail: string | null;
+  body_thumbnail: string | null;
+  shirt_thumbnail: string | null;
+  pants_thumbnail: string | null;
+  accessory_thumbnail: string | null;
 }
 
 const ProfilePage = () => {
@@ -44,7 +63,6 @@ const ProfilePage = () => {
   const [activeTab, setActiveTab] = useState("About");
   const [currentWearingIndex, setCurrentWearingIndex] = useState(0);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [avatarViewMode, setAvatarViewMode] = useState<"2D" | "3D">("3D");
   const [bio, setBio] = useState("");
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [editedBio, setEditedBio] = useState("");
@@ -70,6 +88,12 @@ const ProfilePage = () => {
   const [isOwnProfile, setIsOwnProfile] = useState(false);
   const [showLeftAd, setShowLeftAd] = useState(true);
   const [showRightAd, setShowRightAd] = useState(true);
+
+  // Avatar state
+  const [avatarState, setAvatarState] = useState<AvatarStateData | null>(null);
+  const [avatarLoading, setAvatarLoading] = useState(true);
+  const [userGender, setUserGender] = useState<string | null>(null);
+  const [robloxHeadshotUrl, setRobloxHeadshotUrl] = useState<string | null>(null);
   
   const [relationship, setRelationship] = useState<{
     isFriend: boolean;
@@ -81,7 +105,8 @@ const ProfilePage = () => {
   const [isLoadingAction, setIsLoadingAction] = useState(false);
   
   const realtimePresence = useUserPresence(profileUser?.id);
-useEffect(() => {
+
+  useEffect(() => {
     const fetchData = async () => {
       try {
         const [profileResponse, currentUserResponse] = await Promise.all([
@@ -116,6 +141,7 @@ useEffect(() => {
             setStatusMessage(currentUserData.status_message);
             setEditedStatusMessage(currentUserData.status_message);
           }
+          setUserGender(currentUserData.gender || null);
           setRelationship(null);
 	} else if (viewedUser) {
           // Redirect to numeric ID URL if visiting by username
@@ -128,6 +154,7 @@ useEffect(() => {
           if (viewedUser.status_message) {
             setStatusMessage(viewedUser.status_message);
           }
+          setUserGender(viewedUser.gender || null);
 
           if (currentUserData && viewedUser.id) {
             try {
@@ -150,6 +177,41 @@ useEffect(() => {
     }
   }, [profileUsername]);
 
+  // Fetch avatar state (works for own profile via auth token; for other users we only get
+  // their avatar visually if a public endpoint is available — falls back to default look)
+  useEffect(() => {
+    const fetchAvatarState = async () => {
+      setAvatarLoading(true);
+      try {
+        if (isOwnProfile) {
+          const token = storage.getAccessToken();
+          if (!token) { setAvatarLoading(false); return; }
+          const res = await fetch(`${API_BASE}/avatar`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const data = await res.json();
+          if (data.success && data.data?.avatarState) {
+  setAvatarState(data.data.avatarState);
+  if (data.data.avatarState.roblox_user_id) {
+    fetch(`${API_BASE}/avatar/roblox-3d/${data.data.avatarState.roblox_user_id}`)
+      .then(r => r.json())
+      .then(d => { if (d.success && d.imageUrl) setRobloxHeadshotUrl(d.imageUrl); })
+      .catch(() => {});
+  }
+}
+        }
+      } catch (err) {
+        console.error("Failed to fetch avatar state:", err);
+      } finally {
+        setAvatarLoading(false);
+      }
+    };
+
+    if (profileUser?.id) {
+      fetchAvatarState();
+    }
+  }, [profileUser?.id, isOwnProfile]);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -161,7 +223,6 @@ useEffect(() => {
   }, []);
 
   const tabs = ["About", "Creations"];
-  const currentlyWearing: any[] = [];
   const favorites: any[] = [];
 
   useEffect(() => {
@@ -349,6 +410,20 @@ useEffect(() => {
     },
   ];
 
+  // Build list of equipped item thumbnails for the small grid next to the avatar
+  const currentlyWearing = avatarState
+    ? [
+        avatarState.hat_thumbnail && { id: "hat", thumb: avatarState.hat_thumbnail },
+        avatarState.hair_thumbnail && { id: "hair", thumb: avatarState.hair_thumbnail },
+        avatarState.face_thumbnail && { id: "face", thumb: avatarState.face_thumbnail },
+        avatarState.head_thumbnail && { id: "head", thumb: avatarState.head_thumbnail },
+        avatarState.shirt_thumbnail && { id: "shirt", thumb: avatarState.shirt_thumbnail },
+        avatarState.pants_thumbnail && { id: "pants", thumb: avatarState.pants_thumbnail },
+        avatarState.body_thumbnail && { id: "body", thumb: avatarState.body_thumbnail },
+        avatarState.accessory_thumbnail && { id: "accessory", thumb: avatarState.accessory_thumbnail },
+      ].filter(Boolean) as { id: string; thumb: string }[]
+    : [];
+
   const itemsPerPage = 8;
   const visibleWearingItems = currentlyWearing.slice(currentWearingIndex, currentWearingIndex + itemsPerPage);
 
@@ -450,7 +525,6 @@ useEffect(() => {
     const lastOnline = realtimePresence?.lastOnline || profileUser?.last_online;
     const currentGame = realtimePresence?.currentGame || profileUser?.current_game;
     
-    // Check if last online was within the last 5 minutes
     const isRecentlyActive = lastOnline && (new Date().getTime() - new Date(lastOnline).getTime()) < 5 * 60 * 1000;
     
     if ((status === 'online' || status === 'in-game') && isRecentlyActive) {
@@ -514,6 +588,9 @@ useEffect(() => {
     }
   };
 
+  const isFemale = userGender === "female";
+  const hasRobloxLinked = !!avatarState?.roblox_user_id;
+
 return (
     <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
@@ -556,7 +633,17 @@ return (
             <div className="flex items-start gap-6 py-6 border-b border-gray-200 dark:border-gray-800">
               <div className="relative">
                 <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700">
-                  <Image src="https://tr.rbxcdn.com/30DAY-AvatarHeadshot-903254C5702EE154B5EA564D1D4CB860-Png/150/150/AvatarHeadshot/Webp/noFilter" alt={username || "User Avatar"} fill className="object-cover" />
+                  {robloxHeadshotUrl ? (
+  <img
+    src={robloxHeadshotUrl}
+    alt={username || "User Avatar"}
+    className="w-full h-full object-cover"
+  />
+) : (
+                    <div className={`w-full h-full flex items-center justify-center text-3xl ${isFemale ? "bg-pink-100 dark:bg-pink-900/30" : "bg-blue-100 dark:bg-blue-900/30"}`}>
+                      👤
+                    </div>
+                  )}
                 </div>
                 {getPresenceStatus() && (
                   <div className={`absolute w-7 h-7 ${getPresenceStatus()?.color} rounded-full flex items-center justify-center border-2 border-white dark:border-gray-900`} style={{ bottom: "-3.5px", right: "-3.5px" }} title={getPresenceStatus()?.label}>
@@ -723,42 +810,126 @@ return (
                   <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Currently Wearing</h2>
                   <div className="flex gap-6">
                     <div className="flex-shrink-0">
-                      <div className="relative bg-gradient-to-b from-gray-100 to-white dark:from-gray-800 dark:to-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4 w-80">
-                        <div className="absolute top-3 right-3">
-                          <button onClick={() => setAvatarViewMode(avatarViewMode === "3D" ? "2D" : "3D")} className="px-3 py-1.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 rounded-lg text-xs font-medium transition-colors border border-gray-300 dark:border-gray-600">{avatarViewMode}</button>
+                      <div className="relative bg-gradient-to-b from-gray-100 to-white dark:from-gray-800 dark:to-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4 w-80 overflow-hidden" style={{ minHeight: 260 }}>
+                        <div className="absolute top-3 right-3 z-20">
+                          <span className="px-3 py-1.5 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg text-xs font-medium border border-gray-300 dark:border-gray-600">
+                            {hasRobloxLinked ? "3D" : "2D"}
+                          </span>
                         </div>
-                        <div className="flex justify-center items-end h-48 mt-6">
-                          <svg width="100" height="150" viewBox="0 0 120 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <rect x="35" y="0" width="50" height="50" rx="8" fill="#F5D0C5" />
-                            <ellipse cx="60" cy="15" rx="30" ry="20" fill="#B85C38" />
-                            <ellipse cx="60" cy="5" rx="20" ry="12" fill="#B85C38" />
-                            <circle cx="75" cy="8" r="12" fill="#B85C38" />
-                            <circle cx="48" cy="30" r="3" fill="#393939" />
-                            <circle cx="72" cy="30" r="3" fill="#393939" />
-                            <path d="M52 40 Q60 48 68 40" stroke="#393939" strokeWidth="2" fill="none" />
-                            <rect x="30" y="55" width="60" height="50" rx="4" fill="#4A90A4" />
-                            <rect x="30" y="65" width="60" height="6" fill="#6BA8BC" />
-                            <rect x="30" y="77" width="60" height="6" fill="#6BA8BC" />
-                            <rect x="30" y="89" width="60" height="6" fill="#6BA8BC" />
-                            <rect x="10" y="55" width="18" height="45" rx="4" fill="#F5D0C5" />
-                            <rect x="92" y="55" width="18" height="45" rx="4" fill="#F5D0C5" />
-                            <rect x="32" y="108" width="25" height="70" rx="4" fill="#8B4513" />
-                            <rect x="63" y="108" width="25" height="70" rx="4" fill="#8B4513" />
-                          </svg>
-                        </div>
+
+                        {avatarLoading ? (
+                          <div className="flex items-center justify-center h-48 mt-6">
+                            <div className="w-6 h-6 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                          </div>
+                        ) : !isOwnProfile ? (
+                          // For other users we don't have an auth'd avatar fetch — show neutral placeholder
+                          <div className="flex justify-center items-end h-48 mt-6">
+                            <svg width="100" height="150" viewBox="0 0 120 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <rect x="35" y="0" width="50" height="50" rx="8" fill="#F5D0C5" />
+                              <ellipse cx="60" cy="15" rx="30" ry="20" fill="#B85C38" />
+                              <ellipse cx="60" cy="5" rx="20" ry="12" fill="#B85C38" />
+                              <circle cx="75" cy="8" r="12" fill="#B85C38" />
+                              <circle cx="48" cy="30" r="3" fill="#393939" />
+                              <circle cx="72" cy="30" r="3" fill="#393939" />
+                              <path d="M52 40 Q60 48 68 40" stroke="#393939" strokeWidth="2" fill="none" />
+                              <rect x="30" y="55" width="60" height="50" rx="4" fill="#4A90A4" />
+                              <rect x="30" y="65" width="60" height="6" fill="#6BA8BC" />
+                              <rect x="30" y="77" width="60" height="6" fill="#6BA8BC" />
+                              <rect x="30" y="89" width="60" height="6" fill="#6BA8BC" />
+                              <rect x="10" y="55" width="18" height="45" rx="4" fill="#F5D0C5" />
+                              <rect x="92" y="55" width="18" height="45" rx="4" fill="#F5D0C5" />
+                              <rect x="32" y="108" width="25" height="70" rx="4" fill="#8B4513" />
+                              <rect x="63" y="108" width="25" height="70" rx="4" fill="#8B4513" />
+                            </svg>
+                          </div>
+                        ) : hasRobloxLinked ? (
+                          <div className="relative h-48 mt-6">
+                            <RobloxAvatar3D robloxUserId={avatarState!.roblox_user_id!} />
+                          </div>
+                        ) : (
+                          <div className="flex justify-center items-end h-48 mt-6 relative">
+                            <div className="relative" style={{ width: 100, height: 150 }}>
+                              <svg width="100" height="150" viewBox="0 0 120 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="32" y="108" width="25" height="70" rx="4" fill={avatarState?.pants_thumbnail ? "#c0a080" : "#8B4513"} />
+                                <rect x="63" y="108" width="25" height="70" rx="4" fill={avatarState?.pants_thumbnail ? "#c0a080" : "#8B4513"} />
+                                <rect x="30" y="55" width="60" height="50" rx="4" fill={avatarState?.shirt_thumbnail || avatarState?.body_thumbnail ? "#a8c8d8" : isFemale ? "#C4679A" : "#4A90A4"} />
+                                {!avatarState?.shirt_thumbnail && !avatarState?.body_thumbnail && (
+                                  <>
+                                    <rect x="30" y="65" width="60" height="6" fill={isFemale ? "#D4889B" : "#6BA8BC"} />
+                                    <rect x="30" y="77" width="60" height="6" fill={isFemale ? "#D4889B" : "#6BA8BC"} />
+                                    <rect x="30" y="89" width="60" height="6" fill={isFemale ? "#D4889B" : "#6BA8BC"} />
+                                  </>
+                                )}
+                                <rect x="10" y="55" width="18" height="45" rx="4" fill="#F5D0C5" />
+                                <rect x="92" y="55" width="18" height="45" rx="4" fill="#F5D0C5" />
+                                <rect x="35" y="2" width="50" height="50" rx="8" fill="#F5D0C5" />
+                                {!avatarState?.hair_thumbnail && !avatarState?.head_thumbnail && (
+                                  isFemale ? (
+                                    <>
+                                      <ellipse cx="60" cy="12" rx="28" ry="18" fill="#8B4513" />
+                                      <rect x="32" y="10" width="10" height="40" rx="5" fill="#8B4513" />
+                                      <rect x="78" y="10" width="10" height="40" rx="5" fill="#8B4513" />
+                                      <ellipse cx="60" cy="3" rx="22" ry="14" fill="#8B4513" />
+                                    </>
+                                  ) : (
+                                    <>
+                                      <ellipse cx="60" cy="15" rx="30" ry="20" fill="#B85C38" />
+                                      <ellipse cx="60" cy="5" rx="20" ry="12" fill="#B85C38" />
+                                      <circle cx="75" cy="8" r="12" fill="#B85C38" />
+                                    </>
+                                  )
+                                )}
+                                {!avatarState?.face_thumbnail && (
+                                  <>
+                                    <circle cx="48" cy="30" r="3" fill="#393939" />
+                                    <circle cx="72" cy="30" r="3" fill="#393939" />
+                                    <path d="M52 40 Q60 48 68 40" stroke="#393939" strokeWidth="2" fill="none" />
+                                  </>
+                                )}
+                              </svg>
+
+                              {avatarState?.pants_thumbnail && (
+                                <img src={avatarState.pants_thumbnail} alt="pants" style={{ position: "absolute", left: 24, top: 130, width: 80, height: 95, objectFit: "contain", zIndex: 2 }} />
+                              )}
+                              {avatarState?.shirt_thumbnail && (
+                                <img src={avatarState.shirt_thumbnail} alt="shirt" style={{ position: "absolute", left: 17, top: 62, width: 100, height: 75, objectFit: "contain", zIndex: 3 }} />
+                              )}
+                              {avatarState?.body_thumbnail && (
+                                <img src={avatarState.body_thumbnail} alt="body" style={{ position: "absolute", left: 8, top: 38, width: 125, height: 188, objectFit: "contain", zIndex: 4 }} />
+                              )}
+                              {avatarState?.head_thumbnail && (
+                                <img src={avatarState.head_thumbnail} alt="head" style={{ position: "absolute", left: 27, top: 0, width: 70, height: 70, objectFit: "contain", zIndex: 5 }} />
+                              )}
+                              {avatarState?.face_thumbnail && (
+                                <img src={avatarState.face_thumbnail} alt="face" style={{ position: "absolute", left: 31, top: 18, width: 58, height: 42, objectFit: "contain", zIndex: 6 }} />
+                              )}
+                              {avatarState?.hair_thumbnail && (
+                                <img src={avatarState.hair_thumbnail} alt="hair" style={{ position: "absolute", left: 21, top: -7, width: 87, height: 67, objectFit: "contain", zIndex: 7 }} />
+                              )}
+                              {avatarState?.hat_thumbnail && (
+                                <img src={avatarState.hat_thumbnail} alt="hat" style={{ position: "absolute", left: 18, top: -13, width: 97, height: 60, objectFit: "contain", zIndex: 8 }} />
+                              )}
+                              {avatarState?.accessory_thumbnail && (
+                                <img src={avatarState.accessory_thumbnail} alt="accessory" style={{ position: "absolute", left: 11, top: 58, width: 117, height: 84, objectFit: "contain", zIndex: 9 }} />
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="flex-1">
                       <div className="grid grid-cols-4 gap-2">
-                        {visibleWearingItems.map((item) => (
-                          <div key={item.id} className="cursor-pointer group">
-                            <div className="w-24 h-24 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 group-hover:border-gray-400 dark:group-hover:border-gray-500 transition-colors">
-                              <div className="w-full h-full flex items-center justify-center">
-                                <div className="w-10 h-10 bg-gray-300 dark:bg-gray-600 rounded"></div>
+                        {visibleWearingItems.length > 0 ? (
+                          visibleWearingItems.map((item) => (
+                            <div key={item.id} className="cursor-pointer group">
+                              <div className="w-24 h-24 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 group-hover:border-gray-400 dark:group-hover:border-gray-500 transition-colors">
+                                <img src={item.thumb} alt={item.id} className="w-full h-full object-contain p-1" />
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          ))
+                        ) : (
+                          <p className="text-sm text-gray-500 dark:text-gray-400 col-span-4">No items equipped yet.</p>
+                        )}
                       </div>
                     </div>
                   </div>
