@@ -8,8 +8,6 @@ import {
   MoreHorizontal,
   ChevronRight,
   ChevronLeft,
-  ThumbsUp,
-  Users,
   ExternalLink,
   Monitor,
   LayoutGrid,
@@ -51,6 +49,14 @@ interface AvatarStateData {
   shirt_thumbnail: string | null;
   pants_thumbnail: string | null;
   accessory_thumbnail: string | null;
+  hair_asset_id: string | null;
+  face_asset_id: string | null;
+  head_asset_id: string | null;
+  hat_asset_id: string | null;
+  body_asset_id: string | null;
+  shirt_asset_id: string | null;
+  pants_asset_id: string | null;
+  accessory_asset_id: string | null;
 }
 
 const ProfilePage = () => {
@@ -94,6 +100,7 @@ const ProfilePage = () => {
   const [avatarLoading, setAvatarLoading] = useState(true);
   const [userGender, setUserGender] = useState<string | null>(null);
   const [robloxHeadshotUrl, setRobloxHeadshotUrl] = useState<string | null>(null);
+  const [customAvatarUrl, setCustomAvatarUrl] = useState<string | null>(null);
   
   const [relationship, setRelationship] = useState<{
     isFriend: boolean;
@@ -144,10 +151,10 @@ const ProfilePage = () => {
           setUserGender(currentUserData.gender || null);
           setRelationship(null);
 	} else if (viewedUser) {
-          // Redirect to numeric ID URL if visiting by username
           if (viewedUser?.user_number && !/^\d+$/.test(profileUsername)) {
             router.replace(`/profile/${viewedUser.user_number}`);
-          }setProfileUser(viewedUser);
+          }
+          setProfileUser(viewedUser);
           setDisplayName(viewedUser.display_name || viewedUser.username);
           setUsername(viewedUser.username);
           setBio(viewedUser.bio || "");
@@ -177,8 +184,7 @@ const ProfilePage = () => {
     }
   }, [profileUsername]);
 
-  // Fetch avatar state (works for own profile via auth token; for other users we only get
-  // their avatar visually if a public endpoint is available — falls back to default look)
+  // Fetch avatar state
   useEffect(() => {
     const fetchAvatarState = async () => {
       setAvatarLoading(true);
@@ -191,14 +197,39 @@ const ProfilePage = () => {
           });
           const data = await res.json();
           if (data.success && data.data?.avatarState) {
-  setAvatarState(data.data.avatarState);
-  if (data.data.avatarState.roblox_user_id) {
-    fetch(`${API_BASE}/avatar/roblox-3d/${data.data.avatarState.roblox_user_id}`)
-      .then(r => r.json())
-      .then(d => { if (d.success && d.imageUrl) setRobloxHeadshotUrl(d.imageUrl); })
-      .catch(() => {});
-  }
-}
+            const state = data.data.avatarState;
+            setAvatarState(state);
+
+            // Fetch Roblox headshot if linked
+            if (state.roblox_user_id) {
+              fetch(`${API_BASE}/avatar/roblox-3d/${state.roblox_user_id}`)
+                .then(r => r.json())
+                .then(d => { if (d.success && d.imageUrl) setRobloxHeadshotUrl(d.imageUrl); })
+                .catch(() => {});
+            }
+
+            // Render custom avatar with equipped asset IDs
+            const assetIds = [
+              state.hair_asset_id,
+              state.face_asset_id,
+              state.head_asset_id,
+              state.hat_asset_id,
+              state.body_asset_id,
+              state.shirt_asset_id,
+              state.pants_asset_id,
+              state.accessory_asset_id,
+            ].filter(Boolean).map((id: string) => parseInt(id));
+
+            if (assetIds.length > 0) {
+              fetch(`${API_BASE}/avatar/render-custom`, {
+                method: "POST",
+                headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+                body: JSON.stringify({ assetIds }),
+              }).then(r => r.json()).then(d => {
+                if (d.success && d.imageUrl) setCustomAvatarUrl(d.imageUrl);
+              }).catch(() => {});
+            }
+          }
         }
       } catch (err) {
         console.error("Failed to fetch avatar state:", err);
@@ -389,12 +420,6 @@ const ProfilePage = () => {
 
   const groupsPerPage = 3;
   const maxGroupIndex = Math.max(0, groups.length - groupsPerPage);
-  const visibleGroups = groups.slice(currentGroupIndex, currentGroupIndex + groupsPerPage);
-  const showPrevGroup = currentGroupIndex > 0;
-  const showNextGroup = currentGroupIndex < maxGroupIndex;
-
-  const handlePrevGroup = () => { setCurrentGroupIndex((prev) => Math.max(0, prev - groupsPerPage)); };
-  const handleNextGroup = () => { setCurrentGroupIndex((prev) => Math.min(maxGroupIndex, prev + groupsPerPage)); };
 
   const robloxBadges: any[] = [];
   const badges: any[] = [];
@@ -410,7 +435,7 @@ const ProfilePage = () => {
     },
   ];
 
-  // Build list of equipped item thumbnails for the small grid next to the avatar
+  // Build list of equipped item thumbnails
   const currentlyWearing = avatarState
     ? [
         avatarState.hat_thumbnail && { id: "hat", thumb: avatarState.hat_thumbnail },
@@ -524,9 +549,7 @@ const ProfilePage = () => {
     const status = realtimePresence?.presenceStatus || profileUser?.presence_status || 'offline';
     const lastOnline = realtimePresence?.lastOnline || profileUser?.last_online;
     const currentGame = realtimePresence?.currentGame || profileUser?.current_game;
-    
     const isRecentlyActive = lastOnline && (new Date().getTime() - new Date(lastOnline).getTime()) < 5 * 60 * 1000;
-    
     if ((status === 'online' || status === 'in-game') && isRecentlyActive) {
       if (status === 'in-game') return { color: 'bg-green-500', hasIcon: true, label: currentGame ? `Playing ${currentGame}` : 'In Game' };
       return { color: 'bg-blue-500', hasIcon: false, label: 'Online' };
@@ -591,13 +614,15 @@ const ProfilePage = () => {
   const isFemale = userGender === "female";
   const hasRobloxLinked = !!avatarState?.roblox_user_id;
 
-return (
+  // Determine avatar display mode
+  const avatarBadge = hasRobloxLinked ? "Roblox" : customAvatarUrl ? "R15" : "2D";
+
+  return (
     <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} setSidebarOpen={setSidebarOpen} />
 
       <div className="flex justify-center gap-4 px-4">
-        {/* Left Skyscraper Ad */}
         {showLeftAd && (
           <div className="hidden xl:block flex-shrink-0 pt-[130px]">
             <div className="relative w-[160px]">
@@ -606,9 +631,7 @@ return (
                 <span className="text-center px-2">Advertisement</span>
                 <span className="text-center px-2 mt-2 text-xs">(160 x 600)</span>
               </div>
-              <div className="mt-1 text-center">
-                <span className="text-xs text-gray-500 dark:text-gray-400 uppercase">Advertisement</span>
-              </div>
+              <div className="mt-1 text-center"><span className="text-xs text-gray-500 dark:text-gray-400 uppercase">Advertisement</span></div>
             </div>
           </div>
         )}
@@ -634,12 +657,8 @@ return (
               <div className="relative">
                 <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700">
                   {robloxHeadshotUrl ? (
-  <img
-    src={robloxHeadshotUrl}
-    alt={username || "User Avatar"}
-    className="w-full h-full object-cover"
-  />
-) : (
+                    <img src={robloxHeadshotUrl} alt={username || "User Avatar"} className="w-full h-full object-cover" />
+                  ) : (
                     <div className={`w-full h-full flex items-center justify-center text-3xl ${isFemale ? "bg-pink-100 dark:bg-pink-900/30" : "bg-blue-100 dark:bg-blue-900/30"}`}>
                       👤
                     </div>
@@ -656,19 +675,17 @@ return (
                 <div className="flex items-center justify-between">
                   <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-  {displayName || "User"}
-  {profileUser?.is_verified && <VerifiedBadge size="md" />}
-  {profileUser?.is_studio && (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 text-xs font-semibold rounded-full border border-orange-200 dark:border-orange-800">
-      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-        <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/>
-      </svg>
-      Studio
-    </span>
-  )}
-</h1>
+                      {displayName || "User"}
+                      {profileUser?.is_verified && <VerifiedBadge size="md" />}
+                      {profileUser?.is_studio && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 text-xs font-semibold rounded-full border border-orange-200 dark:border-orange-800">
+                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/></svg>
+                          Studio
+                        </span>
+                      )}
+                    </h1>
                     <p className="text-sm text-gray-600 dark:text-gray-400">@{username || "user"}</p>
-                                        {statusMessage && <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 italic">"{statusMessage}"</p>}
+                    {statusMessage && <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 italic">"{statusMessage}"</p>}
                   </div>
 
                   <div className="flex items-center gap-2">
@@ -759,7 +776,8 @@ return (
                 ))}
               </div>
             </div>
-{activeTab === "About" ? (
+
+            {activeTab === "About" ? (
               <div>
                 <div className="py-6 border-b border-gray-200 dark:border-gray-800">
                   <div className="flex items-center justify-between mb-4">
@@ -813,7 +831,7 @@ return (
                       <div className="relative bg-gradient-to-b from-gray-100 to-white dark:from-gray-800 dark:to-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4 w-80 overflow-hidden" style={{ minHeight: 260 }}>
                         <div className="absolute top-3 right-3 z-20">
                           <span className="px-3 py-1.5 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg text-xs font-medium border border-gray-300 dark:border-gray-600">
-                            {hasRobloxLinked ? "3D" : "2D"}
+                            {avatarBadge}
                           </span>
                         </div>
 
@@ -822,7 +840,6 @@ return (
                             <div className="w-6 h-6 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
                           </div>
                         ) : !isOwnProfile ? (
-                          // For other users we don't have an auth'd avatar fetch — show neutral placeholder
                           <div className="flex justify-center items-end h-48 mt-6">
                             <svg width="100" height="150" viewBox="0 0 120 180" fill="none" xmlns="http://www.w3.org/2000/svg">
                               <rect x="35" y="0" width="50" height="50" rx="8" fill="#F5D0C5" />
@@ -833,9 +850,6 @@ return (
                               <circle cx="72" cy="30" r="3" fill="#393939" />
                               <path d="M52 40 Q60 48 68 40" stroke="#393939" strokeWidth="2" fill="none" />
                               <rect x="30" y="55" width="60" height="50" rx="4" fill="#4A90A4" />
-                              <rect x="30" y="65" width="60" height="6" fill="#6BA8BC" />
-                              <rect x="30" y="77" width="60" height="6" fill="#6BA8BC" />
-                              <rect x="30" y="89" width="60" height="6" fill="#6BA8BC" />
                               <rect x="10" y="55" width="18" height="45" rx="4" fill="#F5D0C5" />
                               <rect x="92" y="55" width="18" height="45" rx="4" fill="#F5D0C5" />
                               <rect x="32" y="108" width="25" height="70" rx="4" fill="#8B4513" />
@@ -846,73 +860,36 @@ return (
                           <div className="relative h-48 mt-6">
                             <RobloxAvatar3D robloxUserId={avatarState!.roblox_user_id!} />
                           </div>
+                        ) : customAvatarUrl ? (
+                          <div className="flex justify-center items-center h-48 mt-6">
+                            <img src={customAvatarUrl} alt="Avatar" className="h-full object-contain" />
+                          </div>
                         ) : (
-                          <div className="flex justify-center items-end h-48 mt-6 relative">
-                            <div className="relative" style={{ width: 100, height: 150 }}>
-                              <svg width="100" height="150" viewBox="0 0 120 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <rect x="32" y="108" width="25" height="70" rx="4" fill={avatarState?.pants_thumbnail ? "#c0a080" : "#8B4513"} />
-                                <rect x="63" y="108" width="25" height="70" rx="4" fill={avatarState?.pants_thumbnail ? "#c0a080" : "#8B4513"} />
-                                <rect x="30" y="55" width="60" height="50" rx="4" fill={avatarState?.shirt_thumbnail || avatarState?.body_thumbnail ? "#a8c8d8" : isFemale ? "#C4679A" : "#4A90A4"} />
-                                {!avatarState?.shirt_thumbnail && !avatarState?.body_thumbnail && (
-                                  <>
-                                    <rect x="30" y="65" width="60" height="6" fill={isFemale ? "#D4889B" : "#6BA8BC"} />
-                                    <rect x="30" y="77" width="60" height="6" fill={isFemale ? "#D4889B" : "#6BA8BC"} />
-                                    <rect x="30" y="89" width="60" height="6" fill={isFemale ? "#D4889B" : "#6BA8BC"} />
-                                  </>
-                                )}
-                                <rect x="10" y="55" width="18" height="45" rx="4" fill="#F5D0C5" />
-                                <rect x="92" y="55" width="18" height="45" rx="4" fill="#F5D0C5" />
-                                <rect x="35" y="2" width="50" height="50" rx="8" fill="#F5D0C5" />
-                                {!avatarState?.hair_thumbnail && !avatarState?.head_thumbnail && (
-                                  isFemale ? (
-                                    <>
-                                      <ellipse cx="60" cy="12" rx="28" ry="18" fill="#8B4513" />
-                                      <rect x="32" y="10" width="10" height="40" rx="5" fill="#8B4513" />
-                                      <rect x="78" y="10" width="10" height="40" rx="5" fill="#8B4513" />
-                                      <ellipse cx="60" cy="3" rx="22" ry="14" fill="#8B4513" />
-                                    </>
-                                  ) : (
-                                    <>
-                                      <ellipse cx="60" cy="15" rx="30" ry="20" fill="#B85C38" />
-                                      <ellipse cx="60" cy="5" rx="20" ry="12" fill="#B85C38" />
-                                      <circle cx="75" cy="8" r="12" fill="#B85C38" />
-                                    </>
-                                  )
-                                )}
-                                {!avatarState?.face_thumbnail && (
-                                  <>
-                                    <circle cx="48" cy="30" r="3" fill="#393939" />
-                                    <circle cx="72" cy="30" r="3" fill="#393939" />
-                                    <path d="M52 40 Q60 48 68 40" stroke="#393939" strokeWidth="2" fill="none" />
-                                  </>
-                                )}
-                              </svg>
-
-                              {avatarState?.pants_thumbnail && (
-                                <img src={avatarState.pants_thumbnail} alt="pants" style={{ position: "absolute", left: 24, top: 130, width: 80, height: 95, objectFit: "contain", zIndex: 2 }} />
+                          <div className="flex justify-center items-end h-48 mt-6">
+                            <svg width="100" height="150" viewBox="0 0 120 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <rect x="35" y="0" width="50" height="50" rx="8" fill="#F5D0C5" />
+                              {isFemale ? (
+                                <>
+                                  <ellipse cx="60" cy="12" rx="28" ry="18" fill="#8B4513" />
+                                  <rect x="32" y="10" width="10" height="40" rx="5" fill="#8B4513" />
+                                  <rect x="78" y="10" width="10" height="40" rx="5" fill="#8B4513" />
+                                </>
+                              ) : (
+                                <>
+                                  <ellipse cx="60" cy="15" rx="30" ry="20" fill="#B85C38" />
+                                  <ellipse cx="60" cy="5" rx="20" ry="12" fill="#B85C38" />
+                                  <circle cx="75" cy="8" r="12" fill="#B85C38" />
+                                </>
                               )}
-                              {avatarState?.shirt_thumbnail && (
-                                <img src={avatarState.shirt_thumbnail} alt="shirt" style={{ position: "absolute", left: 17, top: 62, width: 100, height: 75, objectFit: "contain", zIndex: 3 }} />
-                              )}
-                              {avatarState?.body_thumbnail && (
-                                <img src={avatarState.body_thumbnail} alt="body" style={{ position: "absolute", left: 8, top: 38, width: 125, height: 188, objectFit: "contain", zIndex: 4 }} />
-                              )}
-                              {avatarState?.head_thumbnail && (
-                                <img src={avatarState.head_thumbnail} alt="head" style={{ position: "absolute", left: 27, top: 0, width: 70, height: 70, objectFit: "contain", zIndex: 5 }} />
-                              )}
-                              {avatarState?.face_thumbnail && (
-                                <img src={avatarState.face_thumbnail} alt="face" style={{ position: "absolute", left: 31, top: 18, width: 58, height: 42, objectFit: "contain", zIndex: 6 }} />
-                              )}
-                              {avatarState?.hair_thumbnail && (
-                                <img src={avatarState.hair_thumbnail} alt="hair" style={{ position: "absolute", left: 21, top: -7, width: 87, height: 67, objectFit: "contain", zIndex: 7 }} />
-                              )}
-                              {avatarState?.hat_thumbnail && (
-                                <img src={avatarState.hat_thumbnail} alt="hat" style={{ position: "absolute", left: 18, top: -13, width: 97, height: 60, objectFit: "contain", zIndex: 8 }} />
-                              )}
-                              {avatarState?.accessory_thumbnail && (
-                                <img src={avatarState.accessory_thumbnail} alt="accessory" style={{ position: "absolute", left: 11, top: 58, width: 117, height: 84, objectFit: "contain", zIndex: 9 }} />
-                              )}
-                            </div>
+                              <circle cx="48" cy="30" r="3" fill="#393939" />
+                              <circle cx="72" cy="30" r="3" fill="#393939" />
+                              <path d="M52 40 Q60 48 68 40" stroke="#393939" strokeWidth="2" fill="none" />
+                              <rect x="30" y="55" width="60" height="50" rx="4" fill={isFemale ? "#C4679A" : "#4A90A4"} />
+                              <rect x="10" y="55" width="18" height="45" rx="4" fill="#F5D0C5" />
+                              <rect x="92" y="55" width="18" height="45" rx="4" fill="#F5D0C5" />
+                              <rect x="32" y="108" width="25" height="70" rx="4" fill="#8B4513" />
+                              <rect x="63" y="108" width="25" height="70" rx="4" fill="#8B4513" />
+                            </svg>
                           </div>
                         )}
                       </div>
@@ -1027,11 +1004,7 @@ return (
                     <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Favorites</h2>
                     <button className="flex items-center gap-1 text-sm text-gray-900 dark:text-gray-100 hover:underline">Favorites<ChevronRight className="w-4 h-4" /></button>
                   </div>
-                  {favorites.length > 0 ? (
-                    <div className="flex gap-4">{favorites.map((game: any) => (<div key={game.id} className="w-[200px] cursor-pointer group"><div className="w-full aspect-[4/3] rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-gray-700" /><h3 className="mt-2 text-sm font-bold text-gray-900 dark:text-gray-100 line-clamp-2">{game.name}</h3></div>))}</div>
-                  ) : (
-                    <p className="text-sm text-gray-500 dark:text-gray-400 py-4">No favorite games yet.</p>
-                  )}
+                  <p className="text-sm text-gray-500 dark:text-gray-400 py-4">No favorite games yet.</p>
                 </div>
 
                 <div className="py-6 border-b border-gray-200 dark:border-gray-800">
@@ -1039,11 +1012,7 @@ return (
                     <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">AdventureBlox Badges</h2>
                     <button className="flex items-center gap-1 text-sm text-gray-900 dark:text-gray-100 hover:underline">See All<ChevronRight className="w-4 h-4" /></button>
                   </div>
-                  {robloxBadges.length > 0 ? (
-                    <div className="flex gap-4">{robloxBadges.map((badge: any) => (<div key={badge.id} className="cursor-pointer group"><div className="w-[120px] aspect-square rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-gray-700" /><p className="mt-2 text-sm text-gray-900 dark:text-gray-100 text-center">{badge.name}</p></div>))}</div>
-                  ) : (
-                    <p className="text-sm text-gray-500 dark:text-gray-400 py-4">No badges earned yet.</p>
-                  )}
+                  <p className="text-sm text-gray-500 dark:text-gray-400 py-4">No badges earned yet.</p>
                 </div>
 
                 <div className="py-6 border-b border-gray-200 dark:border-gray-800">
@@ -1051,11 +1020,7 @@ return (
                     <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Badges</h2>
                     <button className="flex items-center gap-1 text-sm text-gray-900 dark:text-gray-100 hover:underline">See All<ChevronRight className="w-4 h-4" /></button>
                   </div>
-                  {badges.length > 0 ? (
-                    <div className="flex gap-4">{badges.map((badge: any) => (<div key={badge.id} className="cursor-pointer group"><div className="w-[120px] aspect-square rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-gray-700 relative">{badge.image && <Image src={badge.image} alt={badge.name} fill className="object-cover" />}</div><p className="mt-2 text-xs text-gray-900 dark:text-gray-100 text-center truncate">{badge.name}</p></div>))}</div>
-                  ) : (
-                    <p className="text-sm text-gray-500 dark:text-gray-400 py-4">No player badges yet.</p>
-                  )}
+                  <p className="text-sm text-gray-500 dark:text-gray-400 py-4">No player badges yet.</p>
                 </div>
 
                 <div className="py-6">
@@ -1066,17 +1031,17 @@ return (
                       <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{formatDate(profileUser?.created_at)}</p>
                     </div>
                     <div className="text-center flex-1">
-  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Last Online</p>
-  <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
-    {(() => {
-      const lastOnline = realtimePresence?.lastOnline || profileUser?.last_online;
-      const status = realtimePresence?.presenceStatus || profileUser?.presence_status;
-      const isRecentlyActive = lastOnline && (new Date().getTime() - new Date(lastOnline).getTime()) < 5 * 60 * 1000;
-      if ((status === 'online' || status === 'in-game') && isRecentlyActive) return 'Now';
-      return formatLastOnline(lastOnline);
-    })()}
-  </p>
-</div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Last Online</p>
+                      <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                        {(() => {
+                          const lastOnline = realtimePresence?.lastOnline || profileUser?.last_online;
+                          const status = realtimePresence?.presenceStatus || profileUser?.presence_status;
+                          const isRecentlyActive = lastOnline && (new Date().getTime() - new Date(lastOnline).getTime()) < 5 * 60 * 1000;
+                          if ((status === 'online' || status === 'in-game') && isRecentlyActive) return 'Now';
+                          return formatLastOnline(lastOnline);
+                        })()}
+                      </p>
+                    </div>
                     <div className="text-center flex-1">
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Place Visits</p>
                       <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{profileUser?.place_visits || 0}</p>
@@ -1084,7 +1049,7 @@ return (
                   </div>
                 </div>
               </div>
-) : (
+            ) : (
               <div className="py-6">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Experiences</h2>
@@ -1093,7 +1058,6 @@ return (
                     <button onClick={() => setViewMode("grid")} className={`p-2 ${viewMode === "grid" ? "bg-gray-100 dark:bg-gray-800" : "bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"}`}><LayoutGrid className="w-4 h-4 text-gray-900 dark:text-gray-100" /></button>
                   </div>
                 </div>
-
                 {viewMode === "list" ? (
                   <div className="space-y-6">
                     {experiences.map((exp) => (
@@ -1133,7 +1097,6 @@ return (
           </div>
         </main>
 
-        {/* Right Skyscraper Ad */}
         {showRightAd && (
           <div className="hidden xl:block flex-shrink-0 pt-[130px]">
             <div className="relative w-[160px]">
@@ -1142,9 +1105,7 @@ return (
                 <span className="text-center px-2">Advertisement</span>
                 <span className="text-center px-2 mt-2 text-xs">(160 x 600)</span>
               </div>
-              <div className="mt-1 text-center">
-                <span className="text-xs text-gray-500 dark:text-gray-400 uppercase">Advertisement</span>
-              </div>
+              <div className="mt-1 text-center"><span className="text-xs text-gray-500 dark:text-gray-400 uppercase">Advertisement</span></div>
             </div>
           </div>
         )}
@@ -1159,15 +1120,12 @@ return (
             <button onClick={() => { setShowEditProfileModal(false); setEditedDisplayName(displayName); setEditedUsername(username.replace("@", "")); setEditedStatusMessage(statusMessage); }} className="absolute top-4 right-4 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
-
             <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">Edit Profile</h2>
-
             <div className="mb-6">
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Display Name</label>
               <input type="text" value={editedDisplayName} onChange={(e) => setEditedDisplayName(e.target.value)} maxLength={20} className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-4 py-2.5 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" />
               <div className="text-right text-sm text-gray-600 dark:text-gray-400 mt-1">{editedDisplayName.length}/20</div>
             </div>
-
             <div className="mb-6">
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Username</label>
               <div className="relative flex items-center">
@@ -1176,15 +1134,12 @@ return (
               </div>
               <div className="text-right text-sm text-gray-600 dark:text-gray-400 mt-1">{editedUsername.length}/20</div>
             </div>
-
             <div className="mb-6">
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Status Message</label>
               <input type="text" value={editedStatusMessage} onChange={(e) => setEditedStatusMessage(e.target.value)} maxLength={50} className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-4 py-2.5 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="What's on your mind?" />
               <div className="text-right text-sm text-gray-600 dark:text-gray-400 mt-1">{editedStatusMessage.length}/50</div>
             </div>
-
             {saveError && <div className="mb-4 bg-red-500/10 border border-red-500 text-red-500 px-4 py-3 rounded text-sm">{saveError}</div>}
-
             <div className="flex items-center gap-3 justify-end">
               <button onClick={() => { setShowEditProfileModal(false); setEditedDisplayName(displayName); setEditedUsername(username.replace("@", "")); setEditedStatusMessage(statusMessage); }} className="px-6 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium rounded transition-colors">Cancel</button>
               <button onClick={handleSaveProfile} disabled={isSavingProfile} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed">{isSavingProfile ? "Saving..." : "Save"}</button>
