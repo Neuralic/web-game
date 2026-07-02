@@ -44,6 +44,14 @@ interface AvatarState {
   shirt_thumbnail: string | null;
   pants_thumbnail: string | null;
   accessory_thumbnail: string | null;
+  hair_asset_id: string | null;
+  face_asset_id: string | null;
+  head_asset_id: string | null;
+  hat_asset_id: string | null;
+  body_asset_id: string | null;
+  shirt_asset_id: string | null;
+  pants_asset_id: string | null;
+  accessory_asset_id: string | null;
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
@@ -84,6 +92,8 @@ const AvatarPage = () => {
   const [robloxLinking, setRobloxLinking] = useState(false);
   const [robloxThumbnail, setRobloxThumbnail] = useState<string | null>(null);
   const [userGender, setUserGender] = useState<string | null>(null);
+  const [customAvatarUrl, setCustomAvatarUrl] = useState<string | null>(null);
+  const [renderingCustom, setRenderingCustom] = useState(false);
   const tabsRef = useRef<HTMLDivElement>(null);
   const tabsOffsetRef = useRef<number>(0);
 
@@ -99,6 +109,48 @@ const AvatarPage = () => {
     Pets: ["All Pets"],
   };
 
+  const renderCustomAvatar = async (state: AvatarState) => {
+    const token = storage.getAccessToken();
+    if (!token) return;
+
+    // Collect all equipped asset IDs
+    const assetIds = [
+      state.hair_asset_id,
+      state.face_asset_id,
+      state.head_asset_id,
+      state.hat_asset_id,
+      state.body_asset_id,
+      state.shirt_asset_id,
+      state.pants_asset_id,
+      state.accessory_asset_id,
+    ].filter(Boolean).map(id => parseInt(id!));
+
+    if (assetIds.length === 0) {
+      setCustomAvatarUrl(null);
+      return;
+    }
+
+    setRenderingCustom(true);
+    try {
+      const res = await fetch(`${API_BASE}/avatar/render-custom`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ assetIds }),
+      });
+      const data = await res.json();
+      if (data.success && data.imageUrl) {
+        setCustomAvatarUrl(data.imageUrl);
+      }
+    } catch (err) {
+      console.error("Failed to render custom avatar:", err);
+    } finally {
+      setRenderingCustom(false);
+    }
+  };
+
   const fetchAvatarState = useCallback(async () => {
     const token = storage.getAccessToken();
     if (!token) { setAvatarLoading(false); return; }
@@ -108,13 +160,18 @@ const AvatarPage = () => {
       });
       const data = await res.json();
       if (data.success && data.data) {
-        setAvatarState(data.data.avatarState);
+        const state = data.data.avatarState;
+        setAvatarState(state);
         const equipped = new Set<string>(
           data.data.equippedItems.map((i: CatalogItem) => i.id)
         );
         setEquippedItems(equipped);
-        if (data.data.avatarState?.roblox_user_id) {
-          setRobloxThumbnail(data.data.avatarState.roblox_user_id);
+        if (state?.roblox_user_id) {
+          setRobloxThumbnail(state.roblox_user_id);
+        }
+        // Render custom avatar with equipped items
+        if (state) {
+          renderCustomAvatar(state);
         }
       }
     } catch (err) {
@@ -183,7 +240,6 @@ const AvatarPage = () => {
 
     const isEquipped = equippedItems.has(item.id);
 
-    // If unequipping, just unequip directly
     if (isEquipped) {
       try {
         const res = await fetch(`${API_BASE}/avatar/unequip/${item.id}`, {
@@ -201,7 +257,6 @@ const AvatarPage = () => {
       return;
     }
 
-    // If item is a live Roblox item (numeric ID), import it first
     let itemId = item.id;
     const isRobloxItem = /^\d+$/.test(item.id);
 
@@ -223,7 +278,6 @@ const AvatarPage = () => {
       }
     }
 
-    // Now equip
     try {
       const res = await fetch(`${API_BASE}/avatar/equip/${itemId}`, {
         method: "POST",
@@ -284,6 +338,11 @@ const AvatarPage = () => {
 
   const isFemale = userGender === "female";
 
+  // Determine what to show in avatar preview
+  const showCustomRender = customAvatarUrl && !robloxThumbnail;
+  const showRobloxAvatar = !!robloxThumbnail;
+  const showDefault = !showCustomRender && !showRobloxAvatar;
+
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
@@ -306,40 +365,53 @@ const AvatarPage = () => {
           <div className="flex gap-6">
             {/* Left - Avatar Preview */}
             <div className="w-[300px] flex-shrink-0 sticky top-24 self-start">
-              <div className="bg-gradient-to-br from-amber-100 to-amber-200 dark:from-amber-900 dark:to-amber-800 rounded-lg aspect-[3/4] flex items-end justify-center p-6 relative overflow-hidden">
+              <div className="bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-lg aspect-[3/4] flex items-end justify-center p-6 relative overflow-hidden">
                 {avatarLoading ? (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
+                    <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
                   </div>
-                ) : robloxThumbnail ? (
+                ) : showRobloxAvatar ? (
                   <RobloxAvatar3D
                     robloxUserId={avatarState?.roblox_user_id || ""}
                     onError={() => setRobloxThumbnail(null)}
                   />
+                ) : showCustomRender ? (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    {renderingCustom ? (
+                      <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+                    ) : (
+                      <img
+                        src={customAvatarUrl}
+                        alt="Your Avatar"
+                        className="w-full h-full object-contain"
+                      />
+                    )}
+                  </div>
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="relative" style={{ width: 180, height: 270 }}>
-                      <svg width="180" height="270" viewBox="0 0 120 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        {/* Legs */}
-                        <rect x="32" y="108" width="25" height="70" rx="4" fill={avatarState?.pants_thumbnail ? "#c0a080" : "#8B4513"} />
-                        <rect x="63" y="108" width="25" height="70" rx="4" fill={avatarState?.pants_thumbnail ? "#c0a080" : "#8B4513"} />
-                        {/* Body */}
-                        <rect x="30" y="55" width="60" height="50" rx="4" fill={avatarState?.shirt_thumbnail || avatarState?.body_thumbnail ? "#a8c8d8" : isFemale ? "#C4679A" : "#4A90A4"} />
-                        {!avatarState?.shirt_thumbnail && !avatarState?.body_thumbnail && (
-                          <>
-                            <rect x="30" y="65" width="60" height="6" fill={isFemale ? "#D4889B" : "#6BA8BC"} />
-                            <rect x="30" y="77" width="60" height="6" fill={isFemale ? "#D4889B" : "#6BA8BC"} />
-                            <rect x="30" y="89" width="60" height="6" fill={isFemale ? "#D4889B" : "#6BA8BC"} />
-                          </>
-                        )}
-                        {/* Arms */}
-                        <rect x="10" y="55" width="18" height="45" rx="4" fill="#F5D0C5" />
-                        <rect x="92" y="55" width="18" height="45" rx="4" fill="#F5D0C5" />
-                        {/* Head */}
-                        <rect x="35" y="2" width="50" height="50" rx="8" fill="#F5D0C5" />
-                        {/* Default hair — gender based */}
-                        {!avatarState?.hair_thumbnail && !avatarState?.head_thumbnail && (
-                          isFemale ? (
+                    {renderingCustom ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Rendering avatar...</p>
+                      </div>
+                    ) : (
+                      <div className="relative" style={{ width: 180, height: 270 }}>
+                        <svg width="180" height="270" viewBox="0 0 120 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          {/* Legs */}
+                          <rect x="32" y="108" width="25" height="70" rx="4" fill="#8B4513" />
+                          <rect x="63" y="108" width="25" height="70" rx="4" fill="#8B4513" />
+                          {/* Body */}
+                          <rect x="30" y="55" width="60" height="50" rx="4" fill={isFemale ? "#C4679A" : "#4A90A4"} />
+                          <rect x="30" y="65" width="60" height="6" fill={isFemale ? "#D4889B" : "#6BA8BC"} />
+                          <rect x="30" y="77" width="60" height="6" fill={isFemale ? "#D4889B" : "#6BA8BC"} />
+                          <rect x="30" y="89" width="60" height="6" fill={isFemale ? "#D4889B" : "#6BA8BC"} />
+                          {/* Arms */}
+                          <rect x="10" y="55" width="18" height="45" rx="4" fill="#F5D0C5" />
+                          <rect x="92" y="55" width="18" height="45" rx="4" fill="#F5D0C5" />
+                          {/* Head */}
+                          <rect x="35" y="2" width="50" height="50" rx="8" fill="#F5D0C5" />
+                          {/* Default hair */}
+                          {isFemale ? (
                             <>
                               <ellipse cx="60" cy="12" rx="28" ry="18" fill="#8B4513" />
                               <rect x="32" y="10" width="10" height="40" rx="5" fill="#8B4513" />
@@ -352,56 +424,18 @@ const AvatarPage = () => {
                               <ellipse cx="60" cy="5" rx="20" ry="12" fill="#B85C38" />
                               <circle cx="75" cy="8" r="12" fill="#B85C38" />
                             </>
-                          )
-                        )}
-                        {/* Default face */}
-                        {!avatarState?.face_thumbnail && (
-                          <>
-                            <circle cx="48" cy="30" r="3" fill="#393939" />
-                            <circle cx="72" cy="30" r="3" fill="#393939" />
-                            <path d="M52 40 Q60 48 68 40" stroke="#393939" strokeWidth="2" fill="none" />
-                          </>
-                        )}
-                      </svg>
-
-                      {/* Item layers */}
-                      {avatarState?.pants_thumbnail && (
-                        <img src={avatarState.pants_thumbnail} alt="pants"
-                          style={{ position: "absolute", left: 42, top: 155, width: 96, height: 115, objectFit: "contain", zIndex: 2 }} />
-                      )}
-                      {avatarState?.shirt_thumbnail && (
-                        <img src={avatarState.shirt_thumbnail} alt="shirt"
-                          style={{ position: "absolute", left: 30, top: 75, width: 120, height: 90, objectFit: "contain", zIndex: 3 }} />
-                      )}
-                      {avatarState?.body_thumbnail && (
-                        <img src={avatarState.body_thumbnail} alt="body"
-                          style={{ position: "absolute", left: 15, top: 45, width: 150, height: 225, objectFit: "contain", zIndex: 4 }} />
-                      )}
-                      {avatarState?.head_thumbnail && (
-                        <img src={avatarState.head_thumbnail} alt="head"
-                          style={{ position: "absolute", left: 48, top: 0, width: 84, height: 84, objectFit: "contain", zIndex: 5 }} />
-                      )}
-                      {avatarState?.face_thumbnail && (
-                        <img src={avatarState.face_thumbnail} alt="face"
-                          style={{ position: "absolute", left: 55, top: 22, width: 70, height: 50, objectFit: "contain", zIndex: 6 }} />
-                      )}
-                      {avatarState?.hair_thumbnail && (
-                        <img src={avatarState.hair_thumbnail} alt="hair"
-                          style={{ position: "absolute", left: 38, top: -8, width: 104, height: 80, objectFit: "contain", zIndex: 7 }} />
-                      )}
-                      {avatarState?.hat_thumbnail && (
-                        <img src={avatarState.hat_thumbnail} alt="hat"
-                          style={{ position: "absolute", left: 32, top: -16, width: 116, height: 72, objectFit: "contain", zIndex: 8 }} />
-                      )}
-                      {avatarState?.accessory_thumbnail && (
-                        <img src={avatarState.accessory_thumbnail} alt="accessory"
-                          style={{ position: "absolute", left: 20, top: 70, width: 140, height: 100, objectFit: "contain", zIndex: 9 }} />
-                      )}
-                    </div>
+                          )}
+                          {/* Default face */}
+                          <circle cx="48" cy="30" r="3" fill="#393939" />
+                          <circle cx="72" cy="30" r="3" fill="#393939" />
+                          <path d="M52 40 Q60 48 68 40" stroke="#393939" strokeWidth="2" fill="none" />
+                        </svg>
+                      </div>
+                    )}
                   </div>
                 )}
                 <div className="absolute bottom-4 right-4 bg-white dark:bg-gray-800 px-3 py-1 rounded font-semibold text-sm text-gray-900 dark:text-gray-100 z-20">
-                  {robloxThumbnail ? "3D" : "2D"}
+                  {showRobloxAvatar ? "Roblox" : showCustomRender ? "R15" : "2D"}
                 </div>
               </div>
 
