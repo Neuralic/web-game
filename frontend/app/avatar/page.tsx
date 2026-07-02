@@ -125,10 +125,7 @@ const AvatarPage = () => {
       state.accessory_asset_id,
     ].filter(Boolean).map(id => parseInt(id!));
 
-    if (assetIds.length === 0) {
-      setCustomAvatarUrl(null);
-      return;
-    }
+    // Always render — empty array gives default R15 character
 
     setRenderingCustom(true);
     try {
