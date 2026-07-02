@@ -9,7 +9,7 @@ import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
 import VerifiedBadge from "../components/VerifiedBadge";
 import ProtectedRoute from "../components/ProtectedRoute";
-import { usersApi, friendsApi, feedApi, uploadApi } from "@/lib/api";
+import { usersApi, friendsApi, feedApi, uploadApi, storage } from "@/lib/api";
 import { useRealtime } from "@/contexts/RealtimeContext";
 
 const HomePage = () => {
@@ -25,6 +25,7 @@ const HomePage = () => {
   const [feedPostImagePreview, setFeedPostImagePreview] = useState<string | null>(null);
   const [postingFeed, setPostingFeed] = useState(false);
   const { presenceMap } = useRealtime();
+  const [customAvatarUrl, setCustomAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -37,6 +38,31 @@ const HomePage = () => {
 
         if (userResponse.success && userResponse.data) {
           setUser(userResponse.data.user);
+          // Fetch avatar and render custom
+          const token = storage.getAccessToken();
+          if (token) {
+            const avatarRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'}/avatar`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            const avatarData = await avatarRes.json();
+            if (avatarData.success && avatarData.data?.avatarState) {
+              const state = avatarData.data.avatarState;
+              const assetIds = [
+                state.hair_asset_id, state.face_asset_id, state.head_asset_id,
+                state.hat_asset_id, state.body_asset_id, state.shirt_asset_id,
+                state.pants_asset_id, state.accessory_asset_id,
+              ].filter(Boolean).map((id: string) => parseInt(id));
+              if (assetIds.length > 0) {
+                const renderRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'}/avatar/render-custom`, {
+                  method: "POST",
+                  headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+                  body: JSON.stringify({ assetIds }),
+                });
+                const renderData = await renderRes.json();
+                if (renderData.success && renderData.imageUrl) setCustomAvatarUrl(renderData.imageUrl);
+              }
+            }
+          }
         }
 
         if (friendsResponse.success && friendsResponse.data) {
@@ -146,12 +172,16 @@ const HomePage = () => {
             <section className="mb-8">
               <div className="flex items-center gap-4">
                 <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-700 relative flex-shrink-0">
-                  <Image
-                    src={user?.avatar_url || `https://robohash.org/${user?.username || 'user'}?set=set3`}
-                    alt={user?.username || "User"}
-                    fill
-                    className="object-cover"
-                  />
+                  {customAvatarUrl ? (
+                    <img src={customAvatarUrl} alt={user?.username || "User"} className="w-full h-full object-contain" />
+                  ) : (
+                    <Image
+                      src={user?.avatar_url || `https://robohash.org/${user?.username || 'user'}?set=set3`}
+                      alt={user?.username || "User"}
+                      fill
+                      className="object-cover"
+                    />
+                  )}
                 </div>
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
