@@ -190,11 +190,64 @@ const ProfilePage = () => {
       setAvatarLoading(true);
       try {
         if (isOwnProfile) {
+        const token = storage.getAccessToken();
+        if (!token) { setAvatarLoading(false); return; }
+        const res = await fetch(`${API_BASE}/avatar`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (data.success && data.data?.avatarState) {
+          const state = data.data.avatarState;
+          setAvatarState(state);
+          if (state.roblox_user_id) {
+            fetch(`${API_BASE}/avatar/roblox-3d/${state.roblox_user_id}`)
+              .then(r => r.json())
+              .then(d => { if (d.success && d.imageUrl) setRobloxHeadshotUrl(d.imageUrl); })
+              .catch(() => {});
+          }
+          const assetIds = [
+            state.hair_asset_id, state.face_asset_id, state.head_asset_id,
+            state.hat_asset_id, state.body_asset_id, state.shirt_asset_id,
+            state.pants_asset_id, state.accessory_asset_id,
+          ].filter(Boolean).map((id: string) => parseInt(id));
+          fetch(`${API_BASE}/avatar/render-custom`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ assetIds }),
+          }).then(r => r.json()).then(d => {
+            if (d.success && d.imageUrl) setCustomAvatarUrl(d.imageUrl);
+          }).catch(() => {});
+        }
+      } else if (profileUser?.id) {
+        // Fetch other user's public avatar state
+        const res = await fetch(`${API_BASE}/avatar/public/${profileUser.id}`);
+        const data = await res.json();
+        if (data.success && data.data?.avatarState) {
+          const state = data.data.avatarState;
+          setAvatarState(state);
+          if (state.roblox_user_id) {
+            fetch(`${API_BASE}/avatar/roblox-3d/${state.roblox_user_id}`)
+              .then(r => r.json())
+              .then(d => { if (d.success && d.imageUrl) setRobloxHeadshotUrl(d.imageUrl); })
+              .catch(() => {});
+          }
+          const assetIds = [
+            state.hair_asset_id, state.face_asset_id, state.head_asset_id,
+            state.hat_asset_id, state.body_asset_id, state.shirt_asset_id,
+            state.pants_asset_id, state.accessory_asset_id,
+          ].filter(Boolean).map((id: string) => parseInt(id));
           const token = storage.getAccessToken();
-          if (!token) { setAvatarLoading(false); return; }
-          const res = await fetch(`${API_BASE}/avatar`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
+          if (token) {
+            fetch(`${API_BASE}/avatar/render-custom`, {
+              method: "POST",
+              headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+              body: JSON.stringify({ assetIds }),
+            }).then(r => r.json()).then(d => {
+              if (d.success && d.imageUrl) setCustomAvatarUrl(d.imageUrl);
+            }).catch(() => {});
+          }
+        }
+      }
           const data = await res.json();
           if (data.success && data.data?.avatarState) {
             const state = data.data.avatarState;
@@ -220,7 +273,6 @@ const ProfilePage = () => {
               state.accessory_asset_id,
             ].filter(Boolean).map((id: string) => parseInt(id));
 
-            if (assetIds.length > 0) {
               fetch(`${API_BASE}/avatar/render-custom`, {
                 method: "POST",
                 headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
@@ -230,7 +282,6 @@ const ProfilePage = () => {
               }).catch(() => {});
             }
           }
-        }
       } catch (err) {
         console.error("Failed to fetch avatar state:", err);
       } finally {
