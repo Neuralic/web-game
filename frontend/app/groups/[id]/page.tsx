@@ -705,9 +705,9 @@ const GroupDetailPage = () => {
         {/* Main Content - 75% width, Only Scrollable Section */}
         <div className="w-3/4 ml-[25%]">
           <div className="bg-white dark:bg-gray-900">
-          {/* Cover Photo - Full width if exists */}
-          {currentGroup?.cover_photo_url && (
-            <div className="w-full h-[200px] relative overflow-hidden">
+          {/* Cover Banner - Full width, always show with fallback gradient */}
+          <div className="w-full h-[200px] relative overflow-hidden bg-gradient-to-br from-blue-600 to-blue-800">
+            {currentGroup?.cover_photo_url && (
               <Image
                 src={currentGroup.cover_photo_url}
                 alt={`${currentGroup.name} cover`}
@@ -716,14 +716,15 @@ const GroupDetailPage = () => {
                 sizes="100vw"
                 priority
               />
-            </div>
-          )}
+            )}
+            <div className="absolute inset-0 bg-black/20" />
+          </div>
 
           {/* Group Header */}
-          <div className="flex items-start gap-4 p-6 border-b border-gray-100 dark:border-gray-800">
+          <div className="flex items-start gap-4 px-6 pb-6 border-b border-gray-100 dark:border-gray-800 -mt-12 relative z-10">
             {currentGroup ? (
               <>
-                <div className="w-[120px] h-[120px] border border-gray-100 dark:border-gray-800 rounded overflow-hidden flex-shrink-0 bg-gray-100 dark:bg-gray-700 relative">
+                <div className="w-[120px] h-[120px] border-4 border-white dark:border-gray-900 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100 dark:bg-gray-700 relative shadow-lg">
                   {currentGroup.icon_url ? (
                     <Image
                       src={currentGroup.icon_url}
@@ -740,17 +741,12 @@ const GroupDetailPage = () => {
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                  <h1 className="text-xl font-semibold text-white drop-shadow-md">
                     {currentGroup.name}
                   </h1>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  <p className="text-sm text-white/80 mt-1">
                     By{" "}
-                    <a
-                      href={`/profile/${currentGroup.owner_username}`}
-                      className="text-blue-600 dark:text-blue-400 hover:underline"
-                    >
-                      {currentGroup.owner_display_name || currentGroup.owner_username}
-                    </a>
+                    <a href={`/profile/${currentGroup.owner_username}`} className="text-white hover:underline">{currentGroup.owner_display_name || currentGroup.owner_username}</a>
                   </p>
 
                   <div className="flex gap-8 mt-4">
