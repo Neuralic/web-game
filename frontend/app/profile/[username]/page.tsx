@@ -18,6 +18,7 @@ import Footer from "../../components/Footer";
 import Sidebar from "../../components/Sidebar";
 import Header from "../../components/Header";
 import VerifiedBadge from "../../components/VerifiedBadge";
+import UserAvatar from "../../components/UserAvatar";
 import { usersApi, friendsApi, groupsApi, storage } from "@/lib/api";
 import { openChatWithUser } from "@/app/components/ChatWidget";
 import { useParams, useRouter } from "next/navigation";
@@ -63,7 +64,7 @@ const ProfilePage = () => {
   const params = useParams();
   const profileUsername = params?.username as string;
   const router = useRouter();
-  
+
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("About");
@@ -75,7 +76,7 @@ const ProfilePage = () => {
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const menuRef = useRef<HTMLDivElement>(null);
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
-  
+
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [profileUser, setProfileUser] = useState<any>(null);
   const [displayName, setDisplayName] = useState("");
@@ -99,9 +100,8 @@ const ProfilePage = () => {
   const [avatarState, setAvatarState] = useState<AvatarStateData | null>(null);
   const [avatarLoading, setAvatarLoading] = useState(true);
   const [userGender, setUserGender] = useState<string | null>(null);
-  const [robloxHeadshotUrl, setRobloxHeadshotUrl] = useState<string | null>(null);
   const [customAvatarUrl, setCustomAvatarUrl] = useState<string | null>(null);
-  
+
   const [relationship, setRelationship] = useState<{
     isFriend: boolean;
     friendRequestStatus: 'sent' | 'received' | null;
@@ -110,7 +110,7 @@ const ProfilePage = () => {
     isBlocked: boolean;
   } | null>(null);
   const [isLoadingAction, setIsLoadingAction] = useState(false);
-  
+
   const realtimePresence = useUserPresence(profileUser?.id);
 
   useEffect(() => {
@@ -150,7 +150,7 @@ const ProfilePage = () => {
           }
           setUserGender(currentUserData.gender || null);
           setRelationship(null);
-	} else if (viewedUser) {
+        } else if (viewedUser) {
           if (viewedUser?.user_number && !/^\d+$/.test(profileUsername)) {
             router.replace(`/profile/${viewedUser.user_number}`);
           }
@@ -184,71 +184,62 @@ const ProfilePage = () => {
     }
   }, [profileUsername]);
 
-  // Fetch avatar state
+  // Fetch avatar state (own profile only — for Currently Wearing panel)
   useEffect(() => {
     const fetchAvatarState = async () => {
       setAvatarLoading(true);
       try {
         if (isOwnProfile) {
-        const token = storage.getAccessToken();
-        if (!token) { setAvatarLoading(false); return; }
-        const res = await fetch(`${API_BASE}/avatar`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        if (data.success && data.data?.avatarState) {
-          const state = data.data.avatarState;
-          setAvatarState(state);
-          if (state.roblox_user_id) {
-            fetch(`${API_BASE}/avatar/roblox-3d/${state.roblox_user_id}`)
-              .then(r => r.json())
-              .then(d => { if (d.success && d.imageUrl) setRobloxHeadshotUrl(d.imageUrl); })
-              .catch(() => {});
-          }
-          const assetIds = [
-            state.hair_asset_id, state.face_asset_id, state.head_asset_id,
-            state.hat_asset_id, state.body_asset_id, state.shirt_asset_id,
-            state.pants_asset_id, state.accessory_asset_id,
-          ].filter(Boolean).map((id: string) => parseInt(id));
-          fetch(`${API_BASE}/avatar/render-custom`, {
-            method: "POST",
-            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ assetIds }),
-          }).then(r => r.json()).then(d => {
-            if (d.success && d.imageUrl) setCustomAvatarUrl(d.imageUrl);
-          }).catch(() => {});
-        }
-      } else if (profileUser?.id) {
-        // Fetch other user's public avatar state
-        const res = await fetch(`${API_BASE}/avatar/public/${profileUser.id}`);
-        const data = await res.json();
-        if (data.success && data.data?.avatarState) {
-          const state = data.data.avatarState;
-          setAvatarState(state);
-          if (state.roblox_user_id) {
-            fetch(`${API_BASE}/avatar/roblox-3d/${state.roblox_user_id}`)
-              .then(r => r.json())
-              .then(d => { if (d.success && d.imageUrl) setRobloxHeadshotUrl(d.imageUrl); })
-              .catch(() => {});
-          }
-          const assetIds = [
-            state.hair_asset_id, state.face_asset_id, state.head_asset_id,
-            state.hat_asset_id, state.body_asset_id, state.shirt_asset_id,
-            state.pants_asset_id, state.accessory_asset_id,
-          ].filter(Boolean).map((id: string) => parseInt(id));
           const token = storage.getAccessToken();
-          if (token) {
-            fetch(`${API_BASE}/avatar/render-custom`, {
-              method: "POST",
-              headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-              body: JSON.stringify({ assetIds }),
-            }).then(r => r.json()).then(d => {
-              if (d.success && d.imageUrl) setCustomAvatarUrl(d.imageUrl);
-            }).catch(() => {});
+          if (!token) { setAvatarLoading(false); return; }
+          const res = await fetch(`${API_BASE}/avatar`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const data = await res.json();
+          if (data.success && data.data?.avatarState) {
+            const state = data.data.avatarState;
+            setAvatarState(state);
+            const assetIds = [
+              state.hair_asset_id, state.face_asset_id, state.head_asset_id,
+              state.hat_asset_id, state.body_asset_id, state.shirt_asset_id,
+              state.pants_asset_id, state.accessory_asset_id,
+            ].filter(Boolean).map((id: string) => parseInt(id));
+            if (assetIds.length > 0) {
+              fetch(`${API_BASE}/avatar/render-custom`, {
+                method: "POST",
+                headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+                body: JSON.stringify({ assetIds }),
+              }).then(r => r.json()).then(d => {
+                if (d.success && d.imageUrl) setCustomAvatarUrl(d.imageUrl);
+              }).catch(() => {});
+            }
+          }
+        } else if (profileUser?.id) {
+          const res = await fetch(`${API_BASE}/avatar/public/${profileUser.id}`);
+          const data = await res.json();
+          if (data.success && data.data?.avatarState) {
+            const state = data.data.avatarState;
+            setAvatarState(state);
+            const assetIds = [
+              state.hair_asset_id, state.face_asset_id, state.head_asset_id,
+              state.hat_asset_id, state.body_asset_id, state.shirt_asset_id,
+              state.pants_asset_id, state.accessory_asset_id,
+            ].filter(Boolean).map((id: string) => parseInt(id));
+            if (assetIds.length > 0) {
+              const token = storage.getAccessToken();
+              if (token) {
+                fetch(`${API_BASE}/avatar/render-custom`, {
+                  method: "POST",
+                  headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+                  body: JSON.stringify({ assetIds }),
+                }).then(r => r.json()).then(d => {
+                  if (d.success && d.imageUrl) setCustomAvatarUrl(d.imageUrl);
+                }).catch(() => {});
+              }
+            }
           }
         }
-      }
-	} catch (err) {
+      } catch (err) {
         console.error("Failed to fetch avatar state:", err);
       } finally {
         setAvatarLoading(false);
@@ -277,7 +268,7 @@ const ProfilePage = () => {
     const fetchFriends = async () => {
       if (!profileUser?.id) return;
       try {
-        const friendsResponse = isOwnProfile 
+        const friendsResponse = isOwnProfile
           ? await friendsApi.getFriends()
           : await friendsApi.getUserFriends(profileUser.id);
         if (friendsResponse.success && friendsResponse.data) {
@@ -285,7 +276,6 @@ const ProfilePage = () => {
             id: friend.id,
             name: friend.display_name || friend.username,
             username: friend.username,
-            avatar: friend.avatar_url || `https://robohash.org/${friend.username}?set=set3`,
             status: "offline",
           }));
           setFriends(realFriends);
@@ -452,7 +442,6 @@ const ProfilePage = () => {
     },
   ];
 
-  // Build list of equipped item thumbnails
   const currentlyWearing = avatarState
     ? [
         avatarState.hat_thumbnail && { id: "hat", thumb: avatarState.hat_thumbnail },
@@ -628,10 +617,7 @@ const ProfilePage = () => {
     }
   };
 
-  const isFemale = userGender === "female";
   const hasRobloxLinked = !!avatarState?.roblox_user_id;
-
-  // Determine avatar display mode
   const avatarBadge = hasRobloxLinked ? "Roblox" : customAvatarUrl ? "R15" : "2D";
 
   return (
@@ -670,19 +656,22 @@ const ProfilePage = () => {
           )}
 
           <div className="px-4">
+            {/* Profile Header */}
             <div className="flex items-start gap-6 py-6 border-b border-gray-200 dark:border-gray-800">
               <div className="relative">
-                <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700">
-                  {robloxHeadshotUrl ? (
-                    <img src={robloxHeadshotUrl} alt={username || "User Avatar"} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className={`w-full h-full flex items-center justify-center text-3xl ${isFemale ? "bg-pink-100 dark:bg-pink-900/30" : "bg-blue-100 dark:bg-blue-900/30"}`}>
-                      👤
-                    </div>
-                  )}
-                </div>
+                {/* Profile pic — always R15 via UserAvatar */}
+                <UserAvatar
+                  userId={profileUser?.id || ""}
+                  username={displayName || username}
+                  size={96}
+                  className="border-2 border-gray-200 dark:border-gray-700"
+                />
                 {getPresenceStatus() && (
-                  <div className={`absolute w-7 h-7 ${getPresenceStatus()?.color} rounded-full flex items-center justify-center border-2 border-white dark:border-gray-900`} style={{ bottom: "-3.5px", right: "-3.5px" }} title={getPresenceStatus()?.label}>
+                  <div
+                    className={`absolute w-7 h-7 ${getPresenceStatus()?.color} rounded-full flex items-center justify-center border-2 border-white dark:border-gray-900`}
+                    style={{ bottom: "-3.5px", right: "-3.5px" }}
+                    title={getPresenceStatus()?.label}
+                  >
                     {getPresenceStatus()?.hasIcon && <FontAwesomeIcon icon={faGamepad} className="text-white text-xs" />}
                   </div>
                 )}
@@ -813,8 +802,6 @@ const ProfilePage = () => {
                             {link.platform === 'youtube' && <svg className="w-6 h-6" viewBox="0 0 24 24" fill="#FF0000"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" /></svg>}
                             {link.platform === 'twitter' && <svg className="w-6 h-6" viewBox="0 0 24 24" fill="#1DA1F2"><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z" /></svg>}
                             {link.platform === 'twitch' && <svg className="w-6 h-6" viewBox="0 0 24 24" fill="#9146FF"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z" /></svg>}
-                            {link.platform === 'discord' && <svg className="w-6 h-6" viewBox="0 0 24 24" fill="#5865F2"><path d="M20.317 4.37a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037A19.736 19.736 0 003.677 4.37a.07.07 0 00-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.107 13.107 0 01-1.872-.892.077.077 0 01-.008-.128 10.2 10.2 0 00.372-.292.074.074 0 01.077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.01c.12.098.246.198.373.292a.077.077 0 01-.006.127 12.299 12.299 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.839 19.839 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" /></svg>}
-                            {link.platform === 'github' && <svg className="w-6 h-6 text-gray-900 dark:text-gray-100" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" /></svg>}
                             {!['youtube', 'twitter', 'twitch', 'discord', 'github'].includes(link.platform) && <svg className="w-6 h-6 text-gray-600 dark:text-gray-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 22C6.486 22 2 17.514 2 12S6.486 2 12 2s10 4.486 10 10-4.486 10-10 10zm1-11h4v2h-4v4h-2v-4H7v-2h4V7h2v4z" /></svg>}
                           </a>
                         ))}
@@ -841,6 +828,7 @@ const ProfilePage = () => {
                   )}
                 </div>
 
+                {/* Currently Wearing */}
                 <div className="py-6 border-b border-gray-200 dark:border-gray-800">
                   <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Currently Wearing</h2>
                   <div className="flex gap-6">
@@ -856,13 +844,7 @@ const ProfilePage = () => {
                           <div className="flex items-center justify-center h-48 mt-6">
                             <div className="w-6 h-6 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
                           </div>
-                        ) : !isOwnProfile ? (
-                          <div className="flex justify-center items-center h-48 mt-6">
-                            <div className="w-24 h-24 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-5xl">
-                              👤
-                            </div>
-                          </div>
-                        ) : hasRobloxLinked ? (
+                        ) : hasRobloxLinked && isOwnProfile ? (
                           <div className="relative h-48 mt-6">
                             <RobloxAvatar3D robloxUserId={avatarState!.roblox_user_id!} />
                           </div>
@@ -872,9 +854,7 @@ const ProfilePage = () => {
                           </div>
                         ) : (
                           <div className="flex justify-center items-center h-48 mt-6">
-                            <div className="w-24 h-24 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-5xl">
-                              👤
-                            </div>
+                            <UserAvatar userId={profileUser?.id || ""} username={displayName || username} size={160} />
                           </div>
                         )}
                       </div>
@@ -897,18 +877,17 @@ const ProfilePage = () => {
                   </div>
                 </div>
 
+                {/* Friends section */}
                 <div className="py-6 border-b border-gray-200 dark:border-gray-800">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Friends ({friends.length})</h2>
                     <Link href={isOwnProfile ? "/friends" : `/friends?userId=${profileUser?.id}`} className="flex items-center gap-1 text-sm text-gray-900 dark:text-gray-100 hover:underline">See All<ChevronRight className="w-4 h-4" /></Link>
                   </div>
-                  <div className="flex gap-6">
+                  <div className="flex gap-4 flex-wrap">
                     {friends.map((connection) => (
                       <Link key={connection.id} href={`/profile/${connection.username}`} className="flex flex-col items-center cursor-pointer group">
                         <div className="relative">
-                          <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 group-hover:border-gray-400 dark:group-hover:border-gray-500 transition-colors">
-                            <Image src={connection.avatar} alt={connection.name} fill className="object-cover" />
-                          </div>
+                          <UserAvatar userId={connection.id} username={connection.name} size={64} />
                           {connection.status && connection.status !== "offline" && (
                             <div className={`absolute w-4 h-4 rounded-full border-2 border-white dark:border-gray-900 ${connection.status === "online-game" ? "bg-green-500" : connection.status === "online" ? "bg-blue-500" : connection.status === "studio" ? "bg-orange-500" : "bg-gray-400"}`} style={{ bottom: "-2px", right: "-2px" }} />
                           )}
