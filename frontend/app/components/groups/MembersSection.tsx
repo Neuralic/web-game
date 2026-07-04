@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight, ChevronDown, Loader2 } from "lucide-react";
-import Image from "next/image";
 import { groupsApi } from "@/lib/api";
-
+import UserAvatar from "../UserAvatar";
 interface Member {
   id: string;
   user_id: string;
@@ -106,9 +105,7 @@ export default function MembersSection({ groupId }: MembersSectionProps) {
         {filteredMembers.length > 0 ? (
           filteredMembers.map((member) => (
             <a key={member.id} href={`/profile/${member.username}`} className="group flex flex-col items-center">
-              <div className="w-[110px] h-[110px] border border-gray-200 dark:border-gray-700 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 relative">
-                <Image src={`https://robohash.org/${member.username}?set=set3`} alt={member.display_name || member.username} fill className="object-cover group-hover:opacity-90 transition-opacity" sizes="110px" />
-              </div>
+              <UserAvatar userId={member.user_id} username={member.display_name || member.username} size={110} />
               <p className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-1 truncate w-[110px] text-center">
                 {member.display_name || member.username}
               </p>
