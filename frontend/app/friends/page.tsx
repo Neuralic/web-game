@@ -8,6 +8,7 @@ import Footer from "../components/Footer";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
 import { friendsApi, usersApi } from "@/lib/api";
+import UserAvatar from "../components/UserAvatar";
 import { useRealtime } from "@/contexts/RealtimeContext";
 
 function FriendsPageContent() {
@@ -17,41 +18,34 @@ function FriendsPageContent() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(tabFromUrl || "Friends");
   const [connectionSearch, setConnectionSearch] = useState("");
-  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { presenceMap } = useRealtime();
 
-  // State for real API data
   const [friends, setFriends] = useState<any[]>([]);
   const [following, setFollowing] = useState<any[]>([]);
   const [followers, setFollowers] = useState<any[]>([]);
   const [receivedRequests, setReceivedRequests] = useState<any[]>([]);
   const [sentRequests, setSentRequests] = useState<any[]>([]);
 
-
-
-
   const tabs = ["Friends", "Following", "Followers", "Requests"];
 
-  // Update active tab when URL parameter changes
   useEffect(() => {
     if (tabFromUrl && tabs.includes(tabFromUrl)) {
       setActiveTab(tabFromUrl);
     }
   }, [tabFromUrl]);
 
-  // Fetch data when tab changes
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
         if (activeTab === "Friends") {
           const userId = searchParams.get('userId');
-	  const response = userId
-  	  	? await friendsApi.getUserFriends(userId)
-  	  	: await friendsApi.getFriends();
+          const response = userId
+            ? await friendsApi.getUserFriends(userId)
+            : await friendsApi.getFriends();
           if (response.success && response.data) {
-            // Normalize API data to match UI format
             const realFriends = (response.data.friends || []).map((friend: any) => {
               const presence = presenceMap.get(friend.id);
               const status = presence?.presenceStatus || 'offline';
@@ -61,7 +55,6 @@ function FriendsPageContent() {
                 username: `@${friend.username}`,
                 status: status === 'online' ? 'Online' : status === 'in-game' ? 'Playing' : 'Offline',
                 statusType: status,
-                avatar: friend.avatar_url || `https://robohash.org/${friend.username}?set=set3`,
               };
             });
             setFriends(realFriends);
@@ -80,7 +73,6 @@ function FriendsPageContent() {
                 username: `@${user.username}`,
                 status: status === 'online' ? 'Online' : status === 'in-game' ? 'Playing' : 'Offline',
                 statusType: status,
-                avatar: user.avatar_url || `https://robohash.org/${user.username}?set=set3`,
                 isVerified: user.is_verified,
               };
             });
@@ -100,7 +92,6 @@ function FriendsPageContent() {
                 username: `@${user.username}`,
                 status: status === 'online' ? 'Online' : status === 'in-game' ? 'Playing' : 'Offline',
                 statusType: status,
-                avatar: user.avatar_url || `https://robohash.org/${user.username}?set=set3`,
                 isVerified: user.is_verified,
               };
             });
@@ -111,7 +102,6 @@ function FriendsPageContent() {
         } else if (activeTab === "Requests") {
           const response = await friendsApi.getFriendRequests();
           if (response.success && response.data) {
-            // Normalize API data to match UI format
             const realRequests = (response.data.received || []).map((req: any) => ({
               id: req.sender_id,
               request_id: req.id,
@@ -119,7 +109,6 @@ function FriendsPageContent() {
               username: `@${req.sender_username}`,
               status: "Offline",
               statusType: "offline",
-              avatar: req.sender_avatar_url || `https://robohash.org/${req.sender_username}?set=set3`,
             }));
             setReceivedRequests(realRequests);
             setSentRequests(response.data.sent || []);
@@ -129,7 +118,6 @@ function FriendsPageContent() {
         }
       } catch (error) {
         console.error("Error fetching data:", error);
-        // Set empty arrays on error
         if (activeTab === "Friends") setFriends([]);
         if (activeTab === "Following") setFollowing([]);
         if (activeTab === "Followers") setFollowers([]);
@@ -142,32 +130,27 @@ function FriendsPageContent() {
     fetchData();
   }, [activeTab, presenceMap]);
 
-  // Handle accept friend request
   const handleAcceptRequest = async (requestId: string) => {
     try {
       const response = await friendsApi.acceptFriendRequest(requestId);
       if (response.success) {
-        // Refresh both requests AND friends list
         const [requestsResponse, friendsResponse] = await Promise.all([
           friendsApi.getFriendRequests(),
           friendsApi.getFriends()
         ]);
 
-        // Update requests
         if (requestsResponse.success && requestsResponse.data) {
           const realRequests = (requestsResponse.data.received || []).map((req: any) => ({
             id: req.sender_id,
-            request_id: req.id,  // fr.id from the API
+            request_id: req.id,
             name: req.sender_display_name || req.sender_username,
             username: `@${req.sender_username}`,
             status: "Offline",
             statusType: "offline",
-            avatar: req.sender_avatar_url || `https://robohash.org/${req.sender_username}?set=set3`,
           }));
           setReceivedRequests(realRequests);
         }
 
-        // Update friends with presence
         if (friendsResponse.success && friendsResponse.data) {
           const realFriends = (friendsResponse.data.friends || []).map((friend: any) => {
             const presence = presenceMap.get(friend.id);
@@ -178,7 +161,6 @@ function FriendsPageContent() {
               username: `@${friend.username}`,
               status: status === 'online' ? 'Online' : status === 'in-game' ? 'Playing' : 'Offline',
               statusType: status,
-              avatar: friend.avatar_url || `https://robohash.org/${friend.username}?set=set3`,
             };
           });
           setFriends(realFriends);
@@ -189,23 +171,19 @@ function FriendsPageContent() {
     }
   };
 
-  // Handle decline friend request
   const handleDeclineRequest = async (requestId: string) => {
     try {
       const response = await friendsApi.declineFriendRequest(requestId);
       if (response.success) {
-        // Refresh requests
         const requestsResponse = await friendsApi.getFriendRequests();
         if (requestsResponse.success && requestsResponse.data) {
-          // Normalize API data
           const realRequests = (requestsResponse.data.received || []).map((req: any) => ({
             id: req.sender_id,
-            request_id: req.id,  // fr.id from the API
+            request_id: req.id,
             name: req.sender_display_name || req.sender_username,
             username: `@${req.sender_username}`,
             status: "Offline",
             statusType: "offline",
-            avatar: req.sender_avatar_url || `https://robohash.org/${req.sender_username}?set=set3`,
           }));
           setReceivedRequests(realRequests);
         }
@@ -217,16 +195,11 @@ function FriendsPageContent() {
 
   const getCurrentData = () => {
     switch (activeTab) {
-      case "Friends":
-        return friends;
-      case "Following":
-        return following;
-      case "Followers":
-        return followers;
-      case "Requests":
-        return receivedRequests;
-      default:
-        return friends;
+      case "Friends": return friends;
+      case "Following": return following;
+      case "Followers": return followers;
+      case "Requests": return receivedRequests;
+      default: return friends;
     }
   };
 
@@ -234,17 +207,13 @@ function FriendsPageContent() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
-      {/* Sidebar */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-
-      {/* Header */}
       <Header
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         setSidebarOpen={setSidebarOpen}
       />
 
-      {/* Main Content */}
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-8">
         <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-8">
           My Friends
@@ -302,13 +271,11 @@ function FriendsPageContent() {
               key={user.id}
               className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6 hover:shadow-lg transition-shadow border border-gray-200 dark:border-gray-700 relative"
             >
-              {/* 3-dot menu for Friends and Following */}
+              {/* 3-dot menu */}
               {(activeTab === "Friends" || activeTab === "Following") && (
                 <div className="absolute top-4 right-4">
                   <button
-                    onClick={() =>
-                      setOpenMenuId(openMenuId === user.id ? null : user.id)
-                    }
+                    onClick={() => setOpenMenuId(openMenuId === user.id ? null : user.id)}
                     className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
                   >
                     <MoreHorizontal className="w-5 h-5 text-gray-600 dark:text-gray-400" />
@@ -316,10 +283,7 @@ function FriendsPageContent() {
 
                   {openMenuId === user.id && (
                     <>
-                      <div
-                        className="fixed inset-0 z-10"
-                        onClick={() => setOpenMenuId(null)}
-                      />
+                      <div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)} />
                       <div className="absolute right-0 mt-1 w-32 bg-white dark:bg-gray-700 rounded shadow-lg border border-gray-200 dark:border-gray-600 z-20">
                         <button
                           onClick={() => setOpenMenuId(null)}
@@ -334,34 +298,31 @@ function FriendsPageContent() {
               )}
 
               <div className="flex flex-col items-center text-center">
+                {/* Avatar with status dot */}
                 <Link
                   href={`/profile/${user.username.replace('@', '')}`}
-                  className="relative w-24 h-24 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 mb-3 cursor-pointer hover:opacity-90 transition-opacity"
+                  className="relative mb-3 block hover:opacity-90 transition-opacity"
                 >
-                  <img
-                    src={user.avatar}
-                    alt={user.name}
-                    className="w-full h-full object-cover"
-                  />
-                  {/* Status Dot */}
-                  {user.statusType && user.statusType !== "offline" && (
-                    <div
-                      className={`absolute w-5 h-5 rounded-full border-2 border-white dark:border-gray-900 ${
-                        user.statusType === "online-game"
-                          ? "bg-green-500"
-                          : user.statusType === "online"
-                            ? "bg-blue-500"
-                            : user.statusType === "studio"
-                              ? "bg-orange-500"
-                              : "bg-gray-400"
-                      }`}
-                      style={{ bottom: "-2.5px", right: "-2.5px" }}
-                    />
-                  )}
+                  <div className="relative inline-block">
+                    <UserAvatar userId={user.id} username={user.name} size={96} />
+                    {user.statusType && user.statusType !== "offline" && (
+                      <div
+                        className={`absolute w-5 h-5 rounded-full border-2 border-white dark:border-gray-900 ${
+                          user.statusType === "online-game"
+                            ? "bg-green-500"
+                            : user.statusType === "online"
+                              ? "bg-blue-500"
+                              : user.statusType === "studio"
+                                ? "bg-orange-500"
+                                : "bg-gray-400"
+                        }`}
+                        style={{ bottom: "2px", right: "2px" }}
+                      />
+                    )}
+                  </div>
                 </Link>
 
                 <div className="flex items-center gap-2 mb-1">
-                  {/* Status Dot before name */}
                   <div
                     className={`w-2 h-2 rounded-full ${
                       user.statusType === "online-game"
@@ -380,9 +341,7 @@ function FriendsPageContent() {
                     {user.name}
                   </Link>
                 </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                  {user.username}
-                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{user.username}</p>
                 <p
                   className={`text-sm font-medium ${
                     user.statusType === "online-game"
@@ -397,17 +356,12 @@ function FriendsPageContent() {
                   {user.status}
                 </p>
 
-                {/* Action buttons only for Requests */}
+                {/* Action buttons for Requests */}
                 {activeTab === "Requests" && (
                   <div className="flex gap-2 mt-4 w-full">
                     <button
                       onClick={() => {
-                        console.log("Decline clicked, user:", user);
-                        if (user.request_id) {
-                          handleDeclineRequest(user.request_id);
-                        } else {
-                          console.error("No request_id found for user:", user);
-                        }
+                        if (user.request_id) handleDeclineRequest(user.request_id);
                       }}
                       className="flex-1 p-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 rounded transition-colors flex items-center justify-center"
                     >
@@ -415,12 +369,7 @@ function FriendsPageContent() {
                     </button>
                     <button
                       onClick={() => {
-                        console.log("Accept clicked, user:", user);
-                        if (user.request_id) {
-                          handleAcceptRequest(user.request_id);
-                        } else {
-                          console.error("No request_id found for user:", user);
-                        }
+                        if (user.request_id) handleAcceptRequest(user.request_id);
                       }}
                       className="flex-1 p-2 bg-gray-900 dark:bg-gray-100 hover:bg-gray-800 dark:hover:bg-gray-200 text-white dark:text-gray-900 rounded transition-colors flex items-center justify-center"
                     >
@@ -434,7 +383,6 @@ function FriendsPageContent() {
         </div>
       </main>
 
-      {/* Footer */}
       <Footer />
     </div>
   );
