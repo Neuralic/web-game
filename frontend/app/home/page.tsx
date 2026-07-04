@@ -52,15 +52,13 @@ const HomePage = () => {
                 state.hat_asset_id, state.body_asset_id, state.shirt_asset_id,
                 state.pants_asset_id, state.accessory_asset_id,
               ].filter(Boolean).map((id: string) => parseInt(id));
-              if (assetIds.length > 0) {
-                const renderRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'}/avatar/render-custom`, {
-                  method: "POST",
-                  headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-                  body: JSON.stringify({ assetIds }),
-                });
-                const renderData = await renderRes.json();
-                if (renderData.success && renderData.imageUrl) setCustomAvatarUrl(renderData.imageUrl);
-              }
+              const renderRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'}/avatar/render-custom`, {
+                method: "POST",
+                headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+                body: JSON.stringify({ assetIds }),
+              });
+              const renderData = await renderRes.json();
+              if (renderData.success && renderData.imageUrl) setCustomAvatarUrl(renderData.imageUrl);
             }
           }
         }
