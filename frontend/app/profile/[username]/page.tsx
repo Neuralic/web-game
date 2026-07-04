@@ -857,21 +857,10 @@ const ProfilePage = () => {
                             <div className="w-6 h-6 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
                           </div>
                         ) : !isOwnProfile ? (
-                          <div className="flex justify-center items-end h-48 mt-6">
-                            <svg width="100" height="150" viewBox="0 0 120 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <rect x="35" y="0" width="50" height="50" rx="8" fill="#F5D0C5" />
-                              <ellipse cx="60" cy="15" rx="30" ry="20" fill="#B85C38" />
-                              <ellipse cx="60" cy="5" rx="20" ry="12" fill="#B85C38" />
-                              <circle cx="75" cy="8" r="12" fill="#B85C38" />
-                              <circle cx="48" cy="30" r="3" fill="#393939" />
-                              <circle cx="72" cy="30" r="3" fill="#393939" />
-                              <path d="M52 40 Q60 48 68 40" stroke="#393939" strokeWidth="2" fill="none" />
-                              <rect x="30" y="55" width="60" height="50" rx="4" fill="#4A90A4" />
-                              <rect x="10" y="55" width="18" height="45" rx="4" fill="#F5D0C5" />
-                              <rect x="92" y="55" width="18" height="45" rx="4" fill="#F5D0C5" />
-                              <rect x="32" y="108" width="25" height="70" rx="4" fill="#8B4513" />
-                              <rect x="63" y="108" width="25" height="70" rx="4" fill="#8B4513" />
-                            </svg>
+                          <div className="flex justify-center items-center h-48 mt-6">
+                            <div className="w-24 h-24 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-5xl">
+                              👤
+                            </div>
                           </div>
                         ) : hasRobloxLinked ? (
                           <div className="relative h-48 mt-6">
@@ -882,31 +871,10 @@ const ProfilePage = () => {
                             <img src={customAvatarUrl} alt="Avatar" className="h-full object-contain" />
                           </div>
                         ) : (
-                          <div className="flex justify-center items-end h-48 mt-6">
-                            <svg width="100" height="150" viewBox="0 0 120 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <rect x="35" y="0" width="50" height="50" rx="8" fill="#F5D0C5" />
-                              {isFemale ? (
-                                <>
-                                  <ellipse cx="60" cy="12" rx="28" ry="18" fill="#8B4513" />
-                                  <rect x="32" y="10" width="10" height="40" rx="5" fill="#8B4513" />
-                                  <rect x="78" y="10" width="10" height="40" rx="5" fill="#8B4513" />
-                                </>
-                              ) : (
-                                <>
-                                  <ellipse cx="60" cy="15" rx="30" ry="20" fill="#B85C38" />
-                                  <ellipse cx="60" cy="5" rx="20" ry="12" fill="#B85C38" />
-                                  <circle cx="75" cy="8" r="12" fill="#B85C38" />
-                                </>
-                              )}
-                              <circle cx="48" cy="30" r="3" fill="#393939" />
-                              <circle cx="72" cy="30" r="3" fill="#393939" />
-                              <path d="M52 40 Q60 48 68 40" stroke="#393939" strokeWidth="2" fill="none" />
-                              <rect x="30" y="55" width="60" height="50" rx="4" fill={isFemale ? "#C4679A" : "#4A90A4"} />
-                              <rect x="10" y="55" width="18" height="45" rx="4" fill="#F5D0C5" />
-                              <rect x="92" y="55" width="18" height="45" rx="4" fill="#F5D0C5" />
-                              <rect x="32" y="108" width="25" height="70" rx="4" fill="#8B4513" />
-                              <rect x="63" y="108" width="25" height="70" rx="4" fill="#8B4513" />
-                            </svg>
+                          <div className="flex justify-center items-center h-48 mt-6">
+                            <div className="w-24 h-24 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-5xl">
+                              👤
+                            </div>
                           </div>
                         )}
                       </div>
