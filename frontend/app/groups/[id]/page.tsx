@@ -717,7 +717,7 @@ const GroupDetailPage = () => {
                 priority
               />
             )}
-            <div className="absolute inset-0 bg-black/20" />
+            <div className="absolute inset-0 bg-black/40" />
           </div>
 
           {/* Group Header */}
@@ -741,10 +741,10 @@ const GroupDetailPage = () => {
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <h1 className="text-xl font-semibold text-white drop-shadow-md">
+                  <h1 className="text-xl font-semibold text-white" style={{textShadow: '0 2px 4px rgba(0,0,0,0.8)'}}>
                     {currentGroup.name}
                   </h1>
-                  <p className="text-sm text-white/80 mt-1">
+                  <p className="text-sm text-white mt-1" style={{textShadow: '0 1px 3px rgba(0,0,0,0.8)'}}>
                     By{" "}
                     <a href={`/profile/${currentGroup.owner_username}`} className="text-white hover:underline">{currentGroup.owner_display_name || currentGroup.owner_username}</a>
                   </p>
