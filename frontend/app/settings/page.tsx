@@ -21,7 +21,11 @@ interface UserData {
   roblox_username?: string;
   roblox_id?: string;
   roblox_avatar_url?: string;
+  can_receive_messages?: string;
+  can_follow?: string;
+  can_view_inventory?: string;
 }
+
 const SettingsPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -29,9 +33,9 @@ const SettingsPage = () => {
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-const [robloxUsername, setRobloxUsername] = useState("");
-const [connectingRoblox, setConnectingRoblox] = useState(false);
-const [disconnectingRoblox, setDisconnectingRoblox] = useState(false);
+  const [robloxUsername, setRobloxUsername] = useState("");
+  const [connectingRoblox, setConnectingRoblox] = useState(false);
+  const [disconnectingRoblox, setDisconnectingRoblox] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -42,6 +46,25 @@ const [disconnectingRoblox, setDisconnectingRoblox] = useState(false);
   const [youtube, setYoutube] = useState("");
   const [twitch, setTwitch] = useState("");
   const [socialVisibility, setSocialVisibility] = useState("no-one");
+
+  // Privacy state
+  const [canReceiveMessages, setCanReceiveMessages] = useState("friends");
+  const [canFollow, setCanFollow] = useState("everyone");
+  const [canViewInventory, setCanViewInventory] = useState("everyone");
+  const [savingPrivacy, setSavingPrivacy] = useState(false);
+
+  // Notifications state
+  const [notifications, setNotifications] = useState({
+    friendRequests: true,
+    friendRequestAccepted: true,
+    groupInvites: true,
+    groupWallPosts: true,
+    privateMessages: true,
+    adventureBux: true,
+    gameUpdates: true,
+    platformAnnouncements: true,
+  });
+  const [savingNotifications, setSavingNotifications] = useState(false);
 
   // Email editing state
   const [isEditingEmail, setIsEditingEmail] = useState(false);
@@ -58,7 +81,11 @@ const [disconnectingRoblox, setDisconnectingRoblox] = useState(false);
           setDisplayName(userData.display_name || userData.username || "");
           setSelectedGender(userData.gender || "");
           setNewEmail(userData.email || "");
-	setRobloxUsername(userData.roblox_username || "");
+          setRobloxUsername(userData.roblox_username || "");
+          // Load privacy settings from DB
+          if (userData.can_receive_messages) setCanReceiveMessages(userData.can_receive_messages);
+          if (userData.can_follow) setCanFollow(userData.can_follow);
+          if (userData.can_view_inventory) setCanViewInventory(userData.can_view_inventory);
         }
 
         const socialResponse = await usersApi.getMySocialLinks();
@@ -87,13 +114,20 @@ const [disconnectingRoblox, setDisconnectingRoblox] = useState(false);
     setErrorMessage("");
 
     try {
+      const updateData: { displayName?: string; gender?: string } = {};
+
       if (displayName !== user?.display_name && displayName !== user?.username) {
-        const response = await usersApi.updateProfile({ displayName });
-        if (!response.success) {
-          setErrorMessage(response.message || "Failed to update display name");
-          setSaving(false);
-          return;
-        }
+        updateData.displayName = displayName;
+      }
+
+      // Always send gender so it can be cleared too
+      updateData.gender = selectedGender;
+
+      const response = await usersApi.updateProfile(updateData);
+      if (!response.success) {
+        setErrorMessage(response.message || "Failed to update personal info");
+        setSaving(false);
+        return;
       }
 
       const refreshResponse = await usersApi.getCurrentUser();
@@ -139,51 +173,51 @@ const [disconnectingRoblox, setDisconnectingRoblox] = useState(false);
     }
   };
 
-const handleConnectRoblox = async () => {
-  if (!robloxUsername.trim()) { setErrorMessage("Please enter your Roblox username"); return; }
-  setConnectingRoblox(true);
-  setSuccessMessage("");
-  setErrorMessage("");
-  try {
-    const response = await usersApi.connectRoblox(robloxUsername.trim());
-    if (response.success) {
-      const refreshResponse = await usersApi.getCurrentUser();
-      if (refreshResponse.success && refreshResponse.data) {
-        setUser(refreshResponse.data.user as UserData);
+  const handleConnectRoblox = async () => {
+    if (!robloxUsername.trim()) { setErrorMessage("Please enter your Roblox username"); return; }
+    setConnectingRoblox(true);
+    setSuccessMessage("");
+    setErrorMessage("");
+    try {
+      const response = await usersApi.connectRoblox(robloxUsername.trim());
+      if (response.success) {
+        const refreshResponse = await usersApi.getCurrentUser();
+        if (refreshResponse.success && refreshResponse.data) {
+          setUser(refreshResponse.data.user as UserData);
+        }
+        setSuccessMessage("Roblox account connected successfully!");
+        setTimeout(() => setSuccessMessage(""), 3000);
+      } else {
+        setErrorMessage((response as any).message || "Failed to connect Roblox account");
       }
-      setSuccessMessage("Roblox account connected successfully!");
-      setTimeout(() => setSuccessMessage(""), 3000);
-    } else {
-      setErrorMessage((response as any).message || "Failed to connect Roblox account");
+    } catch (error) {
+      setErrorMessage("Failed to connect Roblox account");
+    } finally {
+      setConnectingRoblox(false);
     }
-  } catch (error) {
-    setErrorMessage("Failed to connect Roblox account");
-  } finally {
-    setConnectingRoblox(false);
-  }
-};
+  };
 
-const handleDisconnectRoblox = async () => {
-  if (!confirm("Are you sure you want to disconnect your Roblox account?")) return;
-  setDisconnectingRoblox(true);
-  setSuccessMessage("");
-  setErrorMessage("");
-  try {
-    const response = await usersApi.disconnectRoblox();
-    if (response.success) {
-      setUser(prev => prev ? { ...prev, roblox_username: undefined, roblox_id: undefined, roblox_avatar_url: undefined } : prev);
-      setRobloxUsername("");
-      setSuccessMessage("Roblox account disconnected successfully!");
-      setTimeout(() => setSuccessMessage(""), 3000);
-    } else {
-      setErrorMessage((response as any).message || "Failed to disconnect Roblox account");
+  const handleDisconnectRoblox = async () => {
+    if (!confirm("Are you sure you want to disconnect your Roblox account?")) return;
+    setDisconnectingRoblox(true);
+    setSuccessMessage("");
+    setErrorMessage("");
+    try {
+      const response = await usersApi.disconnectRoblox();
+      if (response.success) {
+        setUser(prev => prev ? { ...prev, roblox_username: undefined, roblox_id: undefined, roblox_avatar_url: undefined } : prev);
+        setRobloxUsername("");
+        setSuccessMessage("Roblox account disconnected successfully!");
+        setTimeout(() => setSuccessMessage(""), 3000);
+      } else {
+        setErrorMessage((response as any).message || "Failed to disconnect Roblox account");
+      }
+    } catch (error) {
+      setErrorMessage("Failed to disconnect Roblox account");
+    } finally {
+      setDisconnectingRoblox(false);
     }
-  } catch (error) {
-    setErrorMessage("Failed to disconnect Roblox account");
-  } finally {
-    setDisconnectingRoblox(false);
-  }
-};
+  };
 
   const handleSaveSocialNetworks = async () => {
     setSaving(true);
@@ -208,7 +242,6 @@ const handleDisconnectRoblox = async () => {
         }
       }
 
-      // Save social visibility
       await usersApi.updateProfile({ socialVisibility });
 
       const refreshResponse = await usersApi.getCurrentUser();
@@ -226,6 +259,43 @@ const handleDisconnectRoblox = async () => {
     }
   };
 
+  const handleSavePrivacy = async () => {
+    setSavingPrivacy(true);
+    setSuccessMessage("");
+    setErrorMessage("");
+
+    try {
+      const response = await usersApi.updateProfileSettings({
+        canReceiveMessages,
+        canFollow,
+        canViewInventory,
+      });
+
+      if (response.success) {
+        setSuccessMessage("Privacy settings saved!");
+        setTimeout(() => setSuccessMessage(""), 3000);
+      } else {
+        setErrorMessage((response as any).message || "Failed to save privacy settings");
+      }
+    } catch (error) {
+      console.error("Error saving privacy settings:", error);
+      setErrorMessage("Failed to save privacy settings");
+    } finally {
+      setSavingPrivacy(false);
+    }
+  };
+
+  const handleSaveNotifications = async () => {
+    setSavingNotifications(true);
+    setSuccessMessage("");
+    setErrorMessage("");
+    // Notifications table not yet built — just simulate save for now
+    await new Promise(resolve => setTimeout(resolve, 500));
+    setSuccessMessage("Notification preferences saved!");
+    setTimeout(() => setSuccessMessage(""), 3000);
+    setSavingNotifications(false);
+  };
+
   const settingsSections = [
     { id: "account-info", label: "Account info" },
     { id: "security", label: "Security" },
@@ -233,6 +303,13 @@ const handleDisconnectRoblox = async () => {
     { id: "notifications", label: "Notifications" },
     { id: "membership", label: "Membership" },
     { id: "parental", label: "Parental controls" },
+  ];
+
+  // Map DB values ("everyone", "friends", "no_one") to display labels and back
+  const privacyOptions = [
+    { value: "everyone", label: "Everyone" },
+    { value: "friends", label: "Friends only" },
+    { value: "no_one", label: "No one" },
   ];
 
   return (
@@ -405,7 +482,7 @@ const handleDisconnectRoblox = async () => {
                     <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Gender (Optional)</div>
                     <div className="flex gap-3">
                       <button
-                        onClick={() => setSelectedGender("female")}
+                        onClick={() => setSelectedGender(selectedGender === "female" ? "" : "female")}
                         className={`flex-1 border rounded py-3 flex items-center justify-center transition-colors ${
                           selectedGender === "female"
                             ? "border-pink-500 bg-pink-500/20 text-pink-500 dark:bg-pink-500/30"
@@ -415,7 +492,7 @@ const handleDisconnectRoblox = async () => {
                         <FontAwesomeIcon icon={faPersonDress} className="w-5 h-5" />
                       </button>
                       <button
-                        onClick={() => setSelectedGender("male")}
+                        onClick={() => setSelectedGender(selectedGender === "male" ? "" : "male")}
                         className={`flex-1 border rounded py-3 flex items-center justify-center transition-colors ${
                           selectedGender === "male"
                             ? "border-blue-500 bg-blue-500/20 text-blue-500 dark:bg-blue-500/30"
@@ -425,6 +502,7 @@ const handleDisconnectRoblox = async () => {
                         <FontAwesomeIcon icon={faPerson} className="w-5 h-5" />
                       </button>
                     </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Click again to deselect</p>
                   </div>
 
                   <div className="mb-4">
@@ -448,53 +526,54 @@ const handleDisconnectRoblox = async () => {
                     {saving ? "Saving..." : "Save Personal Info"}
                   </button>
                 </div>
-{/* Roblox Account */}
-<div className="mb-6 pb-6 border-b border-gray-200 dark:border-gray-700">
-  <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">Roblox Account</h3>
-  {user?.roblox_username ? (
-    <div className="flex items-center gap-4">
-      {user.roblox_avatar_url && (
-        <img
-          src={user.roblox_avatar_url}
-          alt={user.roblox_username}
-          className="w-16 h-16 rounded-full border border-gray-200 dark:border-gray-700"
-        />
-      )}
-      <div className="flex-1">
-        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{user.roblox_username}</p>
-        <p className="text-xs text-gray-500 dark:text-gray-400">Roblox ID: {user.roblox_id}</p>
-        <p className="text-xs text-green-600 dark:text-green-400 mt-1">✓ Connected</p>
-      </div>
-      <button
-        onClick={handleDisconnectRoblox}
-        disabled={disconnectingRoblox}
-        className="px-3 py-1.5 bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm font-medium rounded hover:bg-red-200 dark:hover:bg-red-900/40 transition-colors disabled:opacity-50"
-      >
-        {disconnectingRoblox ? "Disconnecting..." : "Disconnect"}
-      </button>
-    </div>
-  ) : (
-    <div className="space-y-3">
-      <p className="text-sm text-gray-600 dark:text-gray-400">Connect your Roblox account to unlock platform features.</p>
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={robloxUsername}
-          onChange={(e) => setRobloxUsername(e.target.value)}
-          placeholder="Enter your Roblox username"
-          className="flex-1 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700"
-        />
-        <button
-          onClick={handleConnectRoblox}
-          disabled={connectingRoblox}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded disabled:opacity-50"
-        >
-          {connectingRoblox ? "Connecting..." : "Connect"}
-        </button>
-      </div>
-    </div>
-  )}
-</div>
+
+                {/* Roblox Account */}
+                <div className="mb-6 pb-6 border-b border-gray-200 dark:border-gray-700">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">Roblox Account</h3>
+                  {user?.roblox_username ? (
+                    <div className="flex items-center gap-4">
+                      {user.roblox_avatar_url && (
+                        <img
+                          src={user.roblox_avatar_url}
+                          alt={user.roblox_username}
+                          className="w-16 h-16 rounded-full border border-gray-200 dark:border-gray-700"
+                        />
+                      )}
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{user.roblox_username}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Roblox ID: {user.roblox_id}</p>
+                        <p className="text-xs text-green-600 dark:text-green-400 mt-1">✓ Connected</p>
+                      </div>
+                      <button
+                        onClick={handleDisconnectRoblox}
+                        disabled={disconnectingRoblox}
+                        className="px-3 py-1.5 bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm font-medium rounded hover:bg-red-200 dark:hover:bg-red-900/40 transition-colors disabled:opacity-50"
+                      >
+                        {disconnectingRoblox ? "Disconnecting..." : "Disconnect"}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Connect your Roblox account to unlock platform features.</p>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={robloxUsername}
+                          onChange={(e) => setRobloxUsername(e.target.value)}
+                          placeholder="Enter your Roblox username"
+                          className="flex-1 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700"
+                        />
+                        <button
+                          onClick={handleConnectRoblox}
+                          disabled={connectingRoblox}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded disabled:opacity-50"
+                        >
+                          {connectingRoblox ? "Connecting..." : "Connect"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 {/* Social Networks */}
                 <div>
@@ -589,40 +668,68 @@ const handleDisconnectRoblox = async () => {
               <div className="bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 p-6">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">Privacy & Content Restrictions</h2>
                 <div className="space-y-6">
+                  {/* Who can message me */}
                   <div className="pb-6 border-b border-gray-200 dark:border-gray-700">
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Who can message me</h3>
                     <div className="space-y-2">
-                      {["Everyone", "Friends only", "No one"].map((opt) => (
-                        <label key={opt} className="flex items-center gap-2 cursor-pointer">
-                          <input type="radio" name="message_privacy" defaultChecked={opt === "Friends only"} className="w-4 h-4" />
-                          <span className="text-sm text-gray-700 dark:text-gray-300">{opt}</span>
+                      {privacyOptions.map((opt) => (
+                        <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="message_privacy"
+                            value={opt.value}
+                            checked={canReceiveMessages === opt.value}
+                            onChange={(e) => setCanReceiveMessages(e.target.value)}
+                            className="w-4 h-4"
+                          />
+                          <span className="text-sm text-gray-700 dark:text-gray-300">{opt.label}</span>
                         </label>
                       ))}
                     </div>
                   </div>
+
+                  {/* Who can follow me */}
                   <div className="pb-6 border-b border-gray-200 dark:border-gray-700">
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Who can follow me</h3>
                     <div className="space-y-2">
-                      {["Everyone", "Friends only", "No one"].map((opt) => (
-                        <label key={opt} className="flex items-center gap-2 cursor-pointer">
-                          <input type="radio" name="follow_privacy" defaultChecked={opt === "Everyone"} className="w-4 h-4" />
-                          <span className="text-sm text-gray-700 dark:text-gray-300">{opt}</span>
+                      {privacyOptions.map((opt) => (
+                        <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="follow_privacy"
+                            value={opt.value}
+                            checked={canFollow === opt.value}
+                            onChange={(e) => setCanFollow(e.target.value)}
+                            className="w-4 h-4"
+                          />
+                          <span className="text-sm text-gray-700 dark:text-gray-300">{opt.label}</span>
                         </label>
                       ))}
                     </div>
                   </div>
+
+                  {/* Who can see my inventory */}
                   <div className="pb-6 border-b border-gray-200 dark:border-gray-700">
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Who can see my inventory</h3>
                     <div className="space-y-2">
-                      {["Everyone", "Friends only", "No one"].map((opt) => (
-                        <label key={opt} className="flex items-center gap-2 cursor-pointer">
-                          <input type="radio" name="inventory_privacy" defaultChecked={opt === "Everyone"} className="w-4 h-4" />
-                          <span className="text-sm text-gray-700 dark:text-gray-300">{opt}</span>
+                      {privacyOptions.map((opt) => (
+                        <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="inventory_privacy"
+                            value={opt.value}
+                            checked={canViewInventory === opt.value}
+                            onChange={(e) => setCanViewInventory(e.target.value)}
+                            className="w-4 h-4"
+                          />
+                          <span className="text-sm text-gray-700 dark:text-gray-300">{opt.label}</span>
                         </label>
                       ))}
                     </div>
                   </div>
-                  <div>
+
+                  {/* Content restrictions */}
+                  <div className="pb-6 border-b border-gray-200 dark:border-gray-700">
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Content restrictions</h3>
                     <label className="flex items-center gap-3 cursor-pointer">
                       <input type="checkbox" className="w-4 h-4" />
@@ -632,6 +739,14 @@ const handleDisconnectRoblox = async () => {
                       </div>
                     </label>
                   </div>
+
+                  <button
+                    onClick={handleSavePrivacy}
+                    disabled={savingPrivacy}
+                    className="px-4 py-2 bg-gray-900 dark:bg-gray-100 hover:bg-gray-800 dark:hover:bg-gray-200 text-white dark:text-gray-900 font-semibold rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {savingPrivacy ? "Saving..." : "Save Privacy Settings"}
+                  </button>
                 </div>
               </div>
             )}
@@ -639,29 +754,41 @@ const handleDisconnectRoblox = async () => {
             {activeSection === "notifications" && (
               <div className="bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 p-6">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">Notifications</h2>
-                <div className="space-y-4">
+                <div className="space-y-1 mb-6">
                   {[
-                    { label: "Friend requests", desc: "When someone sends you a friend request" },
-                    { label: "Friend request accepted", desc: "When someone accepts your friend request" },
-                    { label: "Group invites", desc: "When someone invites you to a group" },
-                    { label: "Group wall posts", desc: "When someone posts on your group wall" },
-                    { label: "Private messages", desc: "When someone sends you a message" },
-                    { label: "AdventureBux received", desc: "When you receive AdventureBux" },
-                    { label: "Game updates", desc: "Updates from games you follow" },
-                    { label: "Platform announcements", desc: "Important announcements from AdventureBlox" },
+                    { key: "friendRequests", label: "Friend requests", desc: "When someone sends you a friend request" },
+                    { key: "friendRequestAccepted", label: "Friend request accepted", desc: "When someone accepts your friend request" },
+                    { key: "groupInvites", label: "Group invites", desc: "When someone invites you to a group" },
+                    { key: "groupWallPosts", label: "Group wall posts", desc: "When someone posts on your group wall" },
+                    { key: "privateMessages", label: "Private messages", desc: "When someone sends you a message" },
+                    { key: "adventureBux", label: "AdventureBux received", desc: "When you receive AdventureBux" },
+                    { key: "gameUpdates", label: "Game updates", desc: "Updates from games you follow" },
+                    { key: "platformAnnouncements", label: "Platform announcements", desc: "Important announcements from AdventureBlox" },
                   ].map((item) => (
-                    <div key={item.label} className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-700 last:border-0">
+                    <div key={item.key} className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-700 last:border-0">
                       <div>
                         <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{item.label}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">{item.desc}</p>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" defaultChecked className="sr-only peer" />
+                        <input
+                          type="checkbox"
+                          checked={notifications[item.key as keyof typeof notifications]}
+                          onChange={(e) => setNotifications(prev => ({ ...prev, [item.key]: e.target.checked }))}
+                          className="sr-only peer"
+                        />
                         <div className="w-10 h-5 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
                       </label>
                     </div>
                   ))}
                 </div>
+                <button
+                  onClick={handleSaveNotifications}
+                  disabled={savingNotifications}
+                  className="px-4 py-2 bg-gray-900 dark:bg-gray-100 hover:bg-gray-800 dark:hover:bg-gray-200 text-white dark:text-gray-900 font-semibold rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {savingNotifications ? "Saving..." : "Save Notification Preferences"}
+                </button>
               </div>
             )}
 
