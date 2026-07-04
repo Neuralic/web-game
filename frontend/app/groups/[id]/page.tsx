@@ -16,6 +16,7 @@ import ConfirmModal from "@/components/modals/ConfirmModal";
 import ReportModal from "@/components/modals/ReportModal";
 import SuccessModal from "@/components/modals/SuccessModal";
 import { groupsApi, uploadApi, storage } from "@/lib/api";
+import UserAvatar from "../../components/UserAvatar";
 
 interface Group {
   id: string;
@@ -962,15 +963,11 @@ const GroupDetailPage = () => {
                   <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded border border-gray-100 dark:border-gray-700 mb-4">
                     <div className="flex items-start gap-3">
                       {/* Avatar */}
-                      <div className="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-600 flex-shrink-0 overflow-hidden relative">
-                        <Image
-                          src={currentGroup.shout_posted_by_avatar || `https://robohash.org/${currentGroup.shout_posted_by_username}?set=set3`}
-                          alt={currentGroup.shout_posted_by_username || "User"}
-                          fill
-                          className="object-cover"
-                          sizes="40px"
-                        />
-                      </div>
+                      <UserAvatar
+  userId={currentGroup.shout_posted_by || ""}
+  username={currentGroup.shout_posted_by_username || ""}
+  size={40}
+/>
                       
                       {/* Content */}
                       <div className="flex-1 min-w-0">
@@ -1119,15 +1116,11 @@ const GroupDetailPage = () => {
                       <div key={post.id} className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
                         {/* Post Header */}
                         <div className="flex gap-3 mb-3">
-                          <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-600 flex-shrink-0 relative">
-                            <Image
-                              src={`https://robohash.org/${post.author_username}?set=set3`}
-                              alt={post.author_display_name || post.author_username}
-                              fill
-                              className="object-cover"
-                              sizes="40px"
-                            />
-                          </div>
+                          <UserAvatar
+  userId={post.author_id}
+  username={post.author_display_name || post.author_username}
+  size={40}
+/>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <a
@@ -1289,15 +1282,11 @@ const GroupDetailPage = () => {
                                   <div className="space-y-3 pl-4 border-l-2 border-gray-300 dark:border-gray-600">
                                     {replies[post.id].map((reply: any) => (
                                       <div key={reply.id} className="flex gap-2">
-                                        <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-600 flex-shrink-0 relative">
-                                          <Image
-                                            src={`https://robohash.org/${reply.author_username}?set=set3`}
-                                            alt={reply.author_username}
-                                            fill
-                                            className="object-cover"
-                                            sizes="32px"
-                                          />
-                                        </div>
+                                        <UserAvatar
+  userId={reply.author_id}
+  username={reply.author_display_name || reply.author_username}
+  size={32}
+/>
                                         <div className="flex-1 min-w-0">
                                           <div className="flex items-center gap-2">
                                             <a
