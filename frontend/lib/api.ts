@@ -192,12 +192,13 @@ export const usersApi = {
   },
 
   // Update profile (displayName, bio, status)
-  updateProfile: async (data: {
+ updateProfile: async (data: {
     displayName?: string;
     bio?: string;
     status?: string;
     email?: string;
     socialVisibility?: string;
+    gender?: string;
   }): Promise<ApiResponse<unknown>> => {
     const token = storage.getAccessToken();
     if (!token) {
@@ -221,6 +222,8 @@ export const usersApi = {
     profileVisibility?: string;
     canReceiveFriendRequests?: string;
     canReceiveMessages?: string;
+    canFollow?: string;
+    canViewInventory?: string;
     showOnlineStatus?: boolean;
     showLastSeen?: boolean;
     profileTheme?: string;
