@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { ChevronRight, Plus, Loader2, ImagePlus, X } from "lucide-react";
 import Footer from "../components/Footer";
 import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
 import VerifiedBadge from "../components/VerifiedBadge";
 import ProtectedRoute from "../components/ProtectedRoute";
+import UserAvatar from "../components/UserAvatar";
 import { usersApi, friendsApi, feedApi, uploadApi, storage } from "@/lib/api";
 import { useRealtime } from "@/contexts/RealtimeContext";
 
@@ -25,7 +25,6 @@ const HomePage = () => {
   const [feedPostImagePreview, setFeedPostImagePreview] = useState<string | null>(null);
   const [postingFeed, setPostingFeed] = useState(false);
   const { presenceMap } = useRealtime();
-  const [customAvatarUrl, setCustomAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -38,29 +37,6 @@ const HomePage = () => {
 
         if (userResponse.success && userResponse.data) {
           setUser(userResponse.data.user);
-          // Fetch avatar and render custom
-          const token = storage.getAccessToken();
-          if (token) {
-            const avatarRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'}/avatar`, {
-              headers: { Authorization: `Bearer ${token}` },
-            });
-            const avatarData = await avatarRes.json();
-            if (avatarData.success && avatarData.data?.avatarState) {
-              const state = avatarData.data.avatarState;
-              const assetIds = [
-                state.hair_asset_id, state.face_asset_id, state.head_asset_id,
-                state.hat_asset_id, state.body_asset_id, state.shirt_asset_id,
-                state.pants_asset_id, state.accessory_asset_id,
-              ].filter(Boolean).map((id: string) => parseInt(id));
-              const renderRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'}/avatar/render-custom`, {
-                method: "POST",
-                headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-                body: JSON.stringify({ assetIds }),
-              });
-              const renderData = await renderRes.json();
-              if (renderData.success && renderData.imageUrl) setCustomAvatarUrl(renderData.imageUrl);
-            }
-          }
         }
 
         if (friendsResponse.success && friendsResponse.data) {
@@ -68,7 +44,6 @@ const HomePage = () => {
             id: friend.id,
             name: friend.display_name || friend.username,
             username: friend.username,
-            avatar: friend.avatar_url || `https://robohash.org/${friend.username}?set=set3`,
           }));
           setFriends(realFriends);
         }
@@ -146,20 +121,12 @@ const HomePage = () => {
           {showLeftAd && (
             <div className="hidden xl:block flex-shrink-0">
               <div className="relative w-[160px]">
-                <button
-                  onClick={() => setShowLeftAd(false)}
-                  className="absolute top-2 right-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 text-2xl font-bold leading-none z-10"
-                  aria-label="Close ad"
-                >
-                  ×
-                </button>
+                <button onClick={() => setShowLeftAd(false)} className="absolute top-2 right-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 text-2xl font-bold leading-none z-10" aria-label="Close ad">×</button>
                 <div className="w-[160px] h-[600px] bg-gray-200 dark:bg-gray-700 rounded flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 text-sm font-medium border border-gray-300 dark:border-gray-600">
                   <span className="text-center px-2">Advertisement</span>
                   <span className="text-center px-2 mt-2 text-xs">(160 x 600)</span>
                 </div>
-                <div className="mt-1 text-center">
-                  <span className="text-xs text-gray-500 dark:text-gray-400 uppercase">Advertisement</span>
-                </div>
+                <div className="mt-1 text-center"><span className="text-xs text-gray-500 dark:text-gray-400 uppercase">Advertisement</span></div>
               </div>
             </div>
           )}
@@ -169,18 +136,12 @@ const HomePage = () => {
             {/* User Greeting Section */}
             <section className="mb-8">
               <div className="flex items-center gap-4">
-                <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-700 relative flex-shrink-0">
-                  {customAvatarUrl ? (
-                    <img src={customAvatarUrl} alt={user?.username || "User"} className="w-full h-full object-contain" />
-                  ) : (
-                    <Image
-                      src={user?.avatar_url || `https://robohash.org/${user?.username || 'user'}?set=set3`}
-                      alt={user?.username || "User"}
-                      fill
-                      className="object-cover"
-                    />
-                  )}
-                </div>
+                <UserAvatar
+                  userId={user?.id || ""}
+                  username={user?.display_name || user?.username}
+                  size={96}
+                  className="border-2 border-gray-200 dark:border-gray-700"
+                />
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
                     Hello, {user?.display_name || user?.username || "User"}!
@@ -196,12 +157,8 @@ const HomePage = () => {
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                   Friends ({friends.length})
                 </h2>
-                <Link
-                  href="/connect"
-                  className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 font-semibold"
-                >
-                  See All
-                  <ChevronRight className="w-4 h-4" />
+                <Link href="/connect" className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 font-semibold">
+                  See All <ChevronRight className="w-4 h-4" />
                 </Link>
               </div>
 
@@ -225,9 +182,7 @@ const HomePage = () => {
                       className="flex flex-col items-center gap-2 cursor-pointer hover:opacity-80"
                     >
                       <div className="relative">
-                        <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-700 relative">
-                          <Image src={friend.avatar} alt={friend.name} fill className="object-cover" />
-                        </div>
+                        <UserAvatar userId={friend.id} username={friend.name} size={80} />
                         {isOnline && (
                           <div
                             className="absolute w-5 h-5 bg-green-500 rounded-full border-2 border-white dark:border-gray-900"
@@ -247,9 +202,7 @@ const HomePage = () => {
             <section className="mb-10">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Recently Played</h2>
-                <Link href="/continue" className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-full transition-colors">
-                  See All
-                </Link>
+                <Link href="/continue" className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-full transition-colors">See All</Link>
               </div>
               <p className="text-sm text-gray-500 dark:text-gray-400 py-6 text-center">No recently played games yet.</p>
             </section>
@@ -258,9 +211,7 @@ const HomePage = () => {
             <section className="mb-10">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">My Favorites</h2>
-                <Link href="/favorites" className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-full transition-colors">
-                  See All
-                </Link>
+                <Link href="/favorites" className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-full transition-colors">See All</Link>
               </div>
               <p className="text-sm text-gray-500 dark:text-gray-400 py-6 text-center">No favorite games yet.</p>
             </section>
@@ -311,21 +262,10 @@ const HomePage = () => {
                   {feedPosts.map((post: any) => (
                     <div key={post.id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                       <div className="flex gap-3">
-                        <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-600 flex-shrink-0 relative">
-                          <Image
-                            src={`https://robohash.org/${post.author_username}?set=set3`}
-                            alt={post.author_display_name || post.author_username}
-                            fill
-                            className="object-cover"
-                            sizes="40px"
-                          />
-                        </div>
+                        <UserAvatar userId={post.author_id} username={post.author_display_name || post.author_username} size={40} />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5">
-                            <Link
-                              href={`/profile/${post.author_username}`}
-                              className="text-sm font-semibold text-gray-900 dark:text-gray-100 hover:underline"
-                            >
+                            <Link href={`/profile/${post.author_username}`} className="text-sm font-semibold text-gray-900 dark:text-gray-100 hover:underline">
                               {post.author_display_name || post.author_username}
                             </Link>
                             {post.author_is_verified && <VerifiedBadge size="sm" />}
@@ -343,9 +283,7 @@ const HomePage = () => {
                             </span>
                           </div>
                           {post.content && (
-                            <p className="text-sm text-gray-900 dark:text-gray-100 mt-1.5 whitespace-pre-wrap break-words">
-                              {post.content}
-                            </p>
+                            <p className="text-sm text-gray-900 dark:text-gray-100 mt-1.5 whitespace-pre-wrap break-words">{post.content}</p>
                           )}
                         </div>
                       </div>
@@ -378,10 +316,7 @@ const HomePage = () => {
                           </span>
                         </div>
                         {(post.author_id === user?.id || user?.is_admin) && (
-                          <button
-                            onClick={() => handleDeletePost(post.id)}
-                            className="text-xs text-red-500 hover:text-red-600 font-medium transition-colors"
-                          >
+                          <button onClick={() => handleDeletePost(post.id)} className="text-xs text-red-500 hover:text-red-600 font-medium transition-colors">
                             Delete
                           </button>
                         )}
@@ -401,20 +336,12 @@ const HomePage = () => {
           {showRightAd && (
             <div className="hidden xl:block flex-shrink-0">
               <div className="relative w-[160px]">
-                <button
-                  onClick={() => setShowRightAd(false)}
-                  className="absolute top-2 right-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 text-2xl font-bold leading-none z-10"
-                  aria-label="Close ad"
-                >
-                  ×
-                </button>
+                <button onClick={() => setShowRightAd(false)} className="absolute top-2 right-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 text-2xl font-bold leading-none z-10" aria-label="Close ad">×</button>
                 <div className="w-[160px] h-[600px] bg-gray-200 dark:bg-gray-700 rounded flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 text-sm font-medium border border-gray-300 dark:border-gray-600">
                   <span className="text-center px-2">Advertisement</span>
                   <span className="text-center px-2 mt-2 text-xs">(160 x 600)</span>
                 </div>
-                <div className="mt-1 text-center">
-                  <span className="text-xs text-gray-500 dark:text-gray-400 uppercase">Advertisement</span>
-                </div>
+                <div className="mt-1 text-center"><span className="text-xs text-gray-500 dark:text-gray-400 uppercase">Advertisement</span></div>
               </div>
             </div>
           )}
