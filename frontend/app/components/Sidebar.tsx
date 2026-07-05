@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import VerifiedBadge from "./VerifiedBadge";
 import { usersApi } from "@/lib/api";
+import UserAvatar from "./UserAvatar";
 import { isAuthenticated } from "@/lib/auth";
 
 interface SidebarProps {
@@ -29,6 +30,7 @@ export default function Sidebar({
   isVerified = true,
 }: SidebarProps) {
   const [user, setUser] = useState<{
+    id?: string;
     username?: string;
     display_name?: string;
     is_verified?: boolean;
@@ -110,14 +112,7 @@ export default function Sidebar({
             {/* User Info Section */}
             <div className="p-3 border-b border-gray-200 dark:border-gray-800">
               <div className="flex items-center gap-2">
-                <div className="w-10 h-10 bg-gray-300 dark:bg-gray-600 rounded-full overflow-hidden relative">
-                  <Image
-                    src="https://tr.rbxcdn.com/30DAY-AvatarHeadshot-903254C5702EE154B5EA564D1D4CB860-Png/150/150/AvatarHeadshot/Webp/noFilter"
-                    alt={displayUsername}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
+                <UserAvatar userId={user?.id || ""} username={displayName} size={40} />
                 <div>
                   <div className="font-bold text-sm text-gray-900 dark:text-gray-100 flex items-center gap-1">
                     {displayName}
@@ -157,7 +152,7 @@ export default function Sidebar({
               </Link>
 
               <Link
-                href="/connect"
+                href="/friends"
                 className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                 onClick={onClose}
               >
