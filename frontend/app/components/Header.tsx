@@ -8,6 +8,7 @@ import { ThemeToggle } from "./ThemeToggle";
 import VerifiedBadge from "./VerifiedBadge";
 import { logout, isAuthenticated } from "@/lib/auth";
 import { usersApi, searchApi, friendsApi } from "@/lib/api";
+import UserAvatar from "./UserAvatar";
 import SwitchAccountsModal from "./SwitchAccountsModal";
 import NotificationDropdown from "./NotificationDropdown";
 import { useNotifications } from "@/contexts/NotificationContext";
@@ -524,14 +525,7 @@ useEffect(() => {
                       {userIsVerified && <VerifiedBadge size="sm" />}
                     </span>
                   )}
-                  <div className="w-9 h-9 bg-gray-300 dark:bg-gray-600 rounded-full flex-shrink-0 overflow-hidden relative">
-                    <Image
-                      src="https://tr.rbxcdn.com/30DAY-AvatarHeadshot-903254C5702EE154B5EA564D1D4CB860-Png/150/150/AvatarHeadshot/Webp/noFilter"
-                      alt={displayUsername}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
+                  <UserAvatar userId={user?.id || ""} username={displayName} size={36} />
                 </Link>
 
                 {/* Notifications */}
