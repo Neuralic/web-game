@@ -176,6 +176,7 @@ const GroupDetailPage = () => {
         const response = await groupsApi.getGroupById(groupId);
         if (response.success && response.data) {
           const group = response.data.group as Group;
+          
           setCurrentGroupDetails(group);
           // Redirect old UUID URLs to canonical groupNumber/slug URL
           const isUUID = /^[0-9a-f-]{36}$/i.test(groupId);
@@ -742,8 +743,14 @@ const GroupDetailPage = () => {
                 </div>
 
                 <div className="flex-1 min-w-0 pb-2">
-                  <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
                     {currentGroup.name}
+                    {currentGroup.is_verified && (
+                      <svg className="w-6 h-6 flex-shrink-0" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="12" fill="#1D9BF0"/>
+                        <path d="M6.5 12.5l3.5 3.5 7.5-8" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    )}
                   </h1>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                     By{" "}
