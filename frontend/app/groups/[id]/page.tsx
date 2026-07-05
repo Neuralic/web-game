@@ -707,7 +707,7 @@ const GroupDetailPage = () => {
         <div className="w-3/4 ml-[25%]">
           <div className="bg-white dark:bg-gray-900">
           {/* Cover Banner - Full width, always show with fallback gradient */}
-          <div className="w-full h-[200px] relative overflow-hidden bg-gradient-to-br from-blue-600 to-blue-800">
+          <div className="w-full h-[250px] relative overflow-hidden bg-gray-100 dark:bg-gray-800">
             {currentGroup?.cover_photo_url && (
               <Image
                 src={currentGroup.cover_photo_url}
@@ -722,10 +722,10 @@ const GroupDetailPage = () => {
           </div>
 
           {/* Group Header */}
-          <div className="flex items-start gap-4 px-6 pb-6 border-b border-gray-100 dark:border-gray-800 -mt-12 relative z-10">
+          <div className="flex items-end gap-4 px-6 pb-6 border-b border-gray-100 dark:border-gray-800 -mt-20 relative z-10">
             {currentGroup ? (
               <>
-                <div className="w-[120px] h-[120px] border-4 border-white dark:border-gray-900 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100 dark:bg-gray-700 relative shadow-lg">
+                <div className="w-[140px] h-[140px] border-4 border-white dark:border-gray-900 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100 dark:bg-gray-700 relative shadow-lg">
                   {currentGroup.icon_url ? (
                     <Image
                       src={currentGroup.icon_url}
@@ -741,11 +741,11 @@ const GroupDetailPage = () => {
                   )}
                 </div>
 
-                <div className="flex-1 min-w-0">
-                  <h1 className="text-xl font-semibold text-white" style={{textShadow: '0 2px 4px rgba(0,0,0,0.8)'}}>
+                <div className="flex-1 min-w-0 pb-2">
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
                     {currentGroup.name}
                   </h1>
-                  <p className="text-sm text-white mt-1" style={{textShadow: '0 1px 3px rgba(0,0,0,0.8)'}}>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                     By{" "}
                     <a href={`/profile/${currentGroup.owner_username}`} className="text-white hover:underline">{currentGroup.owner_display_name || currentGroup.owner_username}</a>
                   </p>
@@ -779,9 +779,9 @@ const GroupDetailPage = () => {
                     <button
                       onClick={handleJoinGroup}
                       disabled={joining}
-                      className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-base rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {joining ? "Joining..." : "Join Group"}
+                      {joining ? "Joining..." : "Join Community"}
                     </button>
                   )}
 
