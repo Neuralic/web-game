@@ -136,12 +136,14 @@ const HomePage = () => {
             {/* User Greeting Section */}
             <section className="mb-8">
               <div className="flex items-center gap-4">
-                <UserAvatar
-                  userId={user?.id || ""}
-                  username={user?.display_name || user?.username}
-                  size={96}
-                  className="border-2 border-gray-200 dark:border-gray-700"
-                />
+                <Link href={`/profile/${user?.username}`}>
+                  <UserAvatar
+                    userId={user?.id || ""}
+                    username={user?.display_name || user?.username}
+                    size={120}
+                    className="border-2 border-gray-200 dark:border-gray-700 cursor-pointer hover:opacity-90 transition-opacity"
+                  />
+                </Link>
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
                     Hello, {user?.display_name || user?.username || "User"}!
