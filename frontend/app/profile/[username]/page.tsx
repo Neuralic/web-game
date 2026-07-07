@@ -60,6 +60,41 @@ interface AvatarStateData {
   accessory_asset_id: string | null;
 }
 
+
+function ProfileHeadshot({ userId, username }: { userId: string; username: string }) {
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+
+  useEffect(() => {
+    if (!userId) return;
+    fetch(`${API_BASE}/avatar/render/${userId}`)
+      .then(r => r.json())
+      .then(data => { if (data.imageUrl) setImageUrl(data.imageUrl); })
+      .catch(() => {});
+  }, [userId]);
+
+  const initials = (username || "?")[0].toUpperCase();
+
+  if (!imageUrl) {
+    return (
+      <div className="w-36 h-36 rounded-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center flex-shrink-0 border-2 border-gray-200 dark:border-gray-700">
+        <span className="text-gray-600 dark:text-gray-300 font-bold text-4xl">{initials}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-36 h-36 rounded-full overflow-hidden flex-shrink-0 border-2 border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
+      <img
+        src={imageUrl}
+        alt={username}
+        className="w-full object-cover object-top"
+        style={{ height: '240%', marginTop: '-15%' }}
+      />
+    </div>
+  );
+}
+
 const ProfilePage = () => {
   const params = useParams();
   const profileUsername = params?.username as string;
@@ -660,12 +695,7 @@ const ProfilePage = () => {
             <div className="flex items-start gap-6 py-6 border-b border-gray-200 dark:border-gray-800">
               <div className="relative">
                 {/* Profile pic — always R15 via UserAvatar */}
-                <UserAvatar
-                  userId={profileUser?.id || ""}
-                  username={displayName || username}
-                  size={128}
-                  className="border-2 border-gray-200 dark:border-gray-700"
-                />
+                <ProfileHeadshot userId={profileUser?.id || ""} username={displayName || username} />
                 {getPresenceStatus() && (
                   <div
                     className={`absolute w-7 h-7 ${getPresenceStatus()?.color} rounded-full flex items-center justify-center border-2 border-white dark:border-gray-900`}
