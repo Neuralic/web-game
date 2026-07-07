@@ -804,7 +804,7 @@ const ProfilePage = () => {
                             <img src={
   link.platform === 'youtube' ? 'https://www.youtube.com/favicon.ico' :
   link.platform === 'twitter' ? 'https://abs.twimg.com/favicons/twitter.3.ico' :
-  link.platform === 'twitch' ? 'https://static.twitchsvc.net/assets/uploads/favicon.ico' :
+  link.platform === 'twitch' ? 'https://www.twitch.tv/favicon.ico' :
   link.platform === 'kick' ? 'https://kick.com/favicon.ico' :
   link.platform === 'instagram' ? 'https://cdn.cdnlogo.com/logos/i/92/instagram.svg' :
   link.platform === 'tiktok' ? 'https://www.tiktok.com/favicon.ico' :
