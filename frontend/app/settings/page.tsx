@@ -41,10 +41,12 @@ const SettingsPage = () => {
 
   const [displayName, setDisplayName] = useState("");
   const [selectedGender, setSelectedGender] = useState<string>("");
-  const [facebook, setFacebook] = useState("");
+  const [kick, setKick] = useState("");
   const [twitter, setTwitter] = useState("");
   const [youtube, setYoutube] = useState("");
   const [twitch, setTwitch] = useState("");
+  const [instagram, setInstagram] = useState("");
+  const [tiktok, setTiktok] = useState("");
   const [socialVisibility, setSocialVisibility] = useState("no-one");
 
   // Privacy state
@@ -82,7 +84,6 @@ const SettingsPage = () => {
           setSelectedGender(userData.gender || "");
           setNewEmail(userData.email || "");
           setRobloxUsername(userData.roblox_username || "");
-          // Load privacy settings from DB
           if (userData.can_receive_messages) setCanReceiveMessages(userData.can_receive_messages);
           if (userData.can_follow) setCanFollow(userData.can_follow);
           if (userData.can_view_inventory) setCanViewInventory(userData.can_view_inventory);
@@ -92,10 +93,12 @@ const SettingsPage = () => {
         if (socialResponse.success && socialResponse.data) {
           const links = socialResponse.data.socialLinks || [];
           links.forEach((link: any) => {
-            if (link.platform === 'facebook') setFacebook(link.url);
+            if (link.platform === 'kick') setKick(link.url);
             if (link.platform === 'twitter') setTwitter(link.url);
             if (link.platform === 'youtube') setYoutube(link.url);
             if (link.platform === 'twitch') setTwitch(link.url);
+            if (link.platform === 'instagram') setInstagram(link.url);
+            if (link.platform === 'tiktok') setTiktok(link.url);
           });
         }
       } catch (error) {
@@ -115,12 +118,9 @@ const SettingsPage = () => {
 
     try {
       const updateData: { displayName?: string; gender?: string } = {};
-
       if (displayName !== user?.display_name && displayName !== user?.username) {
         updateData.displayName = displayName;
       }
-
-      // Always send gender so it can be cleared too
       updateData.gender = selectedGender;
 
       const response = await usersApi.updateProfile(updateData);
@@ -226,10 +226,12 @@ const SettingsPage = () => {
 
     try {
       const socialData = [
-        { platform: "facebook", url: facebook },
+        { platform: "kick", url: kick },
         { platform: "twitter", url: twitter },
         { platform: "youtube", url: youtube },
         { platform: "twitch", url: twitch },
+        { platform: "instagram", url: instagram },
+        { platform: "tiktok", url: tiktok },
       ];
 
       for (const social of socialData) {
@@ -289,7 +291,6 @@ const SettingsPage = () => {
     setSavingNotifications(true);
     setSuccessMessage("");
     setErrorMessage("");
-    // Notifications table not yet built — just simulate save for now
     await new Promise(resolve => setTimeout(resolve, 500));
     setSuccessMessage("Notification preferences saved!");
     setTimeout(() => setSuccessMessage(""), 3000);
@@ -302,10 +303,10 @@ const SettingsPage = () => {
     { id: "privacy", label: "Privacy & content restrictions" },
     { id: "notifications", label: "Notifications" },
     { id: "membership", label: "Membership" },
+    { id: "user-ads", label: "User Ads" },
     { id: "parental", label: "Parental controls" },
   ];
 
-  // Map DB values ("everyone", "friends", "no_one") to display labels and back
   const privacyOptions = [
     { value: "everyone", label: "Everyone" },
     { value: "friends", label: "Friends only" },
@@ -322,9 +323,7 @@ const SettingsPage = () => {
       />
 
       <main className="max-w-4xl mx-auto px-4 py-4">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-          Settings
-        </h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">Settings</h1>
 
         {successMessage && (
           <div className="mb-4 p-3 bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded text-green-800 dark:text-green-200 text-sm">
@@ -359,24 +358,18 @@ const SettingsPage = () => {
           <div className="flex-1 max-w-2xl">
             {activeSection === "account-info" && (
               <div className="bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 p-6">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-                  Account Info
-                </h2>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Account Info</h2>
 
                 {/* Display Name */}
                 <div className="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
-                  <div className="flex-1">
-                    <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                      Display Name:
-                    </div>
-                    <input
-                      type="text"
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
-                      className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700"
-                      placeholder="Enter display name"
-                    />
-                  </div>
+                  <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Display Name:</div>
+                  <input
+                    type="text"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700"
+                    placeholder="Enter display name"
+                  />
                 </div>
 
                 {/* Username */}
@@ -408,17 +401,10 @@ const SettingsPage = () => {
                             placeholder="Enter email address"
                           />
                           <div className="flex gap-2">
-                            <button
-                              onClick={handleSaveEmail}
-                              disabled={savingEmail}
-                              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded disabled:opacity-50"
-                            >
+                            <button onClick={handleSaveEmail} disabled={savingEmail} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded disabled:opacity-50">
                               {savingEmail ? "Saving..." : "Save Email"}
                             </button>
-                            <button
-                              onClick={() => { setIsEditingEmail(false); setNewEmail(user?.email || ""); setErrorMessage(""); }}
-                              className="px-3 py-1.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 text-sm font-medium rounded"
-                            >
+                            <button onClick={() => { setIsEditingEmail(false); setNewEmail(user?.email || ""); setErrorMessage(""); }} className="px-3 py-1.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 text-sm font-medium rounded">
                               Cancel
                             </button>
                           </div>
@@ -428,9 +414,7 @@ const SettingsPage = () => {
                           {user?.email || "Not set"}
                           {user?.is_verified && (
                             <span className="inline-flex items-center gap-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
-                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                              </svg>
+                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
                               Verified
                             </span>
                           )}
@@ -438,10 +422,7 @@ const SettingsPage = () => {
                       )}
                     </div>
                     {!isEditingEmail && (
-                      <button
-                        onClick={() => setIsEditingEmail(true)}
-                        className="text-blue-600 dark:text-blue-400 p-1 hover:opacity-80"
-                      >
+                      <button onClick={() => setIsEditingEmail(true)} className="text-blue-600 dark:text-blue-400 p-1 hover:opacity-80">
                         <ExternalLink className="w-4 h-4" />
                       </button>
                     )}
@@ -455,9 +436,7 @@ const SettingsPage = () => {
                   <div className="mb-3">
                     <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Age Group:</div>
                     <div className="text-gray-900 dark:text-gray-100">
-                      {user?.birth_year
-                        ? new Date().getFullYear() - user.birth_year >= 18 ? "18+" : "Under 18"
-                        : "Not set"}
+                      {user?.birth_year ? new Date().getFullYear() - user.birth_year >= 18 ? "18+" : "Under 18" : "Not set"}
                     </div>
                   </div>
 
@@ -466,9 +445,7 @@ const SettingsPage = () => {
                       <div>
                         <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Birthday:</div>
                         <div className="text-gray-900 dark:text-gray-100">
-                          {user?.birth_month && user?.birth_day && user?.birth_year
-                            ? `${user.birth_month} ${user.birth_day}, ${user.birth_year}`
-                            : "Not set"}
+                          {user?.birth_month && user?.birth_day && user?.birth_year ? `${user.birth_month} ${user.birth_day}, ${user.birth_year}` : "Not set"}
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Birthday cannot be changed</div>
                       </div>
@@ -483,21 +460,13 @@ const SettingsPage = () => {
                     <div className="flex gap-3">
                       <button
                         onClick={() => setSelectedGender(selectedGender === "female" ? "" : "female")}
-                        className={`flex-1 border rounded py-3 flex items-center justify-center transition-colors ${
-                          selectedGender === "female"
-                            ? "border-pink-500 bg-pink-500/20 text-pink-500 dark:bg-pink-500/30"
-                            : "border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
-                        }`}
+                        className={`flex-1 border rounded py-3 flex items-center justify-center transition-colors ${selectedGender === "female" ? "border-pink-500 bg-pink-500/20 text-pink-500 dark:bg-pink-500/30" : "border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"}`}
                       >
                         <FontAwesomeIcon icon={faPersonDress} className="w-5 h-5" />
                       </button>
                       <button
                         onClick={() => setSelectedGender(selectedGender === "male" ? "" : "male")}
-                        className={`flex-1 border rounded py-3 flex items-center justify-center transition-colors ${
-                          selectedGender === "male"
-                            ? "border-blue-500 bg-blue-500/20 text-blue-500 dark:bg-blue-500/30"
-                            : "border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
-                        }`}
+                        className={`flex-1 border rounded py-3 flex items-center justify-center transition-colors ${selectedGender === "male" ? "border-blue-500 bg-blue-500/20 text-blue-500 dark:bg-blue-500/30" : "border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"}`}
                       >
                         <FontAwesomeIcon icon={faPerson} className="w-5 h-5" />
                       </button>
@@ -514,15 +483,11 @@ const SettingsPage = () => {
 
                   <div className="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
                     <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Account Location:</div>
-                    <div className="text-gray-900 dark:text-gray-100">Pakistan</div>
+                    <div className="text-gray-900 dark:text-gray-100">Nigeria</div>
                     <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Based on signup location</div>
                   </div>
 
-                  <button
-                    onClick={handleSavePersonalInfo}
-                    disabled={saving}
-                    className="px-4 py-2 bg-gray-900 dark:bg-gray-100 hover:bg-gray-800 dark:hover:bg-gray-200 text-white dark:text-gray-900 font-semibold rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
+                  <button onClick={handleSavePersonalInfo} disabled={saving} className="px-4 py-2 bg-gray-900 dark:bg-gray-100 hover:bg-gray-800 dark:hover:bg-gray-200 text-white dark:text-gray-900 font-semibold rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed">
                     {saving ? "Saving..." : "Save Personal Info"}
                   </button>
                 </div>
@@ -533,22 +498,14 @@ const SettingsPage = () => {
                   {user?.roblox_username ? (
                     <div className="flex items-center gap-4">
                       {user.roblox_avatar_url && (
-                        <img
-                          src={user.roblox_avatar_url}
-                          alt={user.roblox_username}
-                          className="w-16 h-16 rounded-full border border-gray-200 dark:border-gray-700"
-                        />
+                        <img src={user.roblox_avatar_url} alt={user.roblox_username} className="w-16 h-16 rounded-full border border-gray-200 dark:border-gray-700" />
                       )}
                       <div className="flex-1">
                         <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{user.roblox_username}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">Roblox ID: {user.roblox_id}</p>
                         <p className="text-xs text-green-600 dark:text-green-400 mt-1">✓ Connected</p>
                       </div>
-                      <button
-                        onClick={handleDisconnectRoblox}
-                        disabled={disconnectingRoblox}
-                        className="px-3 py-1.5 bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm font-medium rounded hover:bg-red-200 dark:hover:bg-red-900/40 transition-colors disabled:opacity-50"
-                      >
+                      <button onClick={handleDisconnectRoblox} disabled={disconnectingRoblox} className="px-3 py-1.5 bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm font-medium rounded hover:bg-red-200 dark:hover:bg-red-900/40 transition-colors disabled:opacity-50">
                         {disconnectingRoblox ? "Disconnecting..." : "Disconnect"}
                       </button>
                     </div>
@@ -556,18 +513,8 @@ const SettingsPage = () => {
                     <div className="space-y-3">
                       <p className="text-sm text-gray-600 dark:text-gray-400">Connect your Roblox account to unlock platform features.</p>
                       <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={robloxUsername}
-                          onChange={(e) => setRobloxUsername(e.target.value)}
-                          placeholder="Enter your Roblox username"
-                          className="flex-1 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700"
-                        />
-                        <button
-                          onClick={handleConnectRoblox}
-                          disabled={connectingRoblox}
-                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded disabled:opacity-50"
-                        >
+                        <input type="text" value={robloxUsername} onChange={(e) => setRobloxUsername(e.target.value)} placeholder="Enter your Roblox username" className="flex-1 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700" />
+                        <button onClick={handleConnectRoblox} disabled={connectingRoblox} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded disabled:opacity-50">
                           {connectingRoblox ? "Connecting..." : "Connect"}
                         </button>
                       </div>
@@ -578,23 +525,18 @@ const SettingsPage = () => {
                 {/* Social Networks */}
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">Social Networks</h3>
-
                   <div className="space-y-3 mb-3">
                     {[
-                      { label: "Facebook", value: facebook, setter: setFacebook, placeholder: "e.g. www.facebook.com/AdventureBlox" },
+                      { label: "Kick Streaming", value: kick, setter: setKick, placeholder: "e.g. kick.com/adventureblox" },
                       { label: "X (formerly Twitter)", value: twitter, setter: setTwitter, placeholder: "e.g. @AdventureBlox" },
                       { label: "YouTube", value: youtube, setter: setYoutube, placeholder: "e.g. www.youtube.com/user/adventureblox" },
                       { label: "Twitch", value: twitch, setter: setTwitch, placeholder: "e.g. www.twitch.tv/adventureblox/profile" },
+                      { label: "Instagram", value: instagram, setter: setInstagram, placeholder: "e.g. www.instagram.com/adventureblox" },
+                      { label: "TikTok", value: tiktok, setter: setTiktok, placeholder: "e.g. www.tiktok.com/@adventureblox" },
                     ].map((field) => (
                       <div key={field.label}>
                         <label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">{field.label}</label>
-                        <input
-                          type="text"
-                          value={field.value}
-                          onChange={(e) => field.setter(e.target.value)}
-                          placeholder={field.placeholder}
-                          className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 placeholder:text-gray-400 dark:placeholder:text-gray-500"
-                        />
+                        <input type="text" value={field.value} onChange={(e) => field.setter(e.target.value)} placeholder={field.placeholder} className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 placeholder:text-gray-400 dark:placeholder:text-gray-500" />
                       </div>
                     ))}
                   </div>
@@ -611,25 +553,14 @@ const SettingsPage = () => {
                         { value: "no-one", label: "No one" },
                       ].map((option) => (
                         <label key={option.value} className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="visibility"
-                            value={option.value}
-                            checked={socialVisibility === option.value}
-                            onChange={(e) => setSocialVisibility(e.target.value)}
-                            className="w-4 h-4"
-                          />
+                          <input type="radio" name="visibility" value={option.value} checked={socialVisibility === option.value} onChange={(e) => setSocialVisibility(e.target.value)} className="w-4 h-4" />
                           <span className="text-sm text-gray-700 dark:text-gray-300">{option.label}</span>
                         </label>
                       ))}
                     </div>
                   </div>
 
-                  <button
-                    onClick={handleSaveSocialNetworks}
-                    disabled={saving}
-                    className="px-4 py-2 bg-gray-900 dark:bg-gray-100 hover:bg-gray-800 dark:hover:bg-gray-200 text-white dark:text-gray-900 font-semibold rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
+                  <button onClick={handleSaveSocialNetworks} disabled={saving} className="px-4 py-2 bg-gray-900 dark:bg-gray-100 hover:bg-gray-800 dark:hover:bg-gray-200 text-white dark:text-gray-900 font-semibold rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed">
                     {saving ? "Saving..." : "Save Social Networks"}
                   </button>
                 </div>
@@ -668,67 +599,39 @@ const SettingsPage = () => {
               <div className="bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 p-6">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">Privacy & Content Restrictions</h2>
                 <div className="space-y-6">
-                  {/* Who can message me */}
                   <div className="pb-6 border-b border-gray-200 dark:border-gray-700">
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Who can message me</h3>
                     <div className="space-y-2">
                       {privacyOptions.map((opt) => (
                         <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="message_privacy"
-                            value={opt.value}
-                            checked={canReceiveMessages === opt.value}
-                            onChange={(e) => setCanReceiveMessages(e.target.value)}
-                            className="w-4 h-4"
-                          />
+                          <input type="radio" name="message_privacy" value={opt.value} checked={canReceiveMessages === opt.value} onChange={(e) => setCanReceiveMessages(e.target.value)} className="w-4 h-4" />
                           <span className="text-sm text-gray-700 dark:text-gray-300">{opt.label}</span>
                         </label>
                       ))}
                     </div>
                   </div>
-
-                  {/* Who can follow me */}
                   <div className="pb-6 border-b border-gray-200 dark:border-gray-700">
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Who can follow me</h3>
                     <div className="space-y-2">
                       {privacyOptions.map((opt) => (
                         <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="follow_privacy"
-                            value={opt.value}
-                            checked={canFollow === opt.value}
-                            onChange={(e) => setCanFollow(e.target.value)}
-                            className="w-4 h-4"
-                          />
+                          <input type="radio" name="follow_privacy" value={opt.value} checked={canFollow === opt.value} onChange={(e) => setCanFollow(e.target.value)} className="w-4 h-4" />
                           <span className="text-sm text-gray-700 dark:text-gray-300">{opt.label}</span>
                         </label>
                       ))}
                     </div>
                   </div>
-
-                  {/* Who can see my inventory */}
                   <div className="pb-6 border-b border-gray-200 dark:border-gray-700">
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Who can see my inventory</h3>
                     <div className="space-y-2">
                       {privacyOptions.map((opt) => (
                         <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="inventory_privacy"
-                            value={opt.value}
-                            checked={canViewInventory === opt.value}
-                            onChange={(e) => setCanViewInventory(e.target.value)}
-                            className="w-4 h-4"
-                          />
+                          <input type="radio" name="inventory_privacy" value={opt.value} checked={canViewInventory === opt.value} onChange={(e) => setCanViewInventory(e.target.value)} className="w-4 h-4" />
                           <span className="text-sm text-gray-700 dark:text-gray-300">{opt.label}</span>
                         </label>
                       ))}
                     </div>
                   </div>
-
-                  {/* Content restrictions */}
                   <div className="pb-6 border-b border-gray-200 dark:border-gray-700">
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Content restrictions</h3>
                     <label className="flex items-center gap-3 cursor-pointer">
@@ -739,12 +642,7 @@ const SettingsPage = () => {
                       </div>
                     </label>
                   </div>
-
-                  <button
-                    onClick={handleSavePrivacy}
-                    disabled={savingPrivacy}
-                    className="px-4 py-2 bg-gray-900 dark:bg-gray-100 hover:bg-gray-800 dark:hover:bg-gray-200 text-white dark:text-gray-900 font-semibold rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
+                  <button onClick={handleSavePrivacy} disabled={savingPrivacy} className="px-4 py-2 bg-gray-900 dark:bg-gray-100 hover:bg-gray-800 dark:hover:bg-gray-200 text-white dark:text-gray-900 font-semibold rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed">
                     {savingPrivacy ? "Saving..." : "Save Privacy Settings"}
                   </button>
                 </div>
@@ -771,22 +669,13 @@ const SettingsPage = () => {
                         <p className="text-xs text-gray-500 dark:text-gray-400">{item.desc}</p>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={notifications[item.key as keyof typeof notifications]}
-                          onChange={(e) => setNotifications(prev => ({ ...prev, [item.key]: e.target.checked }))}
-                          className="sr-only peer"
-                        />
+                        <input type="checkbox" checked={notifications[item.key as keyof typeof notifications]} onChange={(e) => setNotifications(prev => ({ ...prev, [item.key]: e.target.checked }))} className="sr-only peer" />
                         <div className="w-10 h-5 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
                       </label>
                     </div>
                   ))}
                 </div>
-                <button
-                  onClick={handleSaveNotifications}
-                  disabled={savingNotifications}
-                  className="px-4 py-2 bg-gray-900 dark:bg-gray-100 hover:bg-gray-800 dark:hover:bg-gray-200 text-white dark:text-gray-900 font-semibold rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                >
+                <button onClick={handleSaveNotifications} disabled={savingNotifications} className="px-4 py-2 bg-gray-900 dark:bg-gray-100 hover:bg-gray-800 dark:hover:bg-gray-200 text-white dark:text-gray-900 font-semibold rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed">
                   {savingNotifications ? "Saving..." : "Save Notification Preferences"}
                 </button>
               </div>
@@ -816,6 +705,67 @@ const SettingsPage = () => {
                   </ul>
                   <button className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-sm">Upgrade to Premium</button>
                 </div>
+              </div>
+            )}
+
+            {activeSection === "user-ads" && (
+              <div className="bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 p-6">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">User Ads</h2>
+
+                {/* Tabs */}
+                <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
+                  <button className="px-4 py-2 text-sm font-semibold border-b-2 border-blue-600 text-blue-600 dark:text-blue-400">Create Ad</button>
+                  <button className="px-4 py-2 text-sm font-semibold border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">Manage Ads</button>
+                </div>
+
+                {/* Ad Format */}
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Select Ad Format</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Download, edit and upload one of the following templates:</p>
+                  <div className="flex gap-3">
+                    {["728 x 90 Banner", "160 x 600 Skyscraper"].map((format) => (
+                      <button key={format} className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium">
+                        {format}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Ad Name */}
+                <div className="mb-6">
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Name your Ad</label>
+                  <input type="text" placeholder="Enter ad name" className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700" />
+                </div>
+
+                {/* Upload Ad */}
+                <div className="mb-6">
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Upload an Ad</label>
+                  <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center">
+                    <svg className="w-10 h-10 mx-auto mb-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Drag an image here</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">- Or -</p>
+                    <button className="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                      Select an image from your computer
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">The ad needs to be approved by a Moderator before it can be launched from your Ad Page</p>
+                </div>
+
+                {/* Bidding */}
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Bidding</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Set how many AdventureBux you want to bid per day to run your ad</p>
+                  <div className="flex items-center gap-3">
+                    <input type="number" min="0" placeholder="0" className="w-32 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700" />
+                    <span className="text-sm text-gray-600 dark:text-gray-400">AdventureBux / day</span>
+                  </div>
+                </div>
+
+                <button className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-sm transition-colors">
+                  Create Ad
+                </button>
               </div>
             )}
 
