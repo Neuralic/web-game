@@ -663,7 +663,7 @@ const ProfilePage = () => {
                 <UserAvatar
                   userId={profileUser?.id || ""}
                   username={displayName || username}
-                  size={96}
+                  size={128}
                   className="border-2 border-gray-200 dark:border-gray-700"
                 />
                 {getPresenceStatus() && (
@@ -672,7 +672,9 @@ const ProfilePage = () => {
                     style={{ bottom: "-3.5px", right: "-3.5px" }}
                     title={getPresenceStatus()?.label}
                   >
-                    {getPresenceStatus()?.hasIcon && <FontAwesomeIcon icon={faGamepad} className="text-white text-xs" />}
+                    <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+                    </svg>
                   </div>
                 )}
               </div>
@@ -799,10 +801,15 @@ const ProfilePage = () => {
                       <div className="flex items-center gap-3">
                         {socialLinks.map((link) => (
                           <a key={link.platform} href={link.url} target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity" title={link.platform}>
-                            {link.platform === 'youtube' && <svg className="w-6 h-6" viewBox="0 0 24 24" fill="#FF0000"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" /></svg>}
-                            {link.platform === 'twitter' && <svg className="w-6 h-6" viewBox="0 0 24 24" fill="#1DA1F2"><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z" /></svg>}
-                            {link.platform === 'twitch' && <svg className="w-6 h-6" viewBox="0 0 24 24" fill="#9146FF"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z" /></svg>}
-                            {!['youtube', 'twitter', 'twitch', 'discord', 'github'].includes(link.platform) && <svg className="w-6 h-6 text-gray-600 dark:text-gray-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 22C6.486 22 2 17.514 2 12S6.486 2 12 2s10 4.486 10 10-4.486 10-10 10zm1-11h4v2h-4v4h-2v-4H7v-2h4V7h2v4z" /></svg>}
+                            <img src={
+  link.platform === 'youtube' ? 'https://www.youtube.com/favicon.ico' :
+  link.platform === 'twitter' ? 'https://abs.twimg.com/favicons/twitter.3.ico' :
+  link.platform === 'twitch' ? 'https://static.twitchsvc.net/assets/uploads/favicon.ico' :
+  link.platform === 'kick' ? 'https://kick.com/favicon.ico' :
+  link.platform === 'instagram' ? 'https://cdn.cdnlogo.com/logos/i/92/instagram.svg' :
+  link.platform === 'tiktok' ? 'https://www.tiktok.com/favicon.ico' :
+  `https://www.google.com/s2/favicons?domain=${link.url}&sz=24`
+} className="w-6 h-6 rounded" alt={link.platform} />
                           </a>
                         ))}
                       </div>
@@ -835,9 +842,11 @@ const ProfilePage = () => {
                     <div className="flex-shrink-0">
                       <div className="relative bg-gradient-to-b from-gray-100 to-white dark:from-gray-800 dark:to-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4 w-80 overflow-hidden" style={{ minHeight: 260 }}>
                         <div className="absolute top-3 right-3 z-20">
+                          {(avatarBadge === "2D" || avatarBadge === "Roblox") && (
                           <span className="px-3 py-1.5 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg text-xs font-medium border border-gray-300 dark:border-gray-600">
-                            {avatarBadge}
+                            {avatarBadge === "Roblox" ? "3D" : "2D"}
                           </span>
+                        )}
                         </div>
 
                         {avatarLoading ? (
@@ -887,7 +896,7 @@ const ProfilePage = () => {
                     {friends.map((connection) => (
                       <Link key={connection.id} href={`/profile/${connection.username}`} className="flex flex-col items-center cursor-pointer group">
                         <div className="relative">
-                          <UserAvatar userId={connection.id} username={connection.name} size={64} />
+                          <UserAvatar userId={connection.id} username={connection.name} size={80} />
                           {connection.status && connection.status !== "offline" && (
                             <div className={`absolute w-4 h-4 rounded-full border-2 border-white dark:border-gray-900 ${connection.status === "online-game" ? "bg-green-500" : connection.status === "online" ? "bg-blue-500" : connection.status === "studio" ? "bg-orange-500" : "bg-gray-400"}`} style={{ bottom: "-2px", right: "-2px" }} />
                           )}
