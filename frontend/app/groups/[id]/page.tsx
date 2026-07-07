@@ -788,7 +788,7 @@ const GroupDetailPage = () => {
                       disabled={joining}
                       className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-base rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {joining ? "Joining..." : "Join Community"}
+                      {joining ? "Joining..." : "Join Group"}
                     </button>
                   )}
 
