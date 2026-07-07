@@ -930,7 +930,15 @@ const ProfilePage = () => {
                           </Link>
                           <Link href={`/groups/${groups[currentGroupIndex]?.id}`} className="flex-1 p-6 flex flex-col justify-between block">
                             <div>
-                              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1 line-clamp-2">{groups[currentGroupIndex]?.name}</h3>
+                              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1 line-clamp-2 flex items-center gap-2">
+  {groups[currentGroupIndex]?.name}
+  {groups[currentGroupIndex]?.verified && (
+    <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="12" fill="#1D9BF0"/>
+      <path d="M6.5 12.5l3.5 3.5 7.5-8" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  )}
+</h3>
                               <div className="w-full h-px bg-gray-200 dark:bg-gray-700 my-3" />
                               {groups[currentGroupIndex]?.description && (
                                 <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3">{groups[currentGroupIndex]?.description}</p>
@@ -963,7 +971,15 @@ const ProfilePage = () => {
                             <div className="aspect-square bg-gray-200 dark:bg-gray-700 overflow-hidden rounded-lg relative">
                               <Image src={group.image} alt={group.name} fill className="object-cover group-hover/card:opacity-90 transition-opacity" sizes="(max-width: 640px) 33vw, 25vw" />
                             </div>
-                            <h3 className="text-xs font-bold text-gray-900 dark:text-gray-100 mt-1.5 truncate">{group.name}</h3>
+                            <h3 className="text-xs font-bold text-gray-900 dark:text-gray-100 mt-1.5 truncate flex items-center gap-1">
+  {group.name}
+  {group.verified && (
+    <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="12" fill="#1D9BF0"/>
+      <path d="M6.5 12.5l3.5 3.5 7.5-8" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  )}
+</h3>
                             <p className="text-[10px] text-gray-500 dark:text-gray-400">{group.members} Members · {group.rank || "Member"}</p>
                           </Link>
                         ))}
