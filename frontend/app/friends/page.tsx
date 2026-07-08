@@ -304,7 +304,7 @@ function FriendsPageContent() {
                   className="relative mb-3 block hover:opacity-90 transition-opacity"
                 >
                   <div className="relative inline-block">
-                    <UserAvatar userId={user.id} username={user.name} size={96} />
+                    <UserAvatar userId={user.id} username={user.name} size={96} headshot />
                     {user.statusType && user.statusType !== "offline" && (
                       <div
                         className={`absolute w-5 h-5 rounded-full border-2 border-white dark:border-gray-900 ${
