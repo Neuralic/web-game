@@ -926,7 +926,7 @@ const ProfilePage = () => {
                     {friends.map((connection) => (
                       <Link key={connection.id} href={`/profile/${connection.username}`} className="flex flex-col items-center cursor-pointer group">
                         <div className="relative">
-                          <UserAvatar userId={connection.id} username={connection.name} size={80} />
+                          <UserAvatar userId={connection.id} username={connection.name} size={80} headshot />
                           {connection.status && connection.status !== "offline" && (
                             <div className={`absolute w-4 h-4 rounded-full border-2 border-white dark:border-gray-900 ${connection.status === "online-game" ? "bg-green-500" : connection.status === "online" ? "bg-blue-500" : connection.status === "studio" ? "bg-orange-500" : "bg-gray-400"}`} style={{ bottom: "-2px", right: "-2px" }} />
                           )}
