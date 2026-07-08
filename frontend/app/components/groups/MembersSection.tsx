@@ -105,7 +105,7 @@ export default function MembersSection({ groupId }: MembersSectionProps) {
         {filteredMembers.length > 0 ? (
           filteredMembers.map((member) => (
             <a key={member.id} href={`/profile/${member.username}`} className="group flex flex-col items-center">
-              <UserAvatar userId={member.user_id} username={member.display_name || member.username} size={110} />
+              <UserAvatar userId={member.user_id} username={member.display_name || member.username} size={110} headshot />
               <p className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-1 truncate w-[110px] text-center">
                 {member.display_name || member.username}
               </p>
