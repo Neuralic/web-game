@@ -112,7 +112,7 @@ export default function Sidebar({
             {/* User Info Section */}
             <div className="p-3 border-b border-gray-200 dark:border-gray-800">
               <div className="flex items-center gap-2">
-                <UserAvatar userId={user?.id || ""} username={displayName} size={40} />
+                <UserAvatar userId={user?.id || ""} username={displayName} size={40} headshot />
                 <div>
                   <div className="font-bold text-sm text-gray-900 dark:text-gray-100 flex items-center gap-1">
                     {displayName}
