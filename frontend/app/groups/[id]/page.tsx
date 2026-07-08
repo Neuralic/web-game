@@ -974,6 +974,7 @@ const GroupDetailPage = () => {
   userId={currentGroup.shout_posted_by || ""}
   username={currentGroup.shout_posted_by_username || ""}
   size={40}
+  headshot
 />
                       
                       {/* Content */}
