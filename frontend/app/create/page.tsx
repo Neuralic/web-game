@@ -6,6 +6,7 @@ import Sidebar from "../components/Sidebar";
 import Footer from "../components/Footer";
 import ProtectedRoute from "../components/ProtectedRoute";
 import { storage } from "@/lib/api";
+import UserAdBanner from "../components/UserAdBanner";
 import { Plus, Trash2, ExternalLink, Gamepad2 } from "lucide-react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
@@ -148,6 +149,9 @@ export default function CreatePage() {
         <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} setSidebarOpen={setSidebarOpen} />
 
         <main className="max-w-5xl mx-auto px-6 py-8">
+        <div className="flex justify-center mb-6">
+          <UserAdBanner format="728x90" />
+        </div>
           <div className="flex items-center justify-between mb-8">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">My Creations</h1>
             <button
