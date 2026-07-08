@@ -141,6 +141,7 @@ const HomePage = () => {
                     userId={user?.id || ""}
                     username={user?.display_name || user?.username}
                     size={120}
+                    headshot
                     className="border-2 border-gray-200 dark:border-gray-700 cursor-pointer hover:opacity-90 transition-opacity"
                   />
                 </Link>
@@ -184,7 +185,7 @@ const HomePage = () => {
                       className="flex flex-col items-center gap-2 cursor-pointer hover:opacity-80"
                     >
                       <div className="relative">
-                        <UserAvatar userId={friend.id} username={friend.name} size={80} />
+                        <UserAvatar userId={friend.id} username={friend.name} size={80} headshot />
                         {isOnline && (
                           <div
                             className="absolute w-5 h-5 bg-green-500 rounded-full border-2 border-white dark:border-gray-900"
@@ -264,7 +265,7 @@ const HomePage = () => {
                   {feedPosts.map((post: any) => (
                     <div key={post.id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                       <div className="flex gap-3">
-                        <UserAvatar userId={post.author_id} username={post.author_display_name || post.author_username} size={40} />
+                        <UserAvatar userId={post.author_id} username={post.author_display_name || post.author_username} size={40} headshot />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5">
                             <Link href={`/profile/${post.author_username}`} className="text-sm font-semibold text-gray-900 dark:text-gray-100 hover:underline">
