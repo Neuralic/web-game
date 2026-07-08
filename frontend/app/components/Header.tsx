@@ -525,7 +525,7 @@ useEffect(() => {
                       {userIsVerified && <VerifiedBadge size="sm" />}
                     </span>
                   )}
-                  <UserAvatar userId={user?.id || ""} username={displayName} size={36} />
+                  <UserAvatar userId={user?.id || ""} username={displayName} size={36} headshot />
                 </Link>
 
                 {/* Notifications */}
