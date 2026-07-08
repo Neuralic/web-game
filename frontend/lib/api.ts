@@ -2090,3 +2090,43 @@ export const feedApi = {
     });
   },
 };
+
+export const adsApi = {
+  createAd: async (data: {
+    name: string;
+    format: string;
+    imageUrl: string;
+    bidPerDay: number;
+    groupId?: string;
+  }): Promise<ApiResponse<unknown>> => {
+    const token = storage.getAccessToken();
+    return apiCall('/ads', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(data),
+    });
+  },
+
+  getMyAds: async (): Promise<ApiResponse<unknown>> => {
+    const token = storage.getAccessToken();
+    return apiCall('/ads/my', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+
+  deleteAd: async (id: string): Promise<ApiResponse<unknown>> => {
+    const token = storage.getAccessToken();
+    return apiCall(`/ads/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+
+  serveAd: async (format: string): Promise<ApiResponse<unknown>> => {
+    return apiCall(`/ads/serve/${format}`);
+  },
+
+  trackClick: async (id: string): Promise<ApiResponse<unknown>> => {
+    return apiCall(`/ads/${id}/click`, { method: 'POST' });
+  },
+};
