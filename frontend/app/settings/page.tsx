@@ -7,7 +7,7 @@ import { faPerson, faPersonDress } from "@fortawesome/free-solid-svg-icons";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
-import { usersApi } from "@/lib/api";
+import { usersApi, adsApi } from "@/lib/api";
 
 interface UserData {
   username?: string;
@@ -67,6 +67,15 @@ const SettingsPage = () => {
     platformAnnouncements: true,
   });
   const [savingNotifications, setSavingNotifications] = useState(false);
+
+const [adName, setAdName] = useState("");
+const [adFormat, setAdFormat] = useState("728x90");
+const [adImageUrl, setAdImageUrl] = useState("");
+const [adBid, setAdBid] = useState("0");
+const [adGroupId, setAdGroupId] = useState("");
+const [myAds, setMyAds] = useState<any[]>([]);
+const [submittingAd, setSubmittingAd] = useState(false);
+const [adTab, setAdTab] = useState<"create" | "manage">("create");
 
   // Email editing state
   const [isEditingEmail, setIsEditingEmail] = useState(false);
@@ -723,32 +732,68 @@ const SettingsPage = () => {
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Select Ad Format</h3>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Download, edit and upload one of the following templates:</p>
                   <div className="flex gap-3">
-                    {["728 x 90 Banner", "160 x 600 Skyscraper"].map((format) => (
-                      <button key={format} className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium">
-                        {format}
-                      </button>
-                    ))}
+                    {[
+  { label: "728 x 90 Banner", value: "728x90" },
+  { label: "160 x 600 Skyscraper", value: "160x600" },
+].map((f) => (
+  <button
+    key={f.value}
+    onClick={() => setAdFormat(f.value)}
+    className={`px-4 py-2 border rounded-lg text-sm font-medium transition-colors ${
+      adFormat === f.value
+        ? "border-blue-600 bg-blue-600 text-white"
+        : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+    }`}
+  >
+    {f.label}
+  </button>
+))}
                   </div>
                 </div>
 
                 {/* Ad Name */}
                 <div className="mb-6">
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Name your Ad</label>
-                  <input type="text" placeholder="Enter ad name" className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700" />
+                 <input type="text" value={adName} onChange={(e) => setAdName(e.target.value)} placeholder="Enter ad name" className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700" />
                 </div>
 
                 {/* Upload Ad */}
-                <div className="mb-6">
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Upload an Ad</label>
+                <div className="mb-4">
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Ad Image URL</label>
+                    <input type="text" value={adImageUrl} onChange={(e) => setAdImageUrl(e.target.value)} placeholder="https://..." className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700" />
+                  </div>
+                  <div className="mb-6">
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Upload an Ad</label>
                   <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center">
                     <svg className="w-10 h-10 mx-auto mb-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                     </svg>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Drag an image here</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">- Or -</p>
-                    <button className="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
-                      Select an image from your computer
-                    </button>
+                    <label className="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors cursor-pointer">
+  Select an image from your computer
+  <input
+    type="file"
+    accept="image/*"
+    className="hidden"
+    onChange={async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      if (file.size > 5 * 1024 * 1024) { setErrorMessage("Image must be under 5MB"); return; }
+      try {
+        const { uploadApi } = await import("@/lib/api");
+        const res = await uploadApi.uploadImage(file, 'ad-image');
+        if (res.success && res.data) {
+          setAdImageUrl((res.data as any).url);
+          setSuccessMessage("Image uploaded!");
+          setTimeout(() => setSuccessMessage(""), 2000);
+        } else {
+          setErrorMessage("Failed to upload image");
+        }
+      } catch { setErrorMessage("Failed to upload image"); }
+    }}
+  />
+</label>
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">The ad needs to be approved by a Moderator before it can be launched from your Ad Page</p>
                 </div>
@@ -758,14 +803,44 @@ const SettingsPage = () => {
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Bidding</h3>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Set how many AdventureBux you want to bid per day to run your ad</p>
                   <div className="flex items-center gap-3">
-                    <input type="number" min="0" placeholder="0" className="w-32 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700" />
+                    <input type="number" min="0" value={adBid} onChange={(e) => setAdBid(e.target.value)} placeholder="0" className="w-32 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700" />
                     <span className="text-sm text-gray-600 dark:text-gray-400">AdventureBux / day</span>
                   </div>
                 </div>
 
-                <button className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-sm transition-colors">
-                  Create Ad
-                </button>
+                <button
+  onClick={async () => {
+    if (!adName.trim()) { setErrorMessage("Ad name is required"); return; }
+    if (!adImageUrl.trim()) { setErrorMessage("Ad image URL is required"); return; }
+    setSubmittingAd(true);
+    setErrorMessage("");
+    try {
+      const response = await adsApi.createAd({
+        name: adName,
+        format: adFormat,
+        imageUrl: adImageUrl,
+        bidPerDay: parseInt(adBid) || 0,
+        groupId: adGroupId || undefined,
+      });
+      if (response.success) {
+        setSuccessMessage("Ad submitted for review!");
+        setAdName(""); setAdImageUrl(""); setAdBid("0"); setAdGroupId("");
+        setTimeout(() => setSuccessMessage(""), 3000);
+        // Refresh my ads
+        const adsResponse = await adsApi.getMyAds();
+        if (adsResponse.success) setMyAds((adsResponse.data as any)?.ads || []);
+        setAdTab("manage");
+      } else {
+        setErrorMessage((response as any).message || "Failed to create ad");
+      }
+    } catch { setErrorMessage("Failed to create ad"); }
+    finally { setSubmittingAd(false); }
+  }}
+  disabled={submittingAd}
+  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-sm transition-colors disabled:opacity-50"
+>
+  {submittingAd ? "Submitting..." : "Create Ad"}
+</button>
               </div>
             )}
 
