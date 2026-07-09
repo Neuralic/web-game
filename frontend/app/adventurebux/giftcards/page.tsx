@@ -5,6 +5,7 @@ import Link from "next/link";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import Footer from "../../components/Footer";
+import UserAdBanner from "../../components/UserAdBanner";
 
 const GiftCardsPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -27,6 +28,10 @@ const GiftCardsPage = () => {
       <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-8">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">AdventureBux Gift Cards</h1>
         <p className="text-gray-600 dark:text-gray-400 text-sm mb-8">Purchase a gift card for yourself or someone special</p>
+
+<div className="flex justify-center mb-6">
+  <UserAdBanner format="728x90" />
+</div>
 
         {/* Gift Card Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
