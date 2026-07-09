@@ -4,6 +4,7 @@ import { useState } from "react";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import Footer from "../../components/Footer";
+import UserAdBanner from "../../components/UserAdBanner";
 
 const RedeemPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -24,6 +25,10 @@ const RedeemPage = () => {
       <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-8">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Redeem Code</h1>
         <p className="text-gray-600 dark:text-gray-400 text-sm mb-8">Enter a code to redeem AdventureBux or items</p>
+
+<div className="flex justify-center mb-6">
+  <UserAdBanner format="728x90" />
+</div>
 
         <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-8">
           <div className="text-center mb-8">
