@@ -19,6 +19,7 @@ import Sidebar from "../../components/Sidebar";
 import Header from "../../components/Header";
 import VerifiedBadge from "../../components/VerifiedBadge";
 import UserAvatar from "../../components/UserAvatar";
+import UserAdBanner from "../../components/UserAdBanner";
 import { usersApi, friendsApi, groupsApi, storage } from "@/lib/api";
 import { openChatWithUser } from "@/app/components/ChatWidget";
 import { useParams, useRouter } from "next/navigation";
@@ -665,11 +666,7 @@ const ProfilePage = () => {
           <div className="hidden xl:block flex-shrink-0 pt-[130px]">
             <div className="relative w-[160px]">
               <button onClick={() => setShowLeftAd(false)} className="absolute top-2 right-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 text-2xl font-bold leading-none z-10" aria-label="Close ad">×</button>
-              <div className="w-[160px] h-[600px] bg-gray-200 dark:bg-gray-700 rounded flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 text-sm font-medium border border-gray-300 dark:border-gray-600">
-                <span className="text-center px-2">Advertisement</span>
-                <span className="text-center px-2 mt-2 text-xs">(160 x 600)</span>
-              </div>
-              <div className="mt-1 text-center"><span className="text-xs text-gray-500 dark:text-gray-400 uppercase">Advertisement</span></div>
+              <UserAdBanner format="160x600" />
             </div>
           </div>
         )}
@@ -1120,11 +1117,7 @@ const ProfilePage = () => {
           <div className="hidden xl:block flex-shrink-0 pt-[130px]">
             <div className="relative w-[160px]">
               <button onClick={() => setShowRightAd(false)} className="absolute top-2 right-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 text-2xl font-bold leading-none z-10" aria-label="Close ad">×</button>
-              <div className="w-[160px] h-[600px] bg-gray-200 dark:bg-gray-700 rounded flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 text-sm font-medium border border-gray-300 dark:border-gray-600">
-                <span className="text-center px-2">Advertisement</span>
-                <span className="text-center px-2 mt-2 text-xs">(160 x 600)</span>
-              </div>
-              <div className="mt-1 text-center"><span className="text-xs text-gray-500 dark:text-gray-400 uppercase">Advertisement</span></div>
+             <UserAdBanner format="160x600" />
             </div>
           </div>
         )}
