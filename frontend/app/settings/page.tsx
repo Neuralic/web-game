@@ -727,10 +727,56 @@ const [adTab, setAdTab] = useState<"create" | "manage">("create");
 
                 {/* Tabs */}
                 <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
-                  <button className="px-4 py-2 text-sm font-semibold border-b-2 border-blue-600 text-blue-600 dark:text-blue-400">Create Ad</button>
-                  <button className="px-4 py-2 text-sm font-semibold border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">Manage Ads</button>
+                  <button
+                    onClick={() => setAdTab("create")}
+                    className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${adTab === "create" ? "border-blue-600 text-blue-600 dark:text-blue-400" : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"}`}
+                  >Create Ad</button>
+                  <button
+                    onClick={async () => {
+                      setAdTab("manage");
+                      const res = await adsApi.getMyAds();
+                      if (res.success) setMyAds((res.data as any)?.ads || []);
+                    }}
+                    className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${adTab === "manage" ? "border-blue-600 text-blue-600 dark:text-blue-400" : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"}`}
+                  >Manage Ads</button>
                 </div>
 
+                {adTab === "manage" && (
+                  <div>
+                    {myAds.length === 0 ? (
+                      <p className="text-sm text-gray-500 dark:text-gray-400 py-4">No ads yet. Create your first ad.</p>
+                    ) : (
+                      <div className="space-y-4">
+                        {myAds.map((ad: any) => (
+                          <div key={ad.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex gap-4 items-start">
+                            <img src={ad.imageUrl} alt={ad.name} className="w-24 h-12 object-cover rounded border border-gray-200 dark:border-gray-600 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{ad.name}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">{ad.format} · {ad.group_name || "No group"}</p>
+                              <div className="flex items-center gap-3 mt-1">
+                                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                                  ad.status === 'approved' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                  ad.status === 'pending' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                                  'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                }`}>{ad.status}</span>
+                                <span className="text-xs text-gray-500 dark:text-gray-400">{ad.impressions} views · {ad.clicks} clicks</span>
+                              </div>
+                            </div>
+                            <button
+                              onClick={async () => {
+                                const res = await adsApi.deleteAd(ad.id);
+                                if (res.success) setMyAds(myAds.filter((a: any) => a.id !== ad.id));
+                              }}
+                              className="text-red-500 hover:text-red-600 text-xs font-medium flex-shrink-0"
+                            >Delete</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {adTab === "create" && <>
                 {/* Ad Format */}
                 <div className="mb-6">
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Select Ad Format</h3>
@@ -800,6 +846,8 @@ const [adTab, setAdTab] = useState<"create" | "manage">("create");
 </label>
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">The ad needs to be approved by a Moderator before it can be launched from your Ad Page</p>
+
+
                 </div>
 
                 {/* Bidding */}
@@ -845,6 +893,7 @@ const [adTab, setAdTab] = useState<"create" | "manage">("create");
 >
   {submittingAd ? "Submitting..." : "Create Ad"}
 </button>
+                </>}
               </div>
             )}
 
