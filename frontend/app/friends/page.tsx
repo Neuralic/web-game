@@ -67,7 +67,7 @@ function FriendsPageContent() {
             ? await usersApi.getUserFollowing(userId)
             : await usersApi.getFollowing();
           if (response.success && response.data) {
-            const realFollowing = (response.data.following || []).map((user: any) => {
+            const realFollowing = ((response.data as any).following || []).map((user: any) => {
               const presence = presenceMap.get(user.id);
               const status = presence?.presenceStatus || 'offline';
               return {
@@ -88,7 +88,7 @@ function FriendsPageContent() {
             ? await usersApi.getUserFollowers(userId)
             : await usersApi.getFollowers();
           if (response.success && response.data) {
-            const realFollowers = (response.data.followers || []).map((user: any) => {
+            const realFollowers = ((response.data as any).followers || []).map((user: any) => {
               const presence = presenceMap.get(user.id);
               const status = presence?.presenceStatus || 'offline';
               return {
