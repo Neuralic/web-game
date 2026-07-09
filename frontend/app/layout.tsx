@@ -9,7 +9,12 @@ import BackgroundMusic from "./components/BackgroundMusic";
 
 export const metadata: Metadata = {
   title: "AdventureBlox",
-  description: "Gaming platform",
+  description: "AdventureBlox - The ultimate gaming platform",
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon-32.png',
+    apple: '/logo.png',
+  },
 };
 
 export default function RootLayout({
