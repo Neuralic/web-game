@@ -35,6 +35,7 @@ interface ChatWindow {
   name: string;
   avatar: string;
   username: string;
+  displayName?: string;
   messages: ChatMessage[];
   isLoadingMessages: boolean;
 }
@@ -457,7 +458,7 @@ export default function ChatWidget() {
         >
           {/* Chat Header */}
           <div className="flex items-center gap-3 p-3 border-b border-gray-200 dark:border-gray-700">
-            <UserAvatar userId={chat.userId} username={chat.displayName || chat.username} size={32} headshot />
+            <UserAvatar userId={chat.id} username={chat.displayName || chat.name} size={32} headshot />
             <div className="flex-1 min-w-0">
               <h3 className="font-bold text-sm text-gray-900 dark:text-gray-100 truncate">
                 {chat.name}
@@ -487,7 +488,7 @@ export default function ChatWidget() {
               </div>
             ) : chat.messages.length === 0 ? (
               <div className="text-center py-8">
-                <UserAvatar userId={chat.userId} username={chat.displayName || chat.username} size={80} headshot />
+                <UserAvatar userId={chat.id} username={chat.displayName || chat.name} size={80} headshot />
                 <h4 className="font-bold text-gray-900 dark:text-gray-100 mb-1">
                   {chat.name}
                 </h4>
