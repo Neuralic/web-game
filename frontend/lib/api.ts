@@ -281,6 +281,15 @@ export const usersApi = {
     });
   },
 
+
+getUserFollowing: async (userId: string): Promise<ApiResponse<unknown>> => {
+    return apiCall(`/users/${userId}/following`);
+  },
+
+  getUserFollowers: async (userId: string): Promise<ApiResponse<unknown>> => {
+    return apiCall(`/users/${userId}/followers`);
+  },
+
   // Follow a user
   followUser: async (userId: string): Promise<ApiResponse<unknown>> => {
     const token = storage.getAccessToken();
