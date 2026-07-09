@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
+import UserAvatar from "../components/UserAvatar";
 import Link from "next/link";
 import { Loader2, Send, ArrowLeft, Search, PenSquare, Reply, X, ImageIcon, Download, ZoomIn } from "lucide-react";
 import Header from "../components/Header";
@@ -485,15 +486,9 @@ const MessagesPage = () => {
                       activeConversation?.id === conv.id ? "bg-blue-50 dark:bg-blue-900/20" : ""
                     }`}
                   >
-                    <div className="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-600 flex-shrink-0 overflow-hidden relative">
-                      {conv.avatar_url ? (
-                        <Image src={conv.avatar_url} alt={conv.username} fill className="object-cover" sizes="40px" />
-                      ) : (
-                        <Image src={`https://robohash.org/${conv.username}?set=set3`} alt={conv.username} fill className="object-cover" sizes="40px" />
-                      )}
+                    <UserAvatar userId={conv.user_id} username={conv.display_name || conv.username} size={40} headshot />
                       <ConvPresenceDot userId={conv.id} />
-                    </div>
-                    <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <span className={`text-sm truncate ${conv.unread_count && conv.unread_count > 0 ? "font-bold text-gray-900 dark:text-gray-100" : "font-medium text-gray-700 dark:text-gray-300"}`}>
                           {conv.display_name || conv.username}
@@ -627,13 +622,7 @@ const MessagesPage = () => {
                   >
                     <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                   </button>
-                  <div className="w-9 h-9 rounded-full bg-gray-300 dark:bg-gray-600 flex-shrink-0 overflow-hidden relative">
-                    {activeConversation.avatar_url ? (
-                      <Image src={activeConversation.avatar_url} alt={activeConversation.username} fill className="object-cover" sizes="36px" />
-                    ) : (
-                      <Image src={`https://robohash.org/${activeConversation.username}?set=set3`} alt={activeConversation.username} fill className="object-cover" sizes="36px" />
-                    )}
-                  </div>
+                 <UserAvatar userId={activeConversation.user_id} username={activeConversation.display_name || activeConversation.username} size={36} headshot />
                   <div>
                     <Link href={`/profile/${activeConversation.username}`} className="text-sm font-bold text-gray-900 dark:text-gray-100 hover:underline">
                       {activeConversation.display_name || activeConversation.username}
