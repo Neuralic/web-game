@@ -486,7 +486,7 @@ const MessagesPage = () => {
                       activeConversation?.id === conv.id ? "bg-blue-50 dark:bg-blue-900/20" : ""
                     }`}
                   >
-                    <UserAvatar userId={conv.user_id} username={conv.display_name || conv.username} size={40} headshot />
+                    <UserAvatar userId={conv.id} username={conv.display_name || conv.username} size={40} headshot />
                       <ConvPresenceDot userId={conv.id} />
                       <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
@@ -622,7 +622,7 @@ const MessagesPage = () => {
                   >
                     <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                   </button>
-                 <UserAvatar userId={activeConversation.user_id} username={activeConversation.display_name || activeConversation.username} size={36} headshot />
+                 <UserAvatar userId={activeConversation.id} username={activeConversation.display_name || activeConversation.username} size={36} headshot />
                   <div>
                     <Link href={`/profile/${activeConversation.username}`} className="text-sm font-bold text-gray-900 dark:text-gray-100 hover:underline">
                       {activeConversation.display_name || activeConversation.username}
