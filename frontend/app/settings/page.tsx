@@ -8,6 +8,7 @@ import Footer from "../components/Footer";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
 import { usersApi, adsApi } from "@/lib/api";
+import UserAdBanner from "../components/UserAdBanner";
 
 interface UserData {
   username?: string;
@@ -332,6 +333,9 @@ const [adTab, setAdTab] = useState<"create" | "manage">("create");
       />
 
       <main className="max-w-4xl mx-auto px-4 py-4">
+        <div className="flex justify-center mb-4">
+          <UserAdBanner format="728x90" />
+        </div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">Settings</h1>
 
         {successMessage && (
