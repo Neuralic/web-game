@@ -68,6 +68,11 @@ const SettingsPage = () => {
     platformAnnouncements: true,
   });
   const [savingNotifications, setSavingNotifications] = useState(false);
+const [showPasswordModal, setShowPasswordModal] = useState(false);
+const [currentPassword, setCurrentPassword] = useState("");
+const [newPassword, setNewPassword] = useState("");
+const [confirmPassword, setConfirmPassword] = useState("");
+const [changingPassword, setChangingPassword] = useState(false);
 
 const [adName, setAdName] = useState("");
 const [adFormat, setAdFormat] = useState("728x90");
@@ -587,7 +592,10 @@ const [adTab, setAdTab] = useState<"create" | "manage">("create");
                   <div className="pb-6 border-b border-gray-200 dark:border-gray-700">
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">Password</h3>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Change your account password</p>
-                    <button className="px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 font-semibold rounded text-sm hover:bg-gray-800 dark:hover:bg-gray-200">Change Password</button>
+                    <button
+  onClick={() => setShowPasswordModal(true)}
+  className="px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 font-semibold rounded text-sm hover:bg-gray-800 dark:hover:bg-gray-200"
+>Change Password</button>
                   </div>
                   <div className="pb-6 border-b border-gray-200 dark:border-gray-700">
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">Two-Factor Authentication</h3>
@@ -955,6 +963,64 @@ const [adTab, setAdTab] = useState<"create" | "manage">("create");
       <div className="mt-8">
         <Footer />
       </div>
+
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">Change Password</h2>
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Current Password</label>
+                <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700" />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">New Password</label>
+                <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700" />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Confirm New Password</label>
+                <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700" />
+              </div>
+            </div>
+            {errorMessage && <p className="text-sm text-red-600 dark:text-red-400 mb-4">{errorMessage}</p>}
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setShowPasswordModal(false); setCurrentPassword(""); setNewPassword(""); setConfirmPassword(""); setErrorMessage(""); }}
+                className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-semibold rounded-lg text-sm"
+              >Cancel</button>
+              <button
+                onClick={async () => {
+                  if (!currentPassword || !newPassword || !confirmPassword) { setErrorMessage("All fields are required"); return; }
+                  if (newPassword !== confirmPassword) { setErrorMessage("New passwords don't match"); return; }
+                  if (newPassword.length < 8) { setErrorMessage("New password must be at least 8 characters"); return; }
+                  setChangingPassword(true);
+                  setErrorMessage("");
+                  try {
+                    const token = (await import("@/lib/api")).storage.getAccessToken();
+                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1"}/auth/change-password`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                      body: JSON.stringify({ currentPassword, newPassword }),
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                      setShowPasswordModal(false);
+                      setCurrentPassword(""); setNewPassword(""); setConfirmPassword("");
+                      setSuccessMessage("Password changed successfully!");
+                      setTimeout(() => setSuccessMessage(""), 3000);
+                    } else {
+                      setErrorMessage(data.message || "Failed to change password");
+                    }
+                  } catch { setErrorMessage("Failed to change password"); }
+                  finally { setChangingPassword(false); }
+                }}
+                disabled={changingPassword}
+                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-sm disabled:opacity-50"
+              >{changingPassword ? "Changing..." : "Change Password"}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
