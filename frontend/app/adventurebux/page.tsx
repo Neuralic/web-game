@@ -8,6 +8,7 @@ import Footer from "../components/Footer";
 import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
 import ProtectedRoute from "../components/ProtectedRoute";
+import UserAdBanner from "../components/UserAdBanner";
 
 const AdventureBuxPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -88,6 +89,9 @@ const AdventureBuxPage = () => {
 
         {/* Main Content */}
         <main className="flex-1 max-w-4xl mx-auto px-4 py-8 w-full">
+          <div className="flex justify-center mb-6">
+            <UserAdBanner format="728x90" />
+          </div>
           {/* Hero Section */}
           <div className="text-center mb-12">
             <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-gray-100">
