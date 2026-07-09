@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
+import UserAvatar from "./UserAvatar";
 import { MessageSquare, X, Settings, Minimize2, Send } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { messagesApi, friendsApi } from "@/lib/api";
@@ -402,15 +403,7 @@ export default function ChatWidget() {
                   className="w-full flex items-center gap-3 p-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700"
                 >
                   <div className="relative flex-shrink-0">
-                    <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-600">
-                      <Image
-                        src={contact.avatar_url || `https://robohash.org/${contact.username}?set=set3`}
-                        alt={contact.username || 'User'}
-                        width={40}
-                        height={40}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
+                    <UserAvatar userId={contact.id} username={contact.display_name || contact.username} size={40} headshot />
                     {getPresenceStatus(contact.id) !== 'offline' && (
                       <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-800"></div>
                     )}
@@ -464,15 +457,7 @@ export default function ChatWidget() {
         >
           {/* Chat Header */}
           <div className="flex items-center gap-3 p-3 border-b border-gray-200 dark:border-gray-700">
-            <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-600 flex-shrink-0">
-              <Image
-                src={chat.avatar}
-                alt={chat.name}
-                width={32}
-                height={32}
-                className="w-full h-full object-cover"
-              />
-            </div>
+            <UserAvatar userId={chat.userId} username={chat.displayName || chat.username} size={32} headshot />
             <div className="flex-1 min-w-0">
               <h3 className="font-bold text-sm text-gray-900 dark:text-gray-100 truncate">
                 {chat.name}
@@ -502,15 +487,7 @@ export default function ChatWidget() {
               </div>
             ) : chat.messages.length === 0 ? (
               <div className="text-center py-8">
-                <div className="w-20 h-20 mx-auto mb-3 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-600">
-                  <Image
-                    src={chat.avatar}
-                    alt={chat.name}
-                    width={80}
-                    height={80}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
+                <UserAvatar userId={chat.userId} username={chat.displayName || chat.username} size={80} headshot />
                 <h4 className="font-bold text-gray-900 dark:text-gray-100 mb-1">
                   {chat.name}
                 </h4>
