@@ -14,6 +14,7 @@ import { useRealtime } from "@/contexts/RealtimeContext";
 function FriendsPageContent() {
   const searchParams = useSearchParams();
   const tabFromUrl = searchParams.get('tab');
+  const userId = searchParams.get('userId');
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(tabFromUrl || "Friends");
@@ -62,7 +63,9 @@ function FriendsPageContent() {
             setFriends([]);
           }
         } else if (activeTab === "Following") {
-          const response = await usersApi.getFollowing();
+          const response = userId
+            ? await usersApi.getUserFollowing(userId)
+            : await usersApi.getFollowing();
           if (response.success && response.data) {
             const realFollowing = (response.data.following || []).map((user: any) => {
               const presence = presenceMap.get(user.id);
@@ -81,7 +84,9 @@ function FriendsPageContent() {
             setFollowing([]);
           }
         } else if (activeTab === "Followers") {
-          const response = await usersApi.getFollowers();
+          const response = userId
+            ? await usersApi.getUserFollowers(userId)
+            : await usersApi.getFollowers();
           if (response.success && response.data) {
             const realFollowers = (response.data.followers || []).map((user: any) => {
               const presence = presenceMap.get(user.id);
