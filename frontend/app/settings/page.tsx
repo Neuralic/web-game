@@ -796,7 +796,13 @@ const [adTab, setAdTab] = useState<"create" | "manage">("create");
 ].map((f) => (
   <button
     key={f.value}
-    onClick={() => setAdFormat(f.value)}
+    onClick={() => {
+  setAdFormat(f.value);
+  const link = document.createElement('a');
+  link.href = `/ad-templates/${f.value}-template.png`;
+  link.download = `adventureblox-${f.value}-ad-template.png`;
+  link.click();
+}}
     className={`px-4 py-2 border rounded-lg text-sm font-medium transition-colors ${
       adFormat === f.value
         ? "border-blue-600 bg-blue-600 text-white"
