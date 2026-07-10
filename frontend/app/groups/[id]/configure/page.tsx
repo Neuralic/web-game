@@ -2378,7 +2378,6 @@ const ConfigureGroupPage = () => {
                             {[
                               { key: "banner", label: "728 x 90 Banner" },
                               { key: "skyscraper", label: "160 x 600 Skyscraper" },
-                              { key: "rectangle", label: "300 x 250 Rectangle" },
                             ].map(({ key, label }) => (
                               <button
                                 key={key}
@@ -2465,23 +2464,15 @@ const ConfigureGroupPage = () => {
                           <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                             The minimum bid price depends on your selected target audience and Ad Format.
                           </p>
-                          <div className="bg-gray-900 dark:bg-gray-700 rounded-lg p-4 mb-4">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <label className="text-sm text-gray-300 dark:text-gray-400 block mb-1">Max Bid</label>
-                                <input
-                                  type="number"
-                                  step="0.01"
-                                  min="0.10"
-                                  value={maxBid}
-                                  onChange={(e) => setMaxBid(e.target.value)}
-                                  className="bg-transparent text-white text-xl font-bold focus:outline-none w-24"
-                                />
-                              </div>
-                              <div className="text-right">
-                                <p className="text-sm text-gray-400">Cost Per Play (Ad Credit)</p>
-                              </div>
-                            </div>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="number"
+                              min="0"
+                              value={maxBid}
+                              onChange={(e) => setMaxBid(e.target.value)}
+                              className="w-32 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700"
+                            />
+                            <span className="text-sm text-gray-600 dark:text-gray-400">AdventureBux / day</span>
                           </div>
                           <div className="space-y-2">
                             <div className="flex justify-between text-sm">
