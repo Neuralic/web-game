@@ -663,8 +663,6 @@ const ProfilePage = () => {
         <div className="hidden xl:block flex-shrink-0 pt-[130px]">
           <UserAdBanner format="160x600" />
         </div>
-            </div>
-          </div>
         )}
 
         <main className="flex-1 max-w-[900px]">
