@@ -7,7 +7,7 @@ import { faPerson, faPersonDress } from "@fortawesome/free-solid-svg-icons";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
-import { usersApi, adsApi } from "@/lib/api";
+import { usersApi, adsApi, groupsApi } from "@/lib/api";
 import UserAdBanner from "../components/UserAdBanner";
 
 interface UserData {
@@ -82,6 +82,7 @@ const [adGroupId, setAdGroupId] = useState("");
 const [myAds, setMyAds] = useState<any[]>([]);
 const [submittingAd, setSubmittingAd] = useState(false);
 const [adTab, setAdTab] = useState<"create" | "manage">("create");
+const [myGroups, setMyGroups] = useState<any[]>([]);
 
   // Email editing state
   const [isEditingEmail, setIsEditingEmail] = useState(false);
@@ -104,6 +105,12 @@ const [adTab, setAdTab] = useState<"create" | "manage">("create");
           if (userData.can_view_inventory) setCanViewInventory(userData.can_view_inventory);
         }
 
+
+
+	const groupsResponse = await groupsApi.getUserGroups();
+if (groupsResponse.success && groupsResponse.data) {
+  setMyGroups((groupsResponse.data as any).groups || []);
+}
         const socialResponse = await usersApi.getMySocialLinks();
         if (socialResponse.success && socialResponse.data) {
           const links = socialResponse.data.socialLinks || [];
@@ -811,6 +818,10 @@ const [adTab, setAdTab] = useState<"create" | "manage">("create");
                 {/* Upload Ad */}
                 
                   <div className="mb-6">
+<div className="mb-6">
+  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Name your Ad</label>
+  <input type="text" value={adName} onChange={(e) => setAdName(e.target.value)} placeholder="Enter ad name" className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700" />
+</div>
                     <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Upload an Ad</label>
                   <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center">
                     <svg className="w-10 h-10 mx-auto mb-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -831,8 +842,10 @@ const [adTab, setAdTab] = useState<"create" | "manage">("create");
       try {
         const { uploadApi } = await import("@/lib/api");
         const res = await uploadApi.uploadImage(file, 'ad-image');
-        if (res.success && res.data) {
-          setAdImageUrl((res.data as any).url);
+        if (res.success) {
+          
+          const url = (res.data as any)?.url || (res as any).url;
+                    setAdImageUrl(url);
           setSuccessMessage("Image uploaded!");
           setTimeout(() => setSuccessMessage(""), 2000);
         } else {
@@ -843,11 +856,31 @@ const [adTab, setAdTab] = useState<"create" | "manage">("create");
   />
 </label>
                   </div>
+
+{adImageUrl && (
+  <div className="mt-3">
+    <img src={adImageUrl} alt="Ad preview" className="max-h-24 rounded-lg border border-gray-300 dark:border-gray-600" />
+  </div>
+)}
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">The ad needs to be approved by a Moderator before it can be launched from your Ad Page</p>
 
 
                 </div>
 
+{/* Group selector */}
+<div className="mb-6">
+  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Advertise Group (Optional)</label>
+  <select
+    value={adGroupId}
+    onChange={(e) => setAdGroupId(e.target.value)}
+    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700"
+  >
+    <option value="">Select a group...</option>
+    {myGroups.map((group: any) => (
+      <option key={group.id} value={group.id}>{group.name}</option>
+    ))}
+  </select>
+</div>
                 {/* Bidding */}
                 <div className="mb-6">
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Bidding</h3>
