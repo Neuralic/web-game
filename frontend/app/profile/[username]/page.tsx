@@ -663,13 +663,11 @@ const ProfilePage = () => {
         <div className="hidden xl:block flex-shrink-0 pt-[130px]">
           <UserAdBanner format="160x600" />
         </div>
-        )}
 
         <main className="flex-1 max-w-[900px]">
           {showAdvertisement && (
             <div className="flex justify-center py-4 border-b border-gray-200 dark:border-gray-800">
               <div className="w-full relative">
-                <button onClick={() => setShowAdvertisement(false)} className="absolute top-2 right-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 text-2xl font-bold leading-none z-10" aria-label="Close ad">×</button>
                 <div className="w-full h-[90px] bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm font-medium border border-gray-300 dark:border-gray-600">
                   Advertisement Banner (728 x 90)
                 </div>
@@ -1110,9 +1108,7 @@ const ProfilePage = () => {
         <div className="hidden xl:block flex-shrink-0 pt-[130px]">
           <UserAdBanner format="160x600" />
         </div>
-        )}
       </div>
-
       <Footer />
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
