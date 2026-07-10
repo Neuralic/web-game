@@ -329,7 +329,7 @@ const ProfilePage = () => {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [profileUser?.id, isOwnProfile]);
+  }, [profileUser?.id, profileUser?.primary_group_id, isOwnProfile]);
 
   useEffect(() => {
     const fetchGroups = async () => {
