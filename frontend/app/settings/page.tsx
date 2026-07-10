@@ -337,10 +337,12 @@ const [adTab, setAdTab] = useState<"create" | "manage">("create");
         setSidebarOpen={setSidebarOpen}
       />
 
-      <main className="max-w-4xl mx-auto px-4 py-4">
-        <div className="flex justify-center mb-4">
-          <UserAdBanner format="728x90" />
+      <div className="flex justify-center gap-4 px-4 py-4">
+        <div className="hidden xl:block flex-shrink-0 w-[160px]">
+          <UserAdBanner format="160x600" />
         </div>
+        <main className="flex-1 max-w-4xl">
+        
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">Settings</h1>
 
         {successMessage && (
@@ -947,6 +949,10 @@ const [adTab, setAdTab] = useState<"create" | "manage">("create");
           </div>
         </div>
       </main>
+        <div className="hidden xl:block flex-shrink-0 w-[160px]">
+          <UserAdBanner format="160x600" />
+        </div>
+      </div>
       <div className="mt-8">
         <Footer />
       </div>
