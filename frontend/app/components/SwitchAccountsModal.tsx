@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { X, Check, Plus, Loader2 } from "lucide-react";
 import { accountsApi, storage } from "@/lib/api";
 import { useRouter } from "next/navigation";
+import UserAvatar from "./UserAvatar";
 
 interface SwitchAccountsModalProps {
   isOpen: boolean;
@@ -185,11 +186,7 @@ export default function SwitchAccountsModal({
                     }`}
                   >
                     {/* Avatar */}
-                    <div className="w-12 h-12 bg-gray-300 dark:bg-gray-600 rounded-full flex-shrink-0 overflow-hidden relative">
-                      <div className="w-full h-full flex items-center justify-center text-gray-600 dark:text-gray-300 text-xl font-bold">
-                        {account.display_name.charAt(0).toUpperCase()}
-                      </div>
-                    </div>
+                    <UserAvatar userId={account.account_user_id} username={account.display_name} size={48} headshot />
 
                     {/* Account Info */}
                     <div className="flex-1 text-left">
