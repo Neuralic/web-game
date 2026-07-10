@@ -129,8 +129,6 @@ const ProfilePage = () => {
   const [loadingGroups, setLoadingGroups] = useState(true);
   const [socialLinks, setSocialLinks] = useState<any[]>([]);
   const [isOwnProfile, setIsOwnProfile] = useState(false);
-  const [showLeftAd, setShowLeftAd] = useState(true);
-  const [showRightAd, setShowRightAd] = useState(true);
 
   // Avatar state
   const [avatarState, setAvatarState] = useState<AvatarStateData | null>(null);
@@ -662,11 +660,9 @@ const ProfilePage = () => {
       <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} setSidebarOpen={setSidebarOpen} />
 
       <div className="flex justify-center gap-4 px-4">
-        {showLeftAd && (
-          <div className="hidden xl:block flex-shrink-0 pt-[130px]">
-            <div className="relative w-[160px]">
-              <button onClick={() => setShowLeftAd(false)} className="absolute top-2 right-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 text-2xl font-bold leading-none z-10" aria-label="Close ad">×</button>
-              <UserAdBanner format="160x600" />
+        <div className="hidden xl:block flex-shrink-0 pt-[130px]">
+          <UserAdBanner format="160x600" />
+        </div>
             </div>
           </div>
         )}
@@ -1113,11 +1109,9 @@ const ProfilePage = () => {
           </div>
         </main>
 
-        {showRightAd && (
-          <div className="hidden xl:block flex-shrink-0 pt-[130px]">
-            <div className="relative w-[160px]">
-              <button onClick={() => setShowRightAd(false)} className="absolute top-2 right-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 text-2xl font-bold leading-none z-10" aria-label="Close ad">×</button>
-             <UserAdBanner format="160x600" />
+        <div className="hidden xl:block flex-shrink-0 pt-[130px]">
+          <UserAdBanner format="160x600" />
+        </div>
             </div>
           </div>
         )}
