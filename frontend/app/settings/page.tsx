@@ -806,19 +806,10 @@ const [adTab, setAdTab] = useState<"create" | "manage">("create");
   </button>
 ))}
                   </div>
-                </div>
-
-                {/* Ad Name */}
-                <div className="mb-6">
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Name your Ad</label>
-                 <input type="text" value={adName} onChange={(e) => setAdName(e.target.value)} placeholder="Enter ad name" className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700" />
-                </div>
+                </div>           
 
                 {/* Upload Ad */}
-                <div className="mb-4">
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Ad Image URL</label>
-                    <input type="text" value={adImageUrl} onChange={(e) => setAdImageUrl(e.target.value)} placeholder="https://..." className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700" />
-                  </div>
+                
                   <div className="mb-6">
                     <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Upload an Ad</label>
                   <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center">
