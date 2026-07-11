@@ -88,7 +88,13 @@ const AdventureBuxPage = () => {
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
         {/* Main Content */}
-        <main className="flex-1 max-w-4xl mx-auto px-4 py-8 w-full">
+        <div className="flex-1 flex justify-center gap-4 px-4 py-8 w-full">
+          {/* Left Skyscraper Ad */}
+          <div className="hidden xl:block flex-shrink-0">
+            <UserAdBanner format="160x600" />
+          </div>
+
+          <main className="max-w-4xl w-full">
           <div className="flex justify-center mb-6">
             <UserAdBanner format="728x90" />
           </div>
@@ -258,7 +264,13 @@ const AdventureBuxPage = () => {
               for other limitations.
             </p>
           </div>
-        </main>
+          </main>
+
+          {/* Right Skyscraper Ad */}
+          <div className="hidden xl:block flex-shrink-0">
+            <UserAdBanner format="160x600" />
+          </div>
+        </div>
 
         {/* Footer */}
         <Footer />
