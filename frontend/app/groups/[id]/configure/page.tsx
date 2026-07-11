@@ -2474,28 +2474,9 @@ const ConfigureGroupPage = () => {
                             />
                             <span className="text-sm text-gray-600 dark:text-gray-400">AdventureBux / day</span>
                           </div>
-                          <div className="space-y-2">
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-600 dark:text-gray-400">Minimum Bid:</span>
-                              <span className="text-gray-900 dark:text-gray-100 font-medium">0.10</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-600 dark:text-gray-400">Ad Format:</span>
-                              <span className="text-gray-900 dark:text-gray-100 font-medium">{getAdDimensions()}</span>
-                            </div>
-                          </div>
-                        </div>
+                                                  </div>
 
-                        <div>
-                          <label className="block text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Ad Set Name</label>
-                          <input
-                            type="text"
-                            value={adSetName}
-                            onChange={(e) => setAdSetName(e.target.value)}
-                            placeholder="Ad Set Name"
-                            className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                        </div>
+                        
 
                         <div className="flex gap-3 pt-4">
                           <button
