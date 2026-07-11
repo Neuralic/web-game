@@ -18,6 +18,7 @@ import {
 import Footer from "../../../components/Footer";
 import Sidebar from "../../../components/Sidebar";
 import Header from "../../../components/Header";
+import UserAvatar from "../../../components/UserAvatar";
 
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import { groupsApi, uploadApi, storage } from "@/lib/api";
@@ -1725,15 +1726,13 @@ const ConfigureGroupPage = () => {
                                   className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4"
                                 >
                                   <div className="flex items-start gap-3 mb-3">
-                                    <div className="w-12 h-12 rounded-full bg-gray-300 dark:bg-gray-600 flex-shrink-0 overflow-hidden relative">
-                                      <Image
-                                        src={`https://robohash.org/${member.username}?set=set3`}
-                                        alt={member.username}
-                                        fill
-                                        className="object-cover"
-                                        sizes="48px"
-                                      />
-                                    </div>
+                                    <UserAvatar
+                                      userId={member.user_id}
+                                      username={member.username}
+                                      size={48}
+                                      headshot
+                                      className="flex-shrink-0"
+                                    />
                                     <div className="flex-1 min-w-0">
                                       <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
                                         {member.username}
@@ -1847,15 +1846,13 @@ const ConfigureGroupPage = () => {
                                 className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4"
                               >
                                 <div className="flex items-center gap-4">
-                                  <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-600 flex-shrink-0 relative">
-                                    <Image
-                                      src={request.avatar_url || `https://robohash.org/${request.username}?set=set3`}
-                                      alt={request.display_name || request.username}
-                                      fill
-                                      className="object-cover"
-                                      sizes="48px"
-                                    />
-                                  </div>
+                                  <UserAvatar
+                                    userId={request.user_id}
+                                    username={request.display_name || request.username}
+                                    size={48}
+                                    headshot
+                                    className="flex-shrink-0"
+                                  />
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2">
                                       <a
@@ -1926,15 +1923,12 @@ const ConfigureGroupPage = () => {
                               .map((banned: any) => (
                               <div key={banned.id} className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4 flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                  <div className="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-600 overflow-hidden relative">
-                                    <Image
-                                      src={`https://robohash.org/${banned.username}?set=set3`}
-                                      alt={banned.username}
-                                      fill
-                                      className="object-cover"
-                                      sizes="40px"
-                                    />
-                                  </div>
+                                  <UserAvatar
+                                    userId={banned.user_id}
+                                    username={banned.username}
+                                    size={40}
+                                    headshot
+                                  />
                                   <div>
                                     <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{banned.username}</p>
                                     <p className="text-xs text-gray-500 dark:text-gray-400">Banned {banned.created_at ? new Date(banned.created_at).toLocaleDateString() : ''}</p>
