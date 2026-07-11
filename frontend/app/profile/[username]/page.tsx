@@ -414,7 +414,7 @@ const ProfilePage = () => {
       supabase.removeChannel(friendshipsChannel);
       supabase.removeChannel(requestsChannel);
     };
-  }, [profileUser?.id, isOwnProfile]);
+  }, [profileUser?.id, profileUser?.primary_group_id, isOwnProfile]);
 
   useEffect(() => {
     if (!profileUser?.id) return;
