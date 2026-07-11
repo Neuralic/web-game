@@ -6,6 +6,7 @@ import { ChevronDown, Loader2, Link2, Unlink } from "lucide-react";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
+import UserAdBanner from "../components/UserAdBanner";
 import { catalogApi, storage } from "@/lib/api";
 import dynamic from "next/dynamic";
 
@@ -345,8 +346,13 @@ const AvatarPage = () => {
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} setSidebarOpen={setSidebarOpen} />
 
-      <main className="flex-1">
-        <div className="max-w-[1400px] mx-auto px-4 py-6">
+      <main className="flex-1 flex justify-center gap-4 px-4 py-6">
+        {/* Left Skyscraper Ad */}
+        <div className="hidden xl:block flex-shrink-0">
+          <UserAdBanner format="160x600" />
+        </div>
+
+        <div className="max-w-[1400px] w-full">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100">Avatar Editor</h1>
             <div className="flex items-center gap-3">
@@ -604,6 +610,11 @@ const AvatarPage = () => {
               )}
             </div>
           </div>
+        </div>
+
+        {/* Right Skyscraper Ad */}
+        <div className="hidden xl:block flex-shrink-0">
+          <UserAdBanner format="160x600" />
         </div>
       </main>
 
