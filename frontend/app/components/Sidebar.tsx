@@ -231,16 +231,7 @@ export default function Sidebar({
               </Link>
             </div>
 
-            {/* Get Membership Button */}
-            <div className="px-4 py-3">
-              <Link
-                href="/membership"
-                onClick={onClose}
-                className="block w-full bg-gray-900 dark:bg-gray-100 hover:bg-gray-800 dark:hover:bg-gray-200 text-white dark:text-gray-900 font-bold py-2 text-sm rounded-lg transition-colors text-center"
-              >
-                Get Membership
-              </Link>
-            </div>
+            
 
           </>
         )}
