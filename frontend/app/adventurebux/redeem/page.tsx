@@ -22,7 +22,13 @@ const RedeemPage = () => {
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} setSidebarOpen={setSidebarOpen} />
 
-      <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-8">
+      <div className="flex-1 flex justify-center gap-4 px-4 py-8 w-full">
+        {/* Left Skyscraper Ad */}
+        <div className="hidden xl:block flex-shrink-0">
+          <UserAdBanner format="160x600" />
+        </div>
+
+        <main className="max-w-2xl w-full">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Redeem Code</h1>
         <p className="text-gray-600 dark:text-gray-400 text-sm mb-8">Enter a code to redeem AdventureBux or items</p>
 
@@ -63,7 +69,13 @@ const RedeemPage = () => {
             Codes are case-insensitive. Gift cards and promo codes are redeemed instantly.
           </p>
         </div>
-      </main>
+        </main>
+
+        {/* Right Skyscraper Ad */}
+        <div className="hidden xl:block flex-shrink-0">
+          <UserAdBanner format="160x600" />
+        </div>
+      </div>
 
       <Footer />
     </div>
