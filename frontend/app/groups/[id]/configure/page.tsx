@@ -2565,6 +2565,7 @@ const ConfigureGroupPage = () => {
                       </div>
                     )}
                   </div>
+                )}
               </div>
             </div>
           </div>
