@@ -24,7 +24,7 @@ function FriendsPageContent() {
   const { presenceMap } = useRealtime();
 
   const [friends, setFriends] = useState<any[]>([]);
-  const [following, setFollowing] = useState<any[]>([]);
+  const [following, setFollowing] = useState<any[]>([]);                                                                                                                                                                                                                                                                          
   const [followers, setFollowers] = useState<any[]>([]);
   const [receivedRequests, setReceivedRequests] = useState<any[]>([]);
   const [sentRequests, setSentRequests] = useState<any[]>([]);
@@ -312,7 +312,7 @@ function FriendsPageContent() {
                     <UserAvatar userId={user.id} username={user.name} size={96} headshot />
                     {user.statusType && user.statusType !== "offline" && (
                       <div
-                        className={`absolute w-5 h-5 rounded-full border-2 border-white dark:border-gray-900 ${
+                        className={`absolute w-6 h-6 rounded-full border-2 border-white dark:border-gray-900 flex items-center justify-center ${
                           user.statusType === "online-game"
                             ? "bg-green-500"
                             : user.statusType === "online"
@@ -322,7 +322,11 @@ function FriendsPageContent() {
                                 : "bg-gray-400"
                         }`}
                         style={{ bottom: "2px", right: "2px" }}
-                      />
+                      >
+                        <svg className="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+                        </svg>
+                      </div>
                     )}
                   </div>
                 </Link>
