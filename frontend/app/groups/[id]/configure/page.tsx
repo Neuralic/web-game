@@ -2474,10 +2474,6 @@ const ConfigureGroupPage = () => {
                             />
                             <span className="text-sm text-gray-600 dark:text-gray-400">AdventureBux / day</span>
                           </div>
-                                                  </div>
-
-                        
-
                         <div className="flex gap-3 pt-4">
                           <button
                             onClick={handleCreateAd}
