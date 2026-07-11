@@ -148,7 +148,13 @@ export default function CreatePage() {
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} setSidebarOpen={setSidebarOpen} />
 
-        <main className="max-w-5xl mx-auto px-6 py-8">
+        <div className="flex justify-center gap-4 px-6 py-8">
+          {/* Left Skyscraper Ad */}
+          <div className="hidden xl:block flex-shrink-0">
+            <UserAdBanner format="160x600" />
+          </div>
+
+          <main className="max-w-5xl w-full">
         <div className="flex justify-center mb-6">
           <UserAdBanner format="728x90" />
         </div>
@@ -233,7 +239,13 @@ export default function CreatePage() {
               ))}
             </div>
           )}
-        </main>
+          </main>
+
+          {/* Right Skyscraper Ad */}
+          <div className="hidden xl:block flex-shrink-0">
+            <UserAdBanner format="160x600" />
+          </div>
+        </div>
 
         <Footer />
 
