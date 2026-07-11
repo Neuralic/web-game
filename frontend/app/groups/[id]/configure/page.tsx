@@ -2490,6 +2490,7 @@ const ConfigureGroupPage = () => {
                           </button>
                         </div>
                       </div>
+                    </div>
                     ) : (
                       <div className="space-y-6">
                         {(() => {
@@ -2565,6 +2566,8 @@ const ConfigureGroupPage = () => {
                       </div>
                     )}
                   </div>
+                )}
+                  </>
                 )}
               </div>
             </div>
