@@ -1726,17 +1726,20 @@ const ConfigureGroupPage = () => {
                                   className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4"
                                 >
                                   <div className="flex items-start gap-3 mb-3">
-                                    <UserAvatar
-                                      userId={member.user_id}
-                                      username={member.username}
-                                      size={48}
-                                      headshot
-                                      className="flex-shrink-0"
-                                    />
+                                    <Link href={`/profile/${member.username}`} className="flex-shrink-0">
+                                      <UserAvatar
+                                        userId={member.user_id}
+                                        username={member.username}
+                                        size={48}
+                                        headshot
+                                      />
+                                    </Link>
                                     <div className="flex-1 min-w-0">
-                                      <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
-                                        {member.username}
-                                      </h3>
+                                      <Link href={`/profile/${member.username}`}>
+                                        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate hover:underline">
+                                          {member.username}
+                                        </h3>
+                                      </Link>
                                     </div>
                                     <div className="relative">
                                       <button
