@@ -667,11 +667,9 @@ const ProfilePage = () => {
         <main className="flex-1 max-w-[900px]">
           {showAdvertisement && (
             <div className="flex justify-center py-4 border-b border-gray-200 dark:border-gray-800">
-              <div className="w-full relative">
-                <div className="w-full h-[90px] bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm font-medium border border-gray-300 dark:border-gray-600">
-                  Advertisement Banner (728 x 90)
-                </div>
-                <div className="flex items-center justify-between mt-1">
+              <div className="w-full relative flex flex-col items-center">
+                <UserAdBanner format="728x90" />
+                <div className="w-full flex items-center justify-between mt-1">
                   <span className="text-xs text-gray-500 dark:text-gray-400 uppercase">Advertisement</span>
                   <button className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:underline">Report</button>
                 </div>
