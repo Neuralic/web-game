@@ -53,6 +53,8 @@ interface AvatarState {
   shirt_asset_id: string | null;
   pants_asset_id: string | null;
   accessory_asset_id: string | null;
+  accessory_2_asset_id: string | null;
+  accessory_3_asset_id: string | null;
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
@@ -124,6 +126,8 @@ const AvatarPage = () => {
       state.shirt_asset_id,
       state.pants_asset_id,
       state.accessory_asset_id,
+      state.accessory_2_asset_id,
+      state.accessory_3_asset_id,
     ].filter(Boolean).map(id => parseInt(id!));
 
     // Always render — empty array gives default R15 character
