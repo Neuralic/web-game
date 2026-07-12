@@ -34,6 +34,7 @@ export default function Sidebar({
     username?: string;
     display_name?: string;
     is_verified?: boolean;
+    primary_group_id?: string | null;
   } | null>(null);
 
   useEffect(() => {
@@ -51,6 +52,7 @@ export default function Sidebar({
               username?: string;
               display_name?: string;
               is_verified?: boolean;
+              primary_group_id?: string | null;
             },
           );
         }
@@ -187,37 +189,14 @@ export default function Sidebar({
                 <span className="font-medium text-sm">Inventory</span>
               </Link>
 
-              <button
-                onClick={async () => {
-                  try {
-                    // Dynamically import to avoid circular dependencies
-                    const { groupsApi } = await import('@/lib/api');
-                    const { useRouter } = await import('next/navigation');
-                    
-                    const response = await groupsApi.getUserGroups();
-                    if (response.success && response.data) {
-                      const groups = response.data.groups as any[];
-                      if (groups.length > 0) {
-                        // Navigate to first group
-                        window.location.href = `/groups/${groups[0].id}`;
-                      } else {
-                        // No groups, go to discovery
-                        window.location.href = '/groups';
-                      }
-                    } else {
-                      window.location.href = '/groups';
-                    }
-                  } catch (error) {
-                    console.error('Error navigating to groups:', error);
-                    window.location.href = '/groups';
-                  }
-                  onClose();
-                }}
-                className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 w-full text-left"
+              <Link
+                href={user?.primary_group_id ? `/groups/${user.primary_group_id}` : "/groups"}
+                className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                onClick={onClose}
               >
                 <Users className="w-4 h-4" />
                 <span className="font-medium text-sm">Groups</span>
-              </button>
+              </Link>
             </nav>
 
             {/* Create Community Button */}
