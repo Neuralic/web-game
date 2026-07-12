@@ -17,6 +17,7 @@ import ReportModal from "@/components/modals/ReportModal";
 import SuccessModal from "@/components/modals/SuccessModal";
 import { groupsApi, uploadApi, storage } from "@/lib/api";
 import UserAvatar from "../../components/UserAvatar";
+import UserSelfPromoAdBanner from "../../components/UserSelfPromoAdBanner";
 
 interface Group {
   id: string;
@@ -929,6 +930,11 @@ const GroupDetailPage = () => {
               </div>
             )}
           </div>
+
+          {/* Self-Promotion Banner - only shown to the group's owner viewing their own group */}
+          {currentGroup?.owner_id === currentUserId && (
+            <UserSelfPromoAdBanner className="justify-center" />
+          )}
 
           {/* Tabs */}
           {/* Tab Navigation */}
