@@ -931,11 +931,6 @@ const GroupDetailPage = () => {
             )}
           </div>
 
-          {/* Self-Promotion Banner - only shown to the group's owner viewing their own group */}
-          {currentGroup?.owner_id === currentUserId && (
-            <UserSelfPromoAdBanner className="justify-center" />
-          )}
-
           {/* Tabs */}
           {/* Tab Navigation */}
           <div className="flex px-6 border-b border-gray-100 dark:border-gray-800">
@@ -956,6 +951,11 @@ const GroupDetailPage = () => {
               </button>
             ))}
           </div>
+
+          {/* Self-Promotion Banner - only shown to the group's owner viewing their own group */}
+          {currentGroup?.owner_id === currentUserId && (
+            <UserSelfPromoAdBanner className="justify-center" />
+          )}
 
           {/* Tab Content */}
           {activeTab === "About" && (
