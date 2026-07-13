@@ -133,6 +133,25 @@ if (groupsResponse.success && groupsResponse.data) {
     fetchUserData();
   }, []);
 
+  // Fetch notification preferences when the notifications tab is opened
+  useEffect(() => {
+    if (activeSection !== "notifications") return;
+
+    const fetchNotificationPreferences = async () => {
+      try {
+        const response = await usersApi.getNotificationPreferences();
+        if (response.success && response.data) {
+          const fetchedPreferences = response.data.preferences;
+          setNotifications(prev => ({ ...prev, ...fetchedPreferences }));
+        }
+      } catch (error) {
+        console.error("Error fetching notification preferences:", error);
+      }
+    };
+
+    fetchNotificationPreferences();
+  }, [activeSection]);
+
   const handleSavePersonalInfo = async () => {
     setSaving(true);
     setSuccessMessage("");
@@ -313,10 +332,20 @@ if (groupsResponse.success && groupsResponse.data) {
     setSavingNotifications(true);
     setSuccessMessage("");
     setErrorMessage("");
-    await new Promise(resolve => setTimeout(resolve, 500));
-    setSuccessMessage("Notification preferences saved!");
-    setTimeout(() => setSuccessMessage(""), 3000);
-    setSavingNotifications(false);
+    try {
+      const response = await usersApi.updateNotificationPreferences(notifications);
+      if (response.success) {
+        setSuccessMessage("Notification preferences saved!");
+        setTimeout(() => setSuccessMessage(""), 3000);
+      } else {
+        setErrorMessage(response.message || "Failed to save notification preferences");
+      }
+    } catch (error) {
+      console.error("Error saving notification preferences:", error);
+      setErrorMessage("Failed to save notification preferences");
+    } finally {
+      setSavingNotifications(false);
+    }
   };
 
   const settingsSections = [
