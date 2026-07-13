@@ -55,9 +55,21 @@ interface AvatarState {
   accessory_asset_id: string | null;
   accessory_2_asset_id: string | null;
   accessory_3_asset_id: string | null;
+  skin_color: string | null;
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+
+// Preset Roblox BrickColor skin tones — id is saved to avatar_state.skin_color
+const SKIN_TONES: { id: string; label: string; hex: string }[] = [
+  { id: "1", label: "Yellow", hex: "#F5C842" },
+  { id: "1003", label: "Light", hex: "#F5D0C5" },
+  { id: "1004", label: "Medium", hex: "#D5A66D" },
+  { id: "1005", label: "Dark", hex: "#A9744F" },
+  { id: "1006", label: "Darker", hex: "#7C4B2A" },
+  { id: "1007", label: "Darkest", hex: "#4A2C17" },
+];
+const SKIN_TONE_HEX: Record<string, string> = Object.fromEntries(SKIN_TONES.map(t => [t.id, t.hex]));
 
 const TAB_TO_CATEGORY: Record<string, { category?: string; subcategory?: string }> = {
   "Recently Added": { category: undefined, subcategory: undefined },
@@ -97,6 +109,7 @@ const AvatarPage = () => {
   const [userGender, setUserGender] = useState<string | null>(null);
   const [customAvatarUrl, setCustomAvatarUrl] = useState<string | null>(null);
   const [renderingCustom, setRenderingCustom] = useState(false);
+  const [updatingSkinColor, setUpdatingSkinColor] = useState(false);
   const tabsRef = useRef<HTMLDivElement>(null);
   const tabsOffsetRef = useRef<number>(0);
 
@@ -130,6 +143,16 @@ const AvatarPage = () => {
       state.accessory_3_asset_id,
     ].filter(Boolean).map(id => parseInt(id!));
 
+    const skinHex = SKIN_TONE_HEX[state.skin_color || "1"] || SKIN_TONE_HEX["1"];
+    const bodyColors = {
+      headColor: skinHex,
+      torsoColor: skinHex,
+      leftArmColor: skinHex,
+      rightArmColor: skinHex,
+      leftLegColor: skinHex,
+      rightLegColor: skinHex,
+    };
+
     // Always render — empty array gives default R15 character
 
     setRenderingCustom(true);
@@ -140,7 +163,7 @@ const AvatarPage = () => {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ assetIds }),
+        body: JSON.stringify({ assetIds, bodyColors }),
       });
       const data = await res.json();
       if (data.success && data.imageUrl) {
@@ -325,6 +348,27 @@ const AvatarPage = () => {
     }
   };
 
+  const handleSelectSkinColor = async (skinColor: string) => {
+    const token = storage.getAccessToken();
+    if (!token || updatingSkinColor) return;
+    setUpdatingSkinColor(true);
+    try {
+      const res = await fetch(`${API_BASE}/avatar/skin-color`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ skinColor }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        await fetchAvatarState();
+      }
+    } catch (err) {
+      console.error("Failed to update skin color:", err);
+    } finally {
+      setUpdatingSkinColor(false);
+    }
+  };
+
   useEffect(() => {
     if (tabsRef.current) {
       tabsOffsetRef.current = tabsRef.current.offsetTop;
@@ -453,6 +497,31 @@ const AvatarPage = () => {
                   <span className="text-sm text-gray-600 dark:text-gray-400">0%</span>
                 </div>
                 <input type="range" min="0" max="100" defaultValue="0" className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer" />
+              </div>
+
+              {/* Skin Tone */}
+              <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-100 block mb-3">Skin Tone</span>
+                <div className="flex gap-2.5">
+                  {SKIN_TONES.map((tone) => {
+                    const isSelected = (avatarState?.skin_color || "1") === tone.id;
+                    return (
+                      <button
+                        key={tone.id}
+                        onClick={() => handleSelectSkinColor(tone.id)}
+                        disabled={updatingSkinColor}
+                        title={tone.label}
+                        aria-label={tone.label}
+                        className={`w-8 h-8 rounded-full transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                          isSelected
+                            ? "ring-2 ring-blue-500 ring-offset-2 ring-offset-gray-50 dark:ring-offset-gray-800"
+                            : "ring-1 ring-gray-300 dark:ring-gray-600 hover:ring-gray-400 dark:hover:ring-gray-500"
+                        }`}
+                        style={{ backgroundColor: tone.hex }}
+                      />
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Roblox Link */}
