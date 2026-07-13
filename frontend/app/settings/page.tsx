@@ -324,7 +324,6 @@ if (groupsResponse.success && groupsResponse.data) {
     { id: "security", label: "Security" },
     { id: "privacy", label: "Privacy & content restrictions" },
     { id: "notifications", label: "Notifications" },
-    { id: "membership", label: "Membership" },
     { id: "user-ads", label: "User Ads" },
     { id: "parental", label: "Parental controls" },
   ];
