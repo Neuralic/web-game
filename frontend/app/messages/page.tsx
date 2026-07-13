@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Loader2, Send, ArrowLeft, Search, PenSquare, Reply, X, ImageIcon, Download, ZoomIn } from "lucide-react";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
+import UserAdBanner from "../components/UserAdBanner";
 import { messagesApi, searchApi, storage } from "@/lib/api";
 import {
   subscribeToMessages,
@@ -444,7 +445,13 @@ const MessagesPage = () => {
       />
 
       {/* Main Content */}
-      <main className="flex-1 min-h-0 max-w-6xl w-full mx-auto px-4 py-4 overflow-hidden flex flex-col">
+      <main className="flex-1 min-h-0 w-full px-4 py-4 overflow-hidden flex justify-center gap-4">
+        {/* Left Skyscraper Ad */}
+        <div className="hidden xl:block flex-shrink-0">
+          <UserAdBanner format="160x600" />
+        </div>
+
+        <div className="max-w-6xl w-full min-h-0 flex flex-col">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             Messages
@@ -834,6 +841,12 @@ const MessagesPage = () => {
               </div>
             )}
           </div>
+        </div>
+        </div>
+
+        {/* Right Skyscraper Ad */}
+        <div className="hidden xl:block flex-shrink-0">
+          <UserAdBanner format="160x600" />
         </div>
       </main>
 
