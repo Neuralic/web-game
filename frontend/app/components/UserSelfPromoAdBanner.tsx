@@ -46,27 +46,21 @@ export default function UserSelfPromoAdBanner({ className = "" }: UserSelfPromoA
 
   if (loading || !ad) return null;
 
-  const dimensions =
-    ad.format === "160x600"
-      ? { width: "160px", height: "600px" }
-      : { width: "728px", height: "90px" };
-
   const href = ad.groupId && ad.group_number ? `/groups/${ad.group_number}` : "#";
 
   return (
-    <div className={`flex flex-col items-center gap-1 py-4 border-b border-gray-100 dark:border-gray-800 ${className}`}>
-      <span className="text-xs text-blue-600 dark:text-blue-400 uppercase font-semibold tracking-wide">
+    <div className={`w-full px-6 py-4 border-b border-gray-100 dark:border-gray-800 ${className}`}>
+      <span className="block text-xs text-blue-600 dark:text-blue-400 uppercase font-semibold tracking-wide mb-1">
         Your Group&apos;s Ad
       </span>
       <Link
         href={href}
-        style={{ width: dimensions.width, height: dimensions.height, display: "block" }}
-        className="rounded overflow-hidden border-2 border-blue-500 flex-shrink-0"
+        className="block w-full h-[120px] rounded overflow-hidden border-2 border-blue-500"
       >
         <img
           src={ad.imageUrl}
           alt={ad.name}
-          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          className="w-full h-full object-cover"
         />
       </Link>
     </div>
