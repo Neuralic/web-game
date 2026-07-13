@@ -27,7 +27,7 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">2. Eligibility</h2>
-            <p>You must be at least 13 years of age to use AdventureBlox. By using the Platform, you represent and warrant that you meet this age requirement. Users under 18 must have parental consent.</p>
+            <p>AdventureBlox is open to users of all ages. Users under 18 must have parental consent.</p>
           </section>
 
           <section>
