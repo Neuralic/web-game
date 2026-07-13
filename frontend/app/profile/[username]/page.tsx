@@ -955,6 +955,11 @@ const ProfilePage = () => {
       <path d="M6.5 12.5l3.5 3.5 7.5-8" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   )}
+  {isOwnProfile && groups[currentGroupIndex]?.rank === "Owner" && (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 text-xs font-semibold rounded-full border border-yellow-200 dark:border-yellow-800 flex-shrink-0">
+      Owner
+    </span>
+  )}
 </h3>
                               <div className="w-full h-px bg-gray-200 dark:bg-gray-700 my-3" />
                               {groups[currentGroupIndex]?.description && (
@@ -987,6 +992,11 @@ const ProfilePage = () => {
                           <Link key={group.id} href={`/groups/${group.id}`} className="block group/card">
                             <div className="aspect-square bg-gray-200 dark:bg-gray-700 overflow-hidden rounded-lg relative">
                               <Image src={group.image} alt={group.name} fill className="object-cover group-hover/card:opacity-90 transition-opacity" sizes="(max-width: 640px) 33vw, 25vw" />
+                              {isOwnProfile && group.rank === "Owner" && (
+                                <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 bg-yellow-500 text-white text-[9px] font-bold rounded uppercase tracking-wide shadow">
+                                  Owner
+                                </span>
+                              )}
                             </div>
                             <h3 className="text-xs font-bold text-gray-900 dark:text-gray-100 mt-1.5 truncate flex items-center gap-1">
   {group.name}
