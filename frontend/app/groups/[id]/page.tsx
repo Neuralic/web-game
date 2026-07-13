@@ -933,12 +933,12 @@ const GroupDetailPage = () => {
 
           {/* Tabs */}
           {/* Tab Navigation */}
-          <div className="flex px-6 border-b border-gray-100 dark:border-gray-800">
+          <div className="flex gap-8 px-6 border-b border-gray-100 dark:border-gray-800">
             {tabs.map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-6 py-3 text-sm font-semibold transition-colors relative ${
+                className={`pb-3 pt-4 text-base font-semibold transition-colors relative ${
                   activeTab === tab
                     ? "text-gray-900 dark:text-gray-100"
                     : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
@@ -954,7 +954,7 @@ const GroupDetailPage = () => {
 
           {/* Self-Promotion Banner - only shown to the group's owner viewing their own group */}
           {currentGroup?.owner_id === currentUserId && (
-            <UserSelfPromoAdBanner className="justify-center" />
+            <UserSelfPromoAdBanner />
           )}
 
           {/* Tab Content */}
