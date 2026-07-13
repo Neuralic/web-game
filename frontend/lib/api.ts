@@ -245,6 +245,45 @@ export const usersApi = {
     });
   },
 
+  // Get notification preferences
+  getNotificationPreferences: async (): Promise<ApiResponse<{ preferences: Record<string, boolean> }>> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall("/users/notifications", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  // Update (upsert) notification preferences
+  updateNotificationPreferences: async (
+    preferences: Record<string, boolean>,
+  ): Promise<ApiResponse<unknown>> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall("/users/notifications", {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(preferences),
+    });
+  },
+
   // Get following list
   getFollowing: async (): Promise<ApiResponse<{ following: any[] }>> => {
     const token = storage.getAccessToken();
