@@ -47,11 +47,14 @@ export default function UserAdBanner({ format, className = "" }: UserAdBannerPro
 
   if (loading || !ad) {
     return (
-      <div
-        style={{ width: dimensions.width, height: dimensions.height }}
-        className={`bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs font-medium border border-gray-300 dark:border-gray-600 ${className}`}
-      >
-        Advertisement ({format})
+      <div style={{ width: dimensions.width }} className="flex flex-col items-center gap-1">
+        <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wide">Advertisement</span>
+        <div
+          style={{ width: dimensions.width, height: dimensions.height }}
+          className={`bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs font-medium border border-gray-300 dark:border-gray-600 ${className}`}
+        >
+          Advertisement ({format})
+        </div>
       </div>
     );
   }
@@ -61,18 +64,21 @@ export default function UserAdBanner({ format, className = "" }: UserAdBannerPro
     : '#';
 
   return (
-    <Link
-      href={href}
-      onClick={handleClick}
-      target="_blank"
-      style={{ width: dimensions.width, height: dimensions.height, display: 'block' }}
-      className={`rounded overflow-hidden border border-gray-300 dark:border-gray-600 flex-shrink-0 ${className}`}
-    >
-      <img
-        src={ad.imageUrl}
-        alt={ad.name}
-        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-      />
-    </Link>
+    <div style={{ width: dimensions.width }} className="flex flex-col items-center gap-1">
+      <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wide">Advertisement</span>
+      <Link
+        href={href}
+        onClick={handleClick}
+        target="_blank"
+        style={{ width: dimensions.width, height: dimensions.height, display: 'block' }}
+        className={`rounded overflow-hidden border border-gray-300 dark:border-gray-600 flex-shrink-0 ${className}`}
+      >
+        <img
+          src={ad.imageUrl}
+          alt={ad.name}
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+        />
+      </Link>
+    </div>
   );
 }
