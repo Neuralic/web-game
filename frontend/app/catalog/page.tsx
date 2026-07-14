@@ -76,6 +76,7 @@ const [robloxNextCursor, setRobloxNextCursor] = useState<string | null>(null);
 const [robloxPrevCursor, setRobloxPrevCursor] = useState<string | null>(null);
 const [robloxSearch, setRobloxSearch] = useState("");
 const [robloxSearchDebounce, setRobloxSearchDebounce] = useState("");
+const [robloxTypeFilter, setRobloxTypeFilter] = useState<"All" | "Bundles" | "Emotes">("All");
 
   // Fetch categories from API on mount
   useEffect(() => {
@@ -117,6 +118,8 @@ const fetchRobloxItems = useCallback(async (cursor?: string) => {
   try {
     const response = await (catalogApi as any).searchRobloxCatalog({
       keyword: robloxSearchDebounce || undefined,
+      bundleType: robloxTypeFilter === "Bundles" ? 3 : undefined,
+      isEmote: robloxTypeFilter === "Emotes" ? true : undefined,
       limit: 30,
       cursor: cursor || undefined,
     });
@@ -130,7 +133,7 @@ const fetchRobloxItems = useCallback(async (cursor?: string) => {
   } finally {
     setRobloxLoading(false);
   }
-}, [robloxSearchDebounce]);
+}, [robloxSearchDebounce, robloxTypeFilter]);
 
 useEffect(() => {
   if (activeTab === "roblox") {
@@ -592,6 +595,23 @@ useEffect(() => {
         />
       </div>
 
+      {/* Roblox Type Filter */}
+      <div className="mb-4 flex items-center gap-2">
+        {(["All", "Bundles", "Emotes"] as const).map((type) => (
+          <button
+            key={type}
+            onClick={() => setRobloxTypeFilter(type)}
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              robloxTypeFilter === type
+                ? "bg-blue-600 text-white hover:bg-blue-700"
+                : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
+            }`}
+          >
+            {type}
+          </button>
+        ))}
+      </div>
+
       {robloxLoading ? (
         <div className="flex flex-col items-center justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-blue-500 mb-3" />
@@ -608,7 +628,11 @@ useEffect(() => {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
   {robloxItems.map((item) => (
     <div key={item.id} className="block group cursor-pointer" onClick={async () => {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'}/catalog/roblox/import/${item.robloxAssetId}`, { method: 'POST' });
+  const importParams = new URLSearchParams();
+  if (item.itemType === "Bundle") importParams.append("itemType", "Bundle");
+  if (item.isEmote) importParams.append("isEmote", "true");
+  const qs = importParams.toString();
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'}/catalog/roblox/import/${item.robloxAssetId}${qs ? `?${qs}` : ""}`, { method: 'POST' });
   const data = await res.json();
   if (data.success) window.location.href = `/catalog/${data.data.id}`;
 }}>
