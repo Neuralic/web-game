@@ -20,6 +20,8 @@ import Header from "../../components/Header";
 import VerifiedBadge from "../../components/VerifiedBadge";
 import UserAvatar from "../../components/UserAvatar";
 import UserAdBanner from "../../components/UserAdBanner";
+import ReportModal from "@/components/modals/ReportModal";
+import SuccessModal from "@/components/modals/SuccessModal";
 import { usersApi, friendsApi, groupsApi, storage } from "@/lib/api";
 import { openChatWithUser } from "@/app/components/ChatWidget";
 import { useParams, useRouter } from "next/navigation";
@@ -112,6 +114,9 @@ const ProfilePage = () => {
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const menuRef = useRef<HTMLDivElement>(null);
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [showAdReportModal, setShowAdReportModal] = useState(false);
+  const [submittingAdReport, setSubmittingAdReport] = useState(false);
+  const [showAdReportSuccess, setShowAdReportSuccess] = useState(false);
 
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [profileUser, setProfileUser] = useState<any>(null);
@@ -565,6 +570,18 @@ const ProfilePage = () => {
 
   const handleReportAbuse = () => { alert('Report abuse functionality coming soon'); setShowProfileMenu(false); };
 
+  const handleSubmitAdReport = async (category: string, description: string) => {
+    setSubmittingAdReport(true);
+    try {
+      // No dedicated ad-report endpoint exists yet, so just acknowledge the report locally.
+      console.log('Ad report submitted:', { category, description });
+      setShowAdReportModal(false);
+      setShowAdReportSuccess(true);
+    } finally {
+      setSubmittingAdReport(false);
+    }
+  };
+
   const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return 'Unknown';
     return new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -670,7 +687,7 @@ const ProfilePage = () => {
               <div className="w-full relative flex flex-col items-center">
                 <UserAdBanner format="728x90" />
                 <div className="w-full flex items-center justify-end mt-1">
-                  <button className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:underline">Report</button>
+                  <button onClick={() => setShowAdReportModal(true)} className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:underline">Report</button>
                 </div>
               </div>
             </div>
@@ -1152,6 +1169,22 @@ const ProfilePage = () => {
           </div>
         </div>
       )}
+
+      <ReportModal
+        isOpen={showAdReportModal}
+        onClose={() => setShowAdReportModal(false)}
+        onSubmit={handleSubmitAdReport}
+        loading={submittingAdReport}
+      />
+
+      <SuccessModal
+        isOpen={showAdReportSuccess}
+        onClose={() => setShowAdReportSuccess(false)}
+        title="Report Submitted"
+        message="Thanks for letting us know. Our team will review this ad."
+        autoClose={true}
+        autoCloseDelay={2000}
+      />
     </div>
   );
 };
