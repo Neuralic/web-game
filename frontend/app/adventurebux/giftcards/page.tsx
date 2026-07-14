@@ -11,6 +11,9 @@ const GiftCardsPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Gift cards aren't launched yet — flip to false to re-enable the page below.
+  const comingSoon: boolean = true;
+
   const giftCards = [
     { id: 1, value: 400, price: "$4.99", color: "from-blue-500 to-blue-600" },
     { id: 2, value: 800, price: "$9.99", color: "from-purple-500 to-purple-600" },
@@ -19,6 +22,29 @@ const GiftCardsPage = () => {
     { id: 5, value: 4500, price: "$49.99", color: "from-red-500 to-red-600" },
     { id: 6, value: 10000, price: "$99.99", color: "from-yellow-500 to-yellow-600" },
   ];
+
+  if (comingSoon) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} setSidebarOpen={setSidebarOpen} />
+
+        <main className="flex-1 flex items-center justify-center px-4 py-16">
+          <div className="text-center max-w-md">
+            <div className="w-16 h-16 mx-auto mb-4 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+              <span className="text-3xl">🎁</span>
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Gift Cards Coming Soon</h1>
+            <p className="text-gray-600 dark:text-gray-400 text-sm">
+              We&apos;re working on bringing AdventureBux gift cards to the platform. Check back soon!
+            </p>
+          </div>
+        </main>
+
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
