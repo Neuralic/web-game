@@ -983,7 +983,6 @@ if (groupsResponse.success && groupsResponse.data) {
                       {[
                         { label: "Safe chat mode", desc: "Only allow pre-approved messages" },
                         { label: "Block external links", desc: "Prevent clicking links to external websites" },
-                        { label: "Hide user-generated content", desc: "Hide content created by other users" },
                       ].map((item) => (
                         <label key={item.label} className="flex items-start gap-3 cursor-pointer">
                           <input type="checkbox" className="w-4 h-4 mt-0.5" />
