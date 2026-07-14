@@ -28,7 +28,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useUserPresence } from "@/hooks/useUserPresence";
 import { supabase } from "@/lib/supabase";
 
-const RobloxAvatar3D = dynamic(() => import("../../components/RobloxAvatar3D"), {
+const SpinningAvatar3D = dynamic(() => import("../../components/SpinningAvatar3D"), {
   ssr: false,
 });
 
@@ -140,6 +140,7 @@ const ProfilePage = () => {
   const [avatarLoading, setAvatarLoading] = useState(true);
   const [userGender, setUserGender] = useState<string | null>(null);
   const [customAvatarUrl, setCustomAvatarUrl] = useState<string | null>(null);
+  const [wearingViewMode, setWearingViewMode] = useState<"2d" | "3d">("2d");
 
   const [relationship, setRelationship] = useState<{
     isFriend: boolean;
@@ -669,7 +670,7 @@ const ProfilePage = () => {
   };
 
   const hasRobloxLinked = !!avatarState?.roblox_user_id;
-  const avatarBadge = hasRobloxLinked ? "Roblox" : customAvatarUrl ? "R15" : "2D";
+  const isShowing3D = wearingViewMode === "3d" && hasRobloxLinked;
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
@@ -875,20 +876,18 @@ const ProfilePage = () => {
                     <div className="flex-shrink-0">
                       <div className="relative bg-gradient-to-b from-gray-100 to-white dark:from-gray-800 dark:to-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4 w-80 overflow-hidden" style={{ minHeight: 260 }}>
                         <div className="absolute top-3 right-3 z-20">
-                          {(avatarBadge === "2D" || avatarBadge === "Roblox") && (
                           <span className="px-3 py-1.5 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg text-xs font-medium border border-gray-300 dark:border-gray-600">
-                            {avatarBadge === "Roblox" ? "3D" : "2D"}
+                            {isShowing3D ? "3D" : "2D"}
                           </span>
-                        )}
                         </div>
 
                         {avatarLoading ? (
                           <div className="flex items-center justify-center h-48 mt-6">
                             <div className="w-6 h-6 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
                           </div>
-                        ) : hasRobloxLinked && isOwnProfile ? (
+                        ) : isShowing3D ? (
                           <div className="relative h-48 mt-6">
-                            <RobloxAvatar3D robloxUserId={avatarState!.roblox_user_id!} />
+                            <SpinningAvatar3D userId={profileUser?.id || ""} />
                           </div>
                         ) : customAvatarUrl ? (
                           <div className="flex justify-center items-center h-48 mt-6">
@@ -899,6 +898,34 @@ const ProfilePage = () => {
                             <UserAvatar userId={profileUser?.id || ""} username={displayName || username} size={160} />
                           </div>
                         )}
+                      </div>
+
+                      {/* 2D/3D toggle — 3D requires a linked Roblox account since it renders via the roblox-3d thumbnail endpoint */}
+                      <div className="flex justify-center mt-3">
+                        <div className="flex border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                          <button
+                            onClick={() => setWearingViewMode("2d")}
+                            className={`px-5 py-1.5 text-xs font-semibold transition-colors ${
+                              !isShowing3D
+                                ? "bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900"
+                                : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                            }`}
+                          >
+                            2D
+                          </button>
+                          <button
+                            onClick={() => setWearingViewMode("3d")}
+                            disabled={!hasRobloxLinked}
+                            title={hasRobloxLinked ? undefined : "Link a Roblox account to view in 3D"}
+                            className={`px-5 py-1.5 text-xs font-semibold transition-colors border-l border-gray-200 dark:border-gray-700 disabled:opacity-40 disabled:cursor-not-allowed ${
+                              isShowing3D
+                                ? "bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900"
+                                : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                            }`}
+                          >
+                            3D
+                          </button>
+                        </div>
                       </div>
                     </div>
                     <div className="flex-1">
