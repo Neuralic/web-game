@@ -64,6 +64,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v
 const SKIN_TONES: { id: string; label: string; hex: string }[] = [
   { id: "1", label: "Yellow", hex: "#F5C842" },
   { id: "1003", label: "Light", hex: "#F5D0C5" },
+  { id: "36", label: "Light yellowish orange", hex: "#F3CF9B" },
   { id: "1004", label: "Medium", hex: "#D5A66D" },
   { id: "1005", label: "Dark", hex: "#A9744F" },
   { id: "1006", label: "Darker", hex: "#7C4B2A" },
@@ -143,15 +144,18 @@ const AvatarPage = () => {
       state.accessory_3_asset_id,
     ].filter(Boolean).map(id => parseInt(id!));
 
-    const skinHex = SKIN_TONE_HEX[state.skin_color || "1"] || SKIN_TONE_HEX["1"];
-    const bodyColors = {
+    // null/"1" means no explicit skin tone was chosen — omit bodyColors so Roblox
+    // falls back to its own default skin instead of forcing a hardcoded tone.
+    const hasCustomSkinTone = !!state.skin_color && state.skin_color !== "1";
+    const skinHex = hasCustomSkinTone ? SKIN_TONE_HEX[state.skin_color as string] : undefined;
+    const bodyColors = skinHex ? {
       headColor: skinHex,
       torsoColor: skinHex,
       leftArmColor: skinHex,
       rightArmColor: skinHex,
       leftLegColor: skinHex,
       rightLegColor: skinHex,
-    };
+    } : undefined;
 
     // Always render — empty array gives default R15 character
 
@@ -163,7 +167,7 @@ const AvatarPage = () => {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ assetIds, bodyColors }),
+        body: JSON.stringify(bodyColors ? { assetIds, bodyColors } : { assetIds }),
       });
       const data = await res.json();
       if (data.success && data.imageUrl) {
