@@ -284,12 +284,14 @@ useEffect(() => {
               >
                 Create
               </Link>
+              {/* AdventureBux tab hidden from navigation
               <Link
                 href="/adventurebux"
                 className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white font-medium text-sm px-3 py-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               >
                 AdventureBux
               </Link>
+              */}
             </nav>
 
             {/* Search Bar with Dropdown */}
@@ -577,18 +579,22 @@ useEffect(() => {
                     >
                       Buy AdventureBux
                     </Link>
+                    {/* Redeem tab hidden from navigation
                     <Link
                       href="/adventurebux/redeem"
                       className="block px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium"
                     >
                       Redeem Codes
                     </Link>
+                    */}
+                    {/* Gift tab hidden from navigation
                     <Link
                       href="/adventurebux/gift"
                       className="block px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium"
                     >
                       Gift AdventureBux
                     </Link>
+                    */}
                     <Link
                       href="/adventurebux/giftcards"
                       className="block px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium"
