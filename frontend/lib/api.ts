@@ -2073,12 +2073,18 @@ addToInventory: async (itemId: string) => {
 searchRobloxCatalog: async (params: {
     keyword?: string;
     category?: string;
+    bundleType?: string | number;
+    itemType?: string;
+    isEmote?: boolean;
     limit?: number;
     cursor?: string;
   } = {}) => {
     const queryParams = new URLSearchParams();
     if (params.keyword) queryParams.append("keyword", params.keyword);
     if (params.category) queryParams.append("category", params.category);
+    if (params.bundleType !== undefined) queryParams.append("bundleType", String(params.bundleType));
+    if (params.itemType) queryParams.append("itemType", params.itemType);
+    if (params.isEmote !== undefined) queryParams.append("isEmote", String(params.isEmote));
     if (params.limit) queryParams.append("limit", params.limit.toString());
     if (params.cursor) queryParams.append("cursor", params.cursor);
     return apiCall(`/catalog/roblox/search?${queryParams.toString()}`, {
