@@ -70,7 +70,6 @@ const SKIN_TONES: { id: string; label: string; hex: string }[] = [
   { id: "1006", label: "Darker", hex: "#7C4B2A" },
   { id: "1007", label: "Darkest", hex: "#4A2C17" },
 ];
-const SKIN_TONE_HEX: Record<string, string> = Object.fromEntries(SKIN_TONES.map(t => [t.id, t.hex]));
 
 const TAB_TO_CATEGORY: Record<string, { category?: string; subcategory?: string }> = {
   "Recently Added": { category: undefined, subcategory: undefined },
@@ -147,14 +146,17 @@ const AvatarPage = () => {
     // null/"1" means no explicit skin tone was chosen — omit bodyColors so Roblox
     // falls back to its own default skin instead of forcing a hardcoded tone.
     const hasCustomSkinTone = !!state.skin_color && state.skin_color !== "1";
-    const skinHex = hasCustomSkinTone ? SKIN_TONE_HEX[state.skin_color as string] : undefined;
-    const bodyColors = skinHex ? {
-      headColor: skinHex,
-      torsoColor: skinHex,
-      leftArmColor: skinHex,
-      rightArmColor: skinHex,
-      leftLegColor: skinHex,
-      rightLegColor: skinHex,
+    const skinTone = hasCustomSkinTone ? SKIN_TONES.find(t => t.id === state.skin_color) : undefined;
+    // Roblox's render API takes BrickColor integer IDs, not hex strings — SKIN_TONES.id
+    // already holds the BrickColor ID, so just convert it to a number.
+    const brickColorId = skinTone ? Number(skinTone.id) : undefined;
+    const bodyColors = brickColorId ? {
+      headColorId: brickColorId,
+      torsoColorId: brickColorId,
+      leftArmColorId: brickColorId,
+      rightArmColorId: brickColorId,
+      leftLegColorId: brickColorId,
+      rightLegColorId: brickColorId,
     } : undefined;
 
     // Always render — empty array gives default R15 character
