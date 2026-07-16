@@ -143,21 +143,17 @@ const AvatarPage = () => {
       state.accessory_3_asset_id,
     ].filter(Boolean).map(id => parseInt(id!));
 
-    // null/"1" means no explicit skin tone was chosen — omit bodyColors so Roblox
-    // falls back to its own default skin instead of forcing a hardcoded tone.
-    const hasCustomSkinTone = !!state.skin_color && state.skin_color !== "1";
-    const skinTone = hasCustomSkinTone ? SKIN_TONES.find(t => t.id === state.skin_color) : undefined;
-    // Roblox's render API takes BrickColor integer IDs, not hex strings — SKIN_TONES.id
-    // already holds the BrickColor ID, so just convert it to a number.
-    const brickColorId = skinTone ? Number(skinTone.id) : undefined;
-    const bodyColors = brickColorId ? {
-      headColorId: brickColorId,
-      torsoColorId: brickColorId,
-      leftArmColorId: brickColorId,
-      rightArmColorId: brickColorId,
-      leftLegColorId: brickColorId,
-      rightLegColorId: brickColorId,
-    } : undefined;
+    // null/"1" means no explicit skin tone was chosen — default to "1003" (light peach).
+    const skinToneId = (!state.skin_color || state.skin_color === "1") ? "1003" : state.skin_color;
+    const skinHex = SKIN_TONES.find(t => t.id === skinToneId)?.hex || "#F5D0C5";
+    const bodyColors = {
+      headColor: skinHex,
+      torsoColor: skinHex,
+      leftArmColor: skinHex,
+      rightArmColor: skinHex,
+      leftLegColor: skinHex,
+      rightLegColor: skinHex,
+    };
 
     // Always render — empty array gives default R15 character
 
@@ -169,7 +165,7 @@ const AvatarPage = () => {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(bodyColors ? { assetIds, bodyColors } : { assetIds }),
+        body: JSON.stringify({ assetIds, bodyColors }),
       });
       const data = await res.json();
       if (data.success && data.imageUrl) {
