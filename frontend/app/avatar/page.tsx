@@ -110,6 +110,8 @@ const AvatarPage = () => {
   const [customAvatarUrl, setCustomAvatarUrl] = useState<string | null>(null);
   const [renderingCustom, setRenderingCustom] = useState(false);
   const [updatingSkinColor, setUpdatingSkinColor] = useState(false);
+  const [bodyType, setBodyType] = useState(0);
+  const bodyTypeRef = useRef(bodyType);
   const tabsRef = useRef<HTMLDivElement>(null);
   const tabsOffsetRef = useRef<number>(0);
 
@@ -125,7 +127,7 @@ const AvatarPage = () => {
     Pets: ["All Pets"],
   };
 
-  const renderCustomAvatar = async (state: AvatarState) => {
+  const renderCustomAvatar = async (state: AvatarState, bodyTypeValue: number) => {
     const token = storage.getAccessToken();
     if (!token) return;
 
@@ -165,7 +167,7 @@ const AvatarPage = () => {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ assetIds, bodyColors }),
+        body: JSON.stringify({ assetIds, bodyColors, scales: { bodyType: bodyTypeValue / 100 } }),
       });
       const data = await res.json();
       if (data.success && data.imageUrl) {
@@ -198,7 +200,7 @@ const AvatarPage = () => {
         }
         // Render custom avatar with equipped items
         if (state) {
-          renderCustomAvatar(state);
+          renderCustomAvatar(state, bodyTypeRef.current);
         }
       }
     } catch (err) {
@@ -225,6 +227,22 @@ const AvatarPage = () => {
   useEffect(() => {
     fetchAvatarState();
   }, [fetchAvatarState]);
+
+  // Keep a ref in sync with bodyType so callbacks with stale closures (e.g. the
+  // memoized fetchAvatarState below) can still read the current value.
+  useEffect(() => {
+    bodyTypeRef.current = bodyType;
+  }, [bodyType]);
+
+  // Debounce bodyType changes so dragging the slider doesn't re-render on every pixel.
+  useEffect(() => {
+    if (!avatarState) return;
+    const timeout = setTimeout(() => {
+      renderCustomAvatar(avatarState, bodyType);
+    }, 500);
+    return () => clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bodyType]);
 
   const fetchItems = useCallback(async (subTab: string, page: number = 1) => {
     setLoading(true);
@@ -496,9 +514,16 @@ const AvatarPage = () => {
               <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-gray-900 dark:text-gray-100">Body Type</span>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">0%</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">{bodyType}%</span>
                 </div>
-                <input type="range" min="0" max="100" defaultValue="0" className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer" />
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={bodyType}
+                  onChange={(e) => setBodyType(Number(e.target.value))}
+                  className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                />
               </div>
 
               {/* Skin Tone */}
