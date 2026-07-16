@@ -34,6 +34,7 @@ interface AuthResponse {
     displayName: string;
     isVerified: boolean;
     createdAt: string;
+    twoFactorEnabled?: boolean;
   };
   accessToken: string;
   refreshToken: string;
