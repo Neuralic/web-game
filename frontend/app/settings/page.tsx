@@ -27,6 +27,7 @@ interface UserData {
   can_receive_messages?: string;
   can_follow?: string;
   can_view_inventory?: string;
+  two_factor_enabled?: boolean;
 }
 
 const SettingsPage = () => {
@@ -79,6 +80,14 @@ const [changingPassword, setChangingPassword] = useState(false);
 const [accountPin, setAccountPin] = useState("");
 const [savingPin, setSavingPin] = useState(false);
 
+const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+const [show2FASetup, setShow2FASetup] = useState(false);
+const [qrCode, setQrCode] = useState("");
+const [twoFactorSecret, setTwoFactorSecret] = useState("");
+const [twoFactorCode, setTwoFactorCode] = useState("");
+const [loading2FA, setLoading2FA] = useState(false);
+const [disabling2FA, setDisabling2FA] = useState(false);
+
 const [adName, setAdName] = useState("");
 const [adFormat, setAdFormat] = useState("728x90");
 const [adImageUrl, setAdImageUrl] = useState("");
@@ -108,6 +117,7 @@ const [myGroups, setMyGroups] = useState<any[]>([]);
           if (userData.can_receive_messages) setCanReceiveMessages(userData.can_receive_messages);
           if (userData.can_follow) setCanFollow(userData.can_follow);
           if (userData.can_view_inventory) setCanViewInventory(userData.can_view_inventory);
+          setTwoFactorEnabled(!!userData.two_factor_enabled);
         }
 
 
@@ -380,6 +390,97 @@ if (groupsResponse.success && groupsResponse.data) {
       setErrorMessage("Failed to set PIN");
     } finally {
       setSavingPin(false);
+    }
+  };
+
+  const handleStart2FASetup = async () => {
+    setLoading2FA(true);
+    setSuccessMessage("");
+    setErrorMessage("");
+    try {
+      const token = storage.getAccessToken();
+      const res = await fetch(`${API_BASE}/users/2fa/setup`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success && data.data) {
+        setQrCode(data.data.qrCode);
+        setTwoFactorSecret(data.data.secret);
+        setShow2FASetup(true);
+      } else {
+        setErrorMessage(data.message || "Failed to start 2FA setup");
+      }
+    } catch (error) {
+      setErrorMessage("Failed to start 2FA setup");
+    } finally {
+      setLoading2FA(false);
+    }
+  };
+
+  const handleConfirmEnable2FA = async () => {
+    if (!/^\d{6}$/.test(twoFactorCode)) {
+      setErrorMessage("Verification code must be exactly 6 digits");
+      return;
+    }
+    setLoading2FA(true);
+    setSuccessMessage("");
+    setErrorMessage("");
+    try {
+      const token = storage.getAccessToken();
+      const res = await fetch(`${API_BASE}/users/2fa/enable`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ token: twoFactorCode }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTwoFactorEnabled(true);
+        setShow2FASetup(false);
+        setQrCode("");
+        setTwoFactorSecret("");
+        setTwoFactorCode("");
+        setSuccessMessage("Two-factor authentication enabled!");
+        setTimeout(() => setSuccessMessage(""), 3000);
+      } else {
+        setErrorMessage(data.message || "Invalid verification code");
+      }
+    } catch (error) {
+      setErrorMessage("Failed to enable 2FA");
+    } finally {
+      setLoading2FA(false);
+    }
+  };
+
+  const handleCancel2FASetup = () => {
+    setShow2FASetup(false);
+    setQrCode("");
+    setTwoFactorSecret("");
+    setTwoFactorCode("");
+  };
+
+  const handleDisable2FA = async () => {
+    if (!confirm("Are you sure you want to disable two-factor authentication?")) return;
+    setDisabling2FA(true);
+    setSuccessMessage("");
+    setErrorMessage("");
+    try {
+      const token = storage.getAccessToken();
+      const res = await fetch(`${API_BASE}/users/2fa/disable`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTwoFactorEnabled(false);
+        setSuccessMessage("Two-factor authentication disabled.");
+        setTimeout(() => setSuccessMessage(""), 3000);
+      } else {
+        setErrorMessage(data.message || "Failed to disable 2FA");
+      }
+    } catch (error) {
+      setErrorMessage("Failed to disable 2FA");
+    } finally {
+      setDisabling2FA(false);
     }
   };
 
@@ -672,7 +773,64 @@ if (groupsResponse.success && groupsResponse.data) {
                   <div className="pb-6 border-b border-gray-200 dark:border-gray-700">
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">Two-Factor Authentication</h3>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Add an extra layer of security to your account</p>
-                    <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded text-sm">Enable 2FA</button>
+
+                    {twoFactorEnabled ? (
+                      <div className="space-y-3">
+                        <p className="text-xs text-green-600 dark:text-green-400">✓ Two-factor authentication is enabled</p>
+                        <button
+                          onClick={handleDisable2FA}
+                          disabled={disabling2FA}
+                          className="px-4 py-2 bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-semibold rounded text-sm hover:bg-red-200 dark:hover:bg-red-900/40 disabled:opacity-50"
+                        >
+                          {disabling2FA ? "Disabling..." : "Disable 2FA"}
+                        </button>
+                      </div>
+                    ) : show2FASetup ? (
+                      <div className="space-y-3">
+                        {qrCode && (
+                          <div className="flex flex-col items-center gap-2 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+                            <img src={qrCode} alt="2FA QR Code" className="w-40 h-40" />
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Scan this with your authenticator app</p>
+                            {twoFactorSecret && (
+                              <p className="text-xs font-mono text-gray-700 dark:text-gray-300 break-all">{twoFactorSecret}</p>
+                            )}
+                          </div>
+                        )}
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            maxLength={6}
+                            value={twoFactorCode}
+                            onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                            placeholder="6-digit code"
+                            className="w-32 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 tracking-widest"
+                          />
+                          <button
+                            onClick={handleConfirmEnable2FA}
+                            disabled={loading2FA || twoFactorCode.length !== 6}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded text-sm disabled:opacity-50"
+                          >
+                            {loading2FA ? "Verifying..." : "Confirm & Enable"}
+                          </button>
+                          <button
+                            onClick={handleCancel2FASetup}
+                            className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-semibold rounded text-sm"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={handleStart2FASetup}
+                        disabled={loading2FA}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded text-sm disabled:opacity-50"
+                      >
+                        {loading2FA ? "Loading..." : "Enable 2FA"}
+                      </button>
+                    )}
                   </div>
                 
                 </div>
