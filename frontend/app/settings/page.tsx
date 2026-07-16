@@ -7,8 +7,10 @@ import { faPerson, faPersonDress } from "@fortawesome/free-solid-svg-icons";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
-import { usersApi, adsApi, groupsApi } from "@/lib/api";
+import { usersApi, adsApi, groupsApi, storage } from "@/lib/api";
 import UserAdBanner from "../components/UserAdBanner";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
 interface UserData {
   username?: string;
@@ -73,6 +75,9 @@ const [currentPassword, setCurrentPassword] = useState("");
 const [newPassword, setNewPassword] = useState("");
 const [confirmPassword, setConfirmPassword] = useState("");
 const [changingPassword, setChangingPassword] = useState(false);
+
+const [accountPin, setAccountPin] = useState("");
+const [savingPin, setSavingPin] = useState(false);
 
 const [adName, setAdName] = useState("");
 const [adFormat, setAdFormat] = useState("728x90");
@@ -345,6 +350,36 @@ if (groupsResponse.success && groupsResponse.data) {
       setErrorMessage("Failed to save notification preferences");
     } finally {
       setSavingNotifications(false);
+    }
+  };
+
+  const handleSetPin = async () => {
+    if (!/^\d{4}$/.test(accountPin)) {
+      setErrorMessage("PIN must be exactly 4 digits");
+      return;
+    }
+    setSavingPin(true);
+    setSuccessMessage("");
+    setErrorMessage("");
+    try {
+      const token = storage.getAccessToken();
+      const res = await fetch(`${API_BASE}/users/pin/set`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ pin: accountPin }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAccountPin("");
+        setSuccessMessage("Account PIN set successfully!");
+        setTimeout(() => setSuccessMessage(""), 3000);
+      } else {
+        setErrorMessage(data.message || "Failed to set PIN");
+      }
+    } catch (error) {
+      setErrorMessage("Failed to set PIN");
+    } finally {
+      setSavingPin(false);
     }
   };
 
@@ -963,7 +998,25 @@ if (groupsResponse.success && groupsResponse.data) {
                   <div className="pb-6 border-b border-gray-200 dark:border-gray-700">
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">Account PIN</h3>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Set a PIN to prevent changes to parental control settings</p>
-                    <button className="px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 font-semibold rounded text-sm hover:bg-gray-800 dark:hover:bg-gray-200">Set PIN</button>
+                    <div className="flex gap-2">
+                      <input
+                        type="password"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={4}
+                        value={accountPin}
+                        onChange={(e) => setAccountPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                        placeholder="4-digit PIN"
+                        className="w-32 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 tracking-widest"
+                      />
+                      <button
+                        onClick={handleSetPin}
+                        disabled={savingPin || accountPin.length !== 4}
+                        className="px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 font-semibold rounded text-sm hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {savingPin ? "Saving..." : "Set PIN"}
+                      </button>
+                    </div>
                   </div>
                   <div className="pb-6 border-b border-gray-200 dark:border-gray-700">
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Chat restrictions</h3>
