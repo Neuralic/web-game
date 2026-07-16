@@ -134,6 +134,15 @@ const ProfilePage = () => {
   const [loadingGroups, setLoadingGroups] = useState(true);
   const [socialLinks, setSocialLinks] = useState<any[]>([]);
   const [isOwnProfile, setIsOwnProfile] = useState(false);
+  const [adventureBadges, setAdventureBadges] = useState<{
+    id: string;
+    name: string;
+    description: string | null;
+    image_url: string | null;
+    rarity: string | null;
+    type: string;
+    earned_at: string;
+  }[]>([]);
 
   // Avatar state
   const [avatarState, setAvatarState] = useState<AvatarStateData | null>(null);
@@ -462,6 +471,23 @@ const ProfilePage = () => {
     return () => { supabase.removeChannel(channel); };
   }, [profileUser?.id]);
 
+  useEffect(() => {
+    const fetchBadges = async () => {
+      if (!profileUser?.id) return;
+      try {
+        const res = await fetch(`${API_BASE}/badges/user/${profileUser.id}`);
+        const data = await res.json();
+        if (data.success && data.data?.badges) {
+          setAdventureBadges(data.data.badges);
+        }
+      } catch (error) {
+        console.error('Error fetching badges:', error);
+      }
+    };
+
+    fetchBadges();
+  }, [profileUser?.id]);
+
   const [groupsViewMode, setGroupsViewMode] = useState<"carousel" | "grid">("carousel");
   const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
 
@@ -469,7 +495,6 @@ const ProfilePage = () => {
   const maxGroupIndex = Math.max(0, groups.length - groupsPerPage);
 
   const robloxBadges: any[] = [];
-  const badges: any[] = [];
 
   const experiences = [
     {
@@ -1071,7 +1096,25 @@ const ProfilePage = () => {
                     <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">AdventureBlox Badges</h2>
                     <button className="flex items-center gap-1 text-sm text-gray-900 dark:text-gray-100 hover:underline">See All<ChevronRight className="w-4 h-4" /></button>
                   </div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 py-4">No badges earned yet.</p>
+                  {adventureBadges.length > 0 ? (
+                    <div className="flex gap-4 flex-wrap">
+                      {adventureBadges.map((badge) => (
+                        <div key={badge.id} className="flex flex-col items-center w-20 text-center" title={badge.description || badge.name}>
+                          <div className="w-16 h-16 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                            {badge.image_url ? (
+                              <img src={badge.image_url} alt={badge.name} className="w-full h-full object-contain p-1" />
+                            ) : (
+                              <span className="text-2xl">🏅</span>
+                            )}
+                          </div>
+                          <p className="mt-1 text-xs font-medium text-gray-900 dark:text-gray-100 truncate w-full">{badge.name}</p>
+                          <p className="text-[10px] text-gray-500 dark:text-gray-400">{formatDate(badge.earned_at)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 dark:text-gray-400 py-4">No badges earned yet.</p>
+                  )}
                 </div>
 
                 <div className="py-6 border-b border-gray-200 dark:border-gray-800">
