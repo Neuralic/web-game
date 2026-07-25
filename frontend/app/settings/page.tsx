@@ -28,6 +28,9 @@ interface UserData {
   can_follow?: string;
   can_view_inventory?: string;
   two_factor_enabled?: boolean;
+  chat_restriction?: string;
+  safe_chat_mode?: boolean;
+  block_external_links?: boolean;
 }
 
 const SettingsPage = () => {
@@ -80,6 +83,12 @@ const [changingPassword, setChangingPassword] = useState(false);
 const [accountPin, setAccountPin] = useState("");
 const [savingPin, setSavingPin] = useState(false);
 
+// Parental controls state
+const [chatRestriction, setChatRestriction] = useState("friends");
+const [safeChatMode, setSafeChatMode] = useState(false);
+const [blockExternalLinks, setBlockExternalLinks] = useState(false);
+const [savingParental, setSavingParental] = useState(false);
+
 const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
 const [show2FASetup, setShow2FASetup] = useState(false);
 const [qrCode, setQrCode] = useState("");
@@ -118,6 +127,9 @@ const [myGroups, setMyGroups] = useState<any[]>([]);
           if (userData.can_follow) setCanFollow(userData.can_follow);
           if (userData.can_view_inventory) setCanViewInventory(userData.can_view_inventory);
           setTwoFactorEnabled(!!userData.two_factor_enabled);
+          if (userData.chat_restriction) setChatRestriction(userData.chat_restriction);
+          setSafeChatMode(!!userData.safe_chat_mode);
+          setBlockExternalLinks(!!userData.block_external_links);
         }
 
 
@@ -481,6 +493,30 @@ if (groupsResponse.success && groupsResponse.data) {
       setErrorMessage("Failed to disable 2FA");
     } finally {
       setDisabling2FA(false);
+    }
+  };
+
+  const handleSaveParentalControls = async () => {
+    setSavingParental(true);
+    setSuccessMessage("");
+    setErrorMessage("");
+    try {
+      const response = await usersApi.updateProfileSettings({
+        chatRestriction,
+        safeChatMode,
+        blockExternalLinks,
+      });
+      if (response.success) {
+        setSuccessMessage("Parental control settings saved!");
+        setTimeout(() => setSuccessMessage(""), 3000);
+      } else {
+        setErrorMessage((response as any).message || "Failed to save parental control settings");
+      }
+    } catch (error) {
+      console.error("Error saving parental control settings:", error);
+      setErrorMessage("Failed to save parental control settings");
+    } finally {
+      setSavingParental(false);
     }
   };
 
@@ -1179,24 +1215,39 @@ if (groupsResponse.success && groupsResponse.data) {
                   <div className="pb-6 border-b border-gray-200 dark:border-gray-700">
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Chat restrictions</h3>
                     <div className="space-y-2">
-                      {["All users", "Friends only", "No one"].map((opt) => (
-                        <label key={opt} className="flex items-center gap-2 cursor-pointer">
-                          <input type="radio" name="chat_restriction" defaultChecked={opt === "Friends only"} className="w-4 h-4" />
-                          <span className="text-sm text-gray-700 dark:text-gray-300">{opt}</span>
+                      {[
+                        { value: "all", label: "All users" },
+                        { value: "friends", label: "Friends only" },
+                        { value: "no_one", label: "No one" },
+                      ].map((opt) => (
+                        <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="chat_restriction"
+                            checked={chatRestriction === opt.value}
+                            onChange={() => setChatRestriction(opt.value)}
+                            className="w-4 h-4"
+                          />
+                          <span className="text-sm text-gray-700 dark:text-gray-300">{opt.label}</span>
                         </label>
                       ))}
                     </div>
                   </div>
-                 
+
                   <div>
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Content filters</h3>
                     <div className="space-y-3">
                       {[
-                        { label: "Safe chat mode", desc: "Only allow pre-approved messages" },
-                        { label: "Block external links", desc: "Prevent clicking links to external websites" },
+                        { label: "Safe chat mode", desc: "Only allow pre-approved messages", checked: safeChatMode, setter: setSafeChatMode },
+                        { label: "Block external links", desc: "Prevent clicking links to external websites", checked: blockExternalLinks, setter: setBlockExternalLinks },
                       ].map((item) => (
                         <label key={item.label} className="flex items-start gap-3 cursor-pointer">
-                          <input type="checkbox" className="w-4 h-4 mt-0.5" />
+                          <input
+                            type="checkbox"
+                            checked={item.checked}
+                            onChange={(e) => item.setter(e.target.checked)}
+                            className="w-4 h-4 mt-0.5"
+                          />
                           <div>
                             <p className="text-sm text-gray-700 dark:text-gray-300">{item.label}</p>
                             <p className="text-xs text-gray-500 dark:text-gray-400">{item.desc}</p>
@@ -1205,6 +1256,14 @@ if (groupsResponse.success && groupsResponse.data) {
                       ))}
                     </div>
                   </div>
+
+                  <button
+                    onClick={handleSaveParentalControls}
+                    disabled={savingParental}
+                    className="px-4 py-2 bg-gray-900 dark:bg-gray-100 hover:bg-gray-800 dark:hover:bg-gray-200 text-white dark:text-gray-900 font-semibold rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {savingParental ? "Saving..." : "Save"}
+                  </button>
                 </div>
               </div>
             )}
