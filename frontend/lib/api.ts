@@ -228,6 +228,11 @@ export const usersApi = {
     showOnlineStatus?: boolean;
     showLastSeen?: boolean;
     profileTheme?: string;
+    // Parental controls — not yet persisted by the backend (no DB columns/handling
+    // yet), but accepted here so the settings page can send them once it is.
+    chatRestriction?: string;
+    safeChatMode?: boolean;
+    blockExternalLinks?: boolean;
   }): Promise<ApiResponse<unknown>> => {
     const token = storage.getAccessToken();
     if (!token) {
