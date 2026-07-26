@@ -12,6 +12,7 @@ import UserAvatar from "../components/UserAvatar";
 import { usersApi, friendsApi, feedApi, uploadApi, storage } from "@/lib/api";
 import { useRealtime } from "@/contexts/RealtimeContext";
 import UserAdBanner from "../components/UserAdBanner";
+import AnnouncementBanner from "../components/AnnouncementBanner";
 
 const HomePage = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -112,6 +113,7 @@ const HomePage = () => {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-white dark:bg-gray-900">
+        <AnnouncementBanner />
         <Header
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
