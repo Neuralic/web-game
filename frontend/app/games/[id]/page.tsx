@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { Heart, ThumbsUp, Users, Eye, Gamepad2 } from "lucide-react";
+import { Heart, ThumbsUp, ThumbsDown, Bell, BellOff, Users, Eye, Gamepad2 } from "lucide-react";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import Footer from "../../components/Footer";
@@ -40,6 +40,9 @@ interface GameDetail {
   updatedAt: string;
 }
 
+const TABS = ["About", "Store", "Servers"] as const;
+type Tab = (typeof TABS)[number];
+
 const GameDetailPage = () => {
   const params = useParams();
   const gameId = params?.id as string;
@@ -49,11 +52,14 @@ const GameDetailPage = () => {
   const [game, setGame] = useState<GameDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [activeTab, setActiveTab] = useState<Tab>("About");
 
-  // Like/favorite are UI-only for now — there's no backend endpoint yet to
-  // persist a toggle, so this just reflects the click locally.
+  // Favorite/Notify/Like/Dislike are UI-only for now — there's no backend
+  // endpoint yet to persist a toggle, so these just reflect the click locally.
   const [liked, setLiked] = useState(false);
+  const [disliked, setDisliked] = useState(false);
   const [favorited, setFavorited] = useState(false);
+  const [notifyOn, setNotifyOn] = useState(false);
 
   useEffect(() => {
     if (!gameId) return;
@@ -86,6 +92,16 @@ const GameDetailPage = () => {
   const likeCount = game ? game.likes + (liked ? 1 : 0) : 0;
   const favoriteCount = game ? game.favorites + (favorited ? 1 : 0) : 0;
 
+  const handleLike = () => {
+    setLiked((prev) => !prev);
+    if (!liked) setDisliked(false);
+  };
+
+  const handleDislike = () => {
+    setDisliked((prev) => !prev);
+    if (!disliked) setLiked(false);
+  };
+
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
@@ -111,54 +127,68 @@ const GameDetailPage = () => {
           </div>
         ) : (
           <>
-            {/* Banner */}
-            <div className="rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-700 aspect-[21/9] mb-4 relative">
-              {game.thumbnailUrl ? (
-                <img src={game.thumbnailUrl} alt={game.title} className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600">
-                  <span className="text-white font-bold text-4xl">AB</span>
+            {/* Top section: media left, info panel right */}
+            <div className="flex flex-col lg:flex-row gap-6 mb-6">
+              {/* Left ~60% — thumbnail/media */}
+              <div className="lg:w-[60%] flex-shrink-0">
+                <div className="rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-700 aspect-video relative">
+                  {game.thumbnailUrl ? (
+                    <img src={game.thumbnailUrl} alt={game.title} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600">
+                      <span className="text-white font-bold text-4xl">AB</span>
+                    </div>
+                  )}
+                  {/* Bottom gradient — obscures the "ROBLOX" watermark baked into the thumbnail */}
+                  <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/90 via-black/50 to-transparent pointer-events-none" />
+                  {game.is_sponsored && (
+                    <div className="absolute top-3 left-3 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                      Sponsored
+                    </div>
+                  )}
                 </div>
-              )}
-              {game.is_sponsored && (
-                <div className="absolute top-3 left-3 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                  Sponsored
-                </div>
-              )}
-            </div>
+              </div>
 
-            {/* Title row */}
-            <div className="flex items-start gap-4 mb-6">
-              <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-gray-200 dark:bg-gray-700">
-                {game.iconUrl ? (
-                  <img src={game.iconUrl} alt={game.title} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600">
-                    <Gamepad2 className="w-7 h-7 text-white" />
+              {/* Right ~40% — game info panel */}
+              <div className="lg:w-[40%] min-w-0 flex flex-col">
+                <div className="flex items-start gap-3 mb-5">
+                  <div className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 bg-gray-200 dark:bg-gray-700">
+                    {game.iconUrl ? (
+                      <img src={game.iconUrl} alt={game.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600">
+                        <Gamepad2 className="w-6 h-6 text-white" />
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                  <div className="flex-1 min-w-0">
+                    <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 break-words">{game.title}</h1>
+                    {game.creator_username ? (
+                      <Link
+                        href={`/profile/${game.creator_username}`}
+                        className="text-sm text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1 mt-0.5"
+                      >
+                        By {creatorName}
+                        {game.creator_is_verified && <VerifiedBadge size="sm" />}
+                      </Link>
+                    ) : (
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">By {creatorName}</p>
+                    )}
+                  </div>
+                </div>
 
-              <div className="flex-1 min-w-0">
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 truncate">{game.title}</h1>
-                {game.creator_username ? (
-                  <Link
-                    href={`/profile/${game.creator_username}`}
-                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1 mt-1"
-                  >
-                    By {creatorName}
-                    {game.creator_is_verified && <VerifiedBadge size="sm" />}
-                  </Link>
-                ) : (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">By {creatorName}</p>
-                )}
-              </div>
+                {/* Maturity rating badge */}
+                <div className="mb-6">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">
+                    Maturity: {game.ageRating || "All Ages"}
+                  </span>
+                </div>
 
-              <div className="flex-shrink-0">
+                {/* Play button */}
                 {canPlay ? (
                   <a
                     href={`roblox://experiences/start?placeId=${game.placeId}`}
-                    className="inline-block px-8 py-3 bg-green-500 hover:bg-green-600 text-white font-bold rounded-lg transition-colors"
+                    className="block text-center py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg rounded-lg transition-colors mb-4"
                   >
                     Play
                   </a>
@@ -166,72 +196,112 @@ const GameDetailPage = () => {
                   <button
                     disabled
                     title="This game isn't linked to a playable Roblox place yet"
-                    className="px-8 py-3 bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-bold rounded-lg cursor-not-allowed"
+                    className="py-3 bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-bold text-lg rounded-lg cursor-not-allowed mb-4"
                   >
                     Game not available
                   </button>
                 )}
-              </div>
-            </div>
 
-            {/* Like / Favorite */}
-            <div className="flex items-center gap-3 mb-6">
-              <button
-                onClick={() => setLiked((prev) => !prev)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border transition-colors ${
-                  liked
-                    ? "bg-blue-50 dark:bg-blue-900/20 border-blue-400 text-blue-600 dark:text-blue-400"
-                    : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-                }`}
-              >
-                <ThumbsUp className="w-4 h-4" fill={liked ? "currentColor" : "none"} />
-                {likeCount.toLocaleString()}
-              </button>
-              <button
-                onClick={() => setFavorited((prev) => !prev)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border transition-colors ${
-                  favorited
-                    ? "bg-red-50 dark:bg-red-900/20 border-red-400 text-red-600 dark:text-red-400"
-                    : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-                }`}
-              >
-                <Heart className="w-4 h-4" fill={favorited ? "currentColor" : "none"} />
-                {favoriteCount.toLocaleString()}
-              </button>
-            </div>
+                {/* Favorite / Notify / Like / Dislike */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setFavorited((prev) => !prev)}
+                    title="Favorite"
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold border transition-colors ${
+                      favorited
+                        ? "bg-red-50 dark:bg-red-900/20 border-red-400 text-red-600 dark:text-red-400"
+                        : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                    }`}
+                  >
+                    <Heart className="w-4 h-4" fill={favorited ? "currentColor" : "none"} />
+                    {favoriteCount.toLocaleString()}
+                  </button>
 
-            {/* Stats */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-              <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 text-center">
-                <Eye className="w-4 h-4 mx-auto mb-1 text-gray-500 dark:text-gray-400" />
-                <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{game.visits?.toLocaleString() || 0}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Visits</p>
-              </div>
-              <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 text-center">
-                <Heart className="w-4 h-4 mx-auto mb-1 text-gray-500 dark:text-gray-400" />
-                <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{favoriteCount.toLocaleString()}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Favorites</p>
-              </div>
-              <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 text-center">
-                <Users className="w-4 h-4 mx-auto mb-1 text-gray-500 dark:text-gray-400" />
-                <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{game.maxPlayers ?? "—"}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Max Players</p>
-              </div>
-              <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 text-center">
-                <Gamepad2 className="w-4 h-4 mx-auto mb-1 text-gray-500 dark:text-gray-400" />
-                <p className="text-lg font-bold text-gray-900 dark:text-gray-100 truncate">{game.genre || "All"}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Genre</p>
-              </div>
-            </div>
+                  <button
+                    onClick={() => setNotifyOn((prev) => !prev)}
+                    title={notifyOn ? "Turn off notifications" : "Notify me"}
+                    className={`flex items-center justify-center p-2 rounded-lg border transition-colors ${
+                      notifyOn
+                        ? "bg-blue-50 dark:bg-blue-900/20 border-blue-400 text-blue-600 dark:text-blue-400"
+                        : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                    }`}
+                  >
+                    {notifyOn ? <Bell className="w-4 h-4" fill="currentColor" /> : <BellOff className="w-4 h-4" />}
+                  </button>
 
-            <div className="flex flex-col lg:flex-row gap-8">
-              {/* About */}
-              <div className="flex-1 min-w-0">
-                <div className="border-b border-gray-200 dark:border-gray-800 mb-4">
-                  <div className="pb-3 text-sm font-semibold text-gray-900 dark:text-gray-100 border-b-2 border-gray-900 dark:border-gray-100 inline-block">
-                    About
+                  <div className="flex items-center rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden">
+                    <button
+                      onClick={handleLike}
+                      title="Like"
+                      className={`flex items-center gap-1.5 px-3 py-2 text-sm font-semibold transition-colors ${
+                        liked
+                          ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
+                          : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                      }`}
+                    >
+                      <ThumbsUp className="w-4 h-4" fill={liked ? "currentColor" : "none"} />
+                      {likeCount.toLocaleString()}
+                    </button>
+                    <div className="w-px self-stretch bg-gray-300 dark:bg-gray-600" />
+                    <button
+                      onClick={handleDislike}
+                      title="Dislike"
+                      className={`flex items-center px-3 py-2 transition-colors ${
+                        disliked
+                          ? "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400"
+                          : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                      }`}
+                    >
+                      <ThumbsDown className="w-4 h-4" fill={disliked ? "currentColor" : "none"} />
+                    </button>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Tabs row */}
+            <div className="border-b border-gray-200 dark:border-gray-800 mb-4">
+              <div className="flex gap-6">
+                {TABS.map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`pb-3 text-sm font-semibold transition-colors border-b-2 ${
+                      activeTab === tab
+                        ? "text-gray-900 dark:text-gray-100 border-gray-900 dark:border-gray-100"
+                        : "text-gray-500 dark:text-gray-400 border-transparent hover:text-gray-700 dark:hover:text-gray-300"
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Stats row — small inline stats below the tabs */}
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mb-6 text-sm text-gray-600 dark:text-gray-400">
+              <span className="flex items-center gap-1.5">
+                <Eye className="w-4 h-4" /> {game.visits?.toLocaleString() || 0} visits
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Heart className="w-4 h-4" /> {favoriteCount.toLocaleString()} favorites
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Users className="w-4 h-4" /> Max {game.maxPlayers ?? "—"} players
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Gamepad2 className="w-4 h-4" /> {game.genre || "All"}
+              </span>
+            </div>
+
+            {activeTab === "About" && (
+              <div>
+                {/* Events */}
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Events</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">No events yet.</p>
+                </div>
+
                 <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
                   {game.description || "No description provided."}
                 </p>
@@ -248,28 +318,40 @@ const GameDetailPage = () => {
                     ))}
                   </div>
                 )}
-              </div>
 
-              {/* Creator info */}
-              <div className="lg:w-64 flex-shrink-0">
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Created By</h3>
-                <Link
-                  href={game.creator_username ? `/profile/${game.creator_username}` : "#"}
-                  className="flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                >
-                  <UserAvatar userId={game.creatorId} username={creatorName} size={48} headshot />
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate flex items-center gap-1">
-                      {creatorName}
-                      {game.creator_is_verified && <VerifiedBadge size="sm" />}
-                    </p>
-                    {game.creator_username && (
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">@{game.creator_username}</p>
-                    )}
-                  </div>
-                </Link>
+                {/* Created By */}
+                <div className="mt-6 max-w-sm">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Created By</h3>
+                  <Link
+                    href={game.creator_username ? `/profile/${game.creator_username}` : "#"}
+                    className="flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  >
+                    <UserAvatar userId={game.creatorId} username={creatorName} size={48} headshot />
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate flex items-center gap-1">
+                        {creatorName}
+                        {game.creator_is_verified && <VerifiedBadge size="sm" />}
+                      </p>
+                      {game.creator_username && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">@{game.creator_username}</p>
+                      )}
+                    </div>
+                  </Link>
+                </div>
               </div>
-            </div>
+            )}
+
+            {activeTab === "Store" && (
+              <div className="py-16 text-center text-sm text-gray-500 dark:text-gray-400">
+                No items for sale yet.
+              </div>
+            )}
+
+            {activeTab === "Servers" && (
+              <div className="py-16 text-center text-sm text-gray-500 dark:text-gray-400">
+                No public servers available.
+              </div>
+            )}
           </>
         )}
       </main>
