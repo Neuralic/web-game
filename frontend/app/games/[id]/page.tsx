@@ -60,6 +60,7 @@ const GameDetailPage = () => {
   const [disliked, setDisliked] = useState(false);
   const [favorited, setFavorited] = useState(false);
   const [notifyOn, setNotifyOn] = useState(false);
+  const [groupName, setGroupName] = useState<string | null>(null);
 
   useEffect(() => {
     if (!gameId) return;
@@ -85,6 +86,27 @@ const GameDetailPage = () => {
 
     fetchGame();
   }, [gameId]);
+
+  useEffect(() => {
+    if (!game?.groupId) {
+      setGroupName(null);
+      return;
+    }
+
+    const fetchGroup = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/groups/${game.groupId}`);
+        const data = await res.json();
+        if (data.success && data.data?.group) {
+          setGroupName(data.data.group.name);
+        }
+      } catch (error) {
+        console.error("Failed to fetch group:", error);
+      }
+    };
+
+    fetchGroup();
+  }, [game?.groupId]);
 
   const creatorName = game?.creator_display_name || game?.creator_username || "Unknown Creator";
   const canPlay = !!game?.placeId;
@@ -163,7 +185,14 @@ const GameDetailPage = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 break-words">{game.title}</h1>
-                    {game.creator_username ? (
+                    {game.groupId && groupName ? (
+                      <Link
+                        href={`/groups/${game.groupId}`}
+                        className="text-sm text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1 mt-0.5"
+                      >
+                        By {groupName}
+                      </Link>
+                    ) : game.creator_username ? (
                       <Link
                         href={`/profile/${game.creator_username}`}
                         className="text-sm text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1 mt-0.5"
@@ -261,12 +290,12 @@ const GameDetailPage = () => {
 
             {/* Tabs row */}
             <div className="border-b border-gray-200 dark:border-gray-800 mb-4">
-              <div className="flex gap-6">
+              <div className="flex gap-8">
                 {TABS.map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`pb-3 text-sm font-semibold transition-colors border-b-2 ${
+                    className={`px-2 py-4 text-lg font-bold transition-colors border-b-4 ${
                       activeTab === tab
                         ? "text-gray-900 dark:text-gray-100 border-gray-900 dark:border-gray-100"
                         : "text-gray-500 dark:text-gray-400 border-transparent hover:text-gray-700 dark:hover:text-gray-300"
