@@ -31,9 +31,7 @@ interface GameDetail {
   currentPlayers: number;
   is_sponsored?: boolean;
   sponsor_bid?: number;
-  // Not currently persisted anywhere in the schema — always absent today, but
-  // kept here so the Play button lights up automatically once a games.placeId
-  // column (or similar) exists.
+  universeId?: string | number | null;
   placeId?: string | number | null;
   creator_username?: string;
   creator_display_name?: string;
