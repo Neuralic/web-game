@@ -45,7 +45,11 @@ export default function CreatePage() {
     genre: "All",
     maxPlayers: "10",
     universeId: "",
+    groupId: "",
   });
+
+  const [groups, setGroups] = useState<{ id: string; name: string }[]>([]);
+  const [loadingGroups, setLoadingGroups] = useState(false);
 
   const fetchMyGames = async () => {
     const token = storage.getAccessToken();
@@ -65,6 +69,29 @@ export default function CreatePage() {
   };
 
   useEffect(() => { fetchMyGames(); }, []);
+
+  useEffect(() => {
+    if (!showCreateModal) return;
+
+    const fetchGroups = async () => {
+      const token = storage.getAccessToken();
+      if (!token) return;
+      setLoadingGroups(true);
+      try {
+        const res = await fetch(`${API_BASE}/groups/user/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (data.success) setGroups(data.data.groups || []);
+      } catch (err) {
+        console.error("Failed to fetch groups:", err);
+      } finally {
+        setLoadingGroups(false);
+      }
+    };
+
+    fetchGroups();
+  }, [showCreateModal]);
 
   const handleCreate = async () => {
     const token = storage.getAccessToken();
@@ -93,6 +120,7 @@ export default function CreatePage() {
             thumbnailUrl: form.thumbnailUrl.trim() || undefined,
             genre: form.genre,
             maxPlayers: parseInt(form.maxPlayers),
+            groupId: form.groupId || undefined,
           }),
         });
       }
@@ -101,7 +129,7 @@ export default function CreatePage() {
       if (data.success) {
         setSuccessMsg("Game published successfully!");
         setShowCreateModal(false);
-        setForm({ title: "", description: "", thumbnailUrl: "", genre: "All", maxPlayers: "10", universeId: "" });
+        setForm({ title: "", description: "", thumbnailUrl: "", genre: "All", maxPlayers: "10", universeId: "", groupId: "" });
         fetchMyGames();
         setTimeout(() => setSuccessMsg(""), 3000);
       } else {
@@ -327,6 +355,20 @@ export default function CreatePage() {
                       placeholder="https://..."
                       className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Publish to Group (optional)</label>
+                    <select
+                      value={form.groupId}
+                      onChange={(e) => setForm({ ...form, groupId: e.target.value })}
+                      disabled={loadingGroups}
+                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 disabled:opacity-50"
+                    >
+                      <option value="">None (publish to profile)</option>
+                      {groups.map((group) => (
+                        <option key={group.id} value={group.id}>{group.name}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="flex gap-3">
                     <div className="flex-1">
