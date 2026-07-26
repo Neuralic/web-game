@@ -5,7 +5,6 @@ import { RealtimeProvider } from "@/contexts/RealtimeContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import GlobalChatWidget from "./components/GlobalChatWidget";
 import NotificationToast from "./components/NotificationToast";
-import BackgroundMusic from "./components/BackgroundMusic";
 
 export const metadata: Metadata = {
   title: "AdventureBlox",
@@ -36,7 +35,6 @@ export default function RootLayout({
               {children}
               <GlobalChatWidget />
               <NotificationToast />
-	      <BackgroundMusic />
             </NotificationProvider>
           </RealtimeProvider>
         </ThemeProvider>
