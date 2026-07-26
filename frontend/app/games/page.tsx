@@ -12,6 +12,8 @@ interface Game {
   thumbnailUrl: string;
   creatorId: string;
   visits: number;
+  likes: number;
+  dislikes: number;
   favorites: number;
   currentPlayers: number;
   is_sponsored?: boolean;
@@ -60,29 +62,41 @@ const GamesPage = () => {
     fetchSponsoredGames();
   }, []);
 
-  const GameCard = ({ game, isSponsored = false }: { game: Game; isSponsored?: boolean }) => (
-    <div className="group cursor-pointer flex-shrink-0 w-[180px]">
-      <Link href={`/games/${game.id}`} className="block">
-        <div className="rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-700 aspect-video mb-2 relative">
-          {game.thumbnailUrl ? (
-            <img src={game.thumbnailUrl} alt={game.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600">
-              <span className="text-white font-bold text-lg">AB</span>
-            </div>
-          )}
-          {isSponsored && (
-            <div className="absolute top-2 left-2 bg-yellow-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">Sponsored</div>
-          )}
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-        </div>
-        <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 line-clamp-1 mb-0.5">{game.title}</h3>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{game.visits?.toLocaleString() || 0} visits</p>
-      </Link>
+  const likePercentage = (game: Game) => {
+    const total = (game.likes || 0) + (game.dislikes || 0);
+    if (total === 0) return null;
+    return Math.round((game.likes / total) * 100);
+  };
 
-       <a href={`roblox://experiences/start?placeId=${game.id}`} className="block text-center bg-green-500 hover:bg-green-600 text-white text-xs font-bold py-1.5 rounded-lg transition-colors">Play</a>
-    </div>
-  );
+  const GameCard = ({ game, isSponsored = false }: { game: Game; isSponsored?: boolean }) => {
+    const likePct = likePercentage(game);
+    return (
+      <div className="group cursor-pointer flex-shrink-0 w-[220px]">
+        <Link href={`/games/${game.id}`} className="block">
+          <div className="rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-700 aspect-square mb-2 relative">
+            {game.thumbnailUrl ? (
+              <img src={game.thumbnailUrl} alt={game.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600">
+                <span className="text-white font-bold text-2xl">AB</span>
+              </div>
+            )}
+            {isSponsored && (
+              <div className="absolute top-2 left-2 bg-yellow-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">Sponsored</div>
+            )}
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+          </div>
+          <h3 className="font-semibold text-base text-gray-900 dark:text-gray-100 line-clamp-1 mb-1">{game.title}</h3>
+          <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mb-2">
+            <span className="flex items-center gap-1">👍 {likePct !== null ? `${likePct}%` : "N/A"}</span>
+            <span className="flex items-center gap-1">👥 {game.currentPlayers?.toLocaleString() || 0} playing</span>
+          </div>
+        </Link>
+
+        <a href={`roblox://experiences/start?placeId=${game.id}`} className="block text-center bg-green-500 hover:bg-green-600 text-white text-sm font-bold py-2 rounded-lg transition-colors">Play</a>
+      </div>
+    );
+  };
 
   const GameRow = ({ title, icon, games }: { title: string; icon: string; games: Game[] }) => {
     if (games.length === 0) return null;
