@@ -37,6 +37,21 @@ interface SubcategoryEntry {
   itemCount: string;
 }
 
+type RobloxTypeFilter = "All" | "Bundles" | "Emotes" | "Shirts" | "Pants" | "Faces" | "Hair" | "Accessories";
+
+// Maps each Roblox "All Items" quick filter to the Roblox assetType id(s) it
+// should restrict results to. Empirically verified against the live Roblox
+// catalog search API — Shirts (65) and Pants (66) in particular sit inside the
+// backend's default exclusion list, so this needs to be passed through and
+// special-cased there too (see roblox.controller.ts).
+const ROBLOX_ASSET_TYPE_FILTERS: Partial<Record<RobloxTypeFilter, string>> = {
+  Shirts: "65",
+  Pants: "66",
+  Faces: "42",
+  Hair: "41",
+  Accessories: "8,43,44,45,46,47",
+};
+
 const CatalogPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -76,7 +91,7 @@ const [robloxNextCursor, setRobloxNextCursor] = useState<string | null>(null);
 const [robloxPrevCursor, setRobloxPrevCursor] = useState<string | null>(null);
 const [robloxSearch, setRobloxSearch] = useState("");
 const [robloxSearchDebounce, setRobloxSearchDebounce] = useState("");
-const [robloxTypeFilter, setRobloxTypeFilter] = useState<"All" | "Bundles" | "Emotes">("All");
+const [robloxTypeFilter, setRobloxTypeFilter] = useState<RobloxTypeFilter>("All");
 
   // Fetch categories from API on mount
   useEffect(() => {
@@ -120,6 +135,7 @@ const fetchRobloxItems = useCallback(async (cursor?: string) => {
       keyword: robloxSearchDebounce || undefined,
       bundleType: robloxTypeFilter === "Bundles" ? 3 : undefined,
       isEmote: robloxTypeFilter === "Emotes" ? true : undefined,
+      assetTypes: ROBLOX_ASSET_TYPE_FILTERS[robloxTypeFilter],
       limit: 30,
       cursor: cursor || undefined,
     });
@@ -326,8 +342,8 @@ useEffect(() => {
 
   const CatalogItemCard = ({ item }: { item: CatalogItem }) => (
     <Link href={`/catalog/${item.id}`} className="block group">
-      <div className="rounded-lg overflow-hidden bg-gray-800 hover:ring-2 hover:ring-blue-500 transition-all">
-        <div className="relative aspect-square bg-gray-900">
+      <div className="rounded-lg overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
+        <div className="relative aspect-square bg-gray-100 dark:bg-gray-700">
           {item.thumbnailUrl ? (
             <img
               src={item.thumbnailUrl}
@@ -335,17 +351,17 @@ useEffect(() => {
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-500">
+            <div className="w-full h-full flex items-center justify-center text-gray-400">
               <span className="text-4xl">🎮</span>
             </div>
           )}
         </div>
         <div className="p-3">
-          <h3 className="font-semibold text-sm text-white mb-0.5 line-clamp-1 group-hover:text-blue-400 transition-colors">
+          <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 mb-0.5 line-clamp-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
             {item.name}
           </h3>
-          <p className="text-xs text-gray-400 mb-2 truncate">{item.creatorName || "AdventureBlox"}</p>
-          <p className="text-xs font-semibold text-green-400">Free</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 truncate">{item.creatorName || "AdventureBlox"}</p>
+          <p className="text-xs font-semibold text-green-600 dark:text-green-400">Free</p>
         </div>
       </div>
     </Link>
@@ -636,12 +652,12 @@ useEffect(() => {
       </div>
 
       {/* Roblox Type Filter */}
-      <div className="mb-4 flex items-center gap-2">
-        {(["All", "Bundles", "Emotes"] as const).map((type) => (
+      <div className="mb-4 flex items-center gap-2 flex-wrap">
+        {(["All", "Bundles", "Emotes", "Shirts", "Pants", "Faces", "Hair", "Accessories"] as const).map((type) => (
           <button
             key={type}
             onClick={() => setRobloxTypeFilter(type)}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+            className={`px-6 py-2.5 rounded-lg text-base font-bold transition-colors ${
               robloxTypeFilter === type
                 ? "bg-blue-600 text-white hover:bg-blue-700"
                 : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
@@ -676,8 +692,8 @@ useEffect(() => {
   const data = await res.json();
   if (data.success) window.location.href = `/catalog/${data.data.id}`;
 }}>
-      <div className="rounded-lg overflow-hidden bg-gray-800 hover:ring-2 hover:ring-blue-500 transition-all">
-        <div className="relative aspect-square bg-gray-900">
+      <div className="rounded-lg overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
+        <div className="relative aspect-square bg-gray-100 dark:bg-gray-700">
           {item.thumbnailUrl ? (
             <img
               src={item.thumbnailUrl}
@@ -685,17 +701,17 @@ useEffect(() => {
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-500">
+            <div className="w-full h-full flex items-center justify-center text-gray-400">
               <span className="text-4xl">🎭</span>
             </div>
           )}
         </div>
         <div className="p-3">
-          <h3 className="font-semibold text-sm text-white mb-0.5 line-clamp-1">
+          <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 mb-0.5 line-clamp-1">
             {item.name}
           </h3>
-          <p className="text-xs text-gray-400 mb-2 truncate">Roblox</p>
-          <p className="text-xs font-semibold text-green-400">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 truncate">Roblox</p>
+          <p className="text-xs font-semibold text-green-600 dark:text-green-400">
   Free
 </p>
         </div>
