@@ -265,29 +265,29 @@ useEffect(() => {
             </Link>
 
             {/* Navigation Links */}
-            <nav className="hidden lg:flex items-center gap-1 flex-shrink-0">
+            <nav className="hidden lg:flex items-center gap-2 flex-shrink-0">
               <Link
                 href="/games"
-                className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white font-medium text-sm px-3 py-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white font-bold text-base px-5 py-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               >
                 Games
               </Link>
               <Link
                 href="/catalog"
-                className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white font-medium text-sm px-3 py-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white font-bold text-base px-5 py-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               >
                 Catalog
               </Link>
               <Link
                 href="/create"
-                className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white font-medium text-sm px-3 py-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white font-bold text-base px-5 py-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               >
                 Create
               </Link>
               {/* AdventureBux tab hidden from navigation
               <Link
                 href="/adventurebux"
-                className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white font-medium text-sm px-3 py-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white font-bold text-base px-5 py-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               >
                 AdventureBux
               </Link>
