@@ -15,6 +15,9 @@ const AdventureBuxPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
 
+  // AdventureBux purchases aren't launched yet — flip to false to re-enable the page below.
+  const comingSoon: boolean = true;
+
   // Package data - simplified
   const packages = [
     {
@@ -73,6 +76,31 @@ const AdventureBuxPage = () => {
   const toggleFaq = (index: number) => {
     setExpandedFaq(expandedFaq === index ? null : index);
   };
+
+  if (comingSoon) {
+    return (
+      <ProtectedRoute>
+        <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
+          <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+          <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} setSidebarOpen={setSidebarOpen} />
+
+          <main className="flex-1 flex items-center justify-center px-4 py-16">
+            <div className="text-center max-w-md">
+              <div className="w-16 h-16 mx-auto mb-4 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                <span className="text-3xl">💰</span>
+              </div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Buy AdventureBux Coming Soon</h1>
+              <p className="text-gray-600 dark:text-gray-400 text-sm">
+                We&apos;re working on bringing AdventureBux purchases to the platform. Check back soon!
+              </p>
+            </div>
+          </main>
+
+          <Footer />
+        </div>
+      </ProtectedRoute>
+    );
+  }
 
   return (
     <ProtectedRoute>
