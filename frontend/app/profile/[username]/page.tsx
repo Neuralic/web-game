@@ -67,8 +67,10 @@ interface WallPost {
 interface UserGame {
   id: string;
   title: string;
+  description?: string | null;
   thumbnailUrl?: string | null;
   visits: number;
+  currentPlayers?: number;
 }
 
 interface AvatarStateData {
@@ -1311,7 +1313,7 @@ const ProfilePage = () => {
             ) : activeTab === "Creations" ? (
               <div className="py-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Experiences</h2>
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Games</h2>
                   <div className="flex border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                     <button onClick={() => setViewMode("list")} className={`p-2 ${viewMode === "list" ? "bg-gray-100 dark:bg-gray-800" : "bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"}`}><Monitor className="w-4 h-4 text-gray-900 dark:text-gray-100" /></button>
                     <button onClick={() => setViewMode("grid")} className={`p-2 ${viewMode === "grid" ? "bg-gray-100 dark:bg-gray-800" : "bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"}`}><LayoutGrid className="w-4 h-4 text-gray-900 dark:text-gray-100" /></button>
@@ -1342,7 +1344,17 @@ const ProfilePage = () => {
                         </div>
                         <div className="flex-1 py-2">
                           <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">{game.title}</h3>
-                          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{game.visits?.toLocaleString() || 0} visits</p>
+                          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 line-clamp-2">{game.description || "No description provided."}</p>
+                          <div className="flex gap-12 mt-8">
+                            <div>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">Active</p>
+                              <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{game.currentPlayers ?? 0}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">Visits</p>
+                              <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{game.visits?.toLocaleString() || 0}</p>
+                            </div>
+                          </div>
                         </div>
                       </Link>
                     ))}
