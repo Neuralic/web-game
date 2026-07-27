@@ -43,6 +43,27 @@ interface UserProfile {
   is_verified?: boolean;
 }
 
+interface WallPostReply {
+  id: string;
+  content: string;
+  created_at: string;
+  author_id: string;
+  author_username: string;
+  author_display_name?: string;
+  author_is_verified?: boolean;
+}
+
+interface WallPost {
+  id: string;
+  content: string;
+  created_at: string;
+  author_id: string;
+  author_username: string;
+  author_display_name?: string;
+  author_is_verified?: boolean;
+  replies: WallPostReply[];
+}
+
 interface AvatarStateData {
   roblox_user_id: string | null;
   hair_thumbnail: string | null;
@@ -159,6 +180,13 @@ const ProfilePage = () => {
     isBlocked: boolean;
   } | null>(null);
   const [isLoadingAction, setIsLoadingAction] = useState(false);
+
+  const [wallPosts, setWallPosts] = useState<WallPost[]>([]);
+  const [newWallPost, setNewWallPost] = useState("");
+  const [postingWallPost, setPostingWallPost] = useState(false);
+  const [showWallReplies, setShowWallReplies] = useState<Record<string, boolean>>({});
+  const [wallReplyText, setWallReplyText] = useState<Record<string, string>>({});
+  const [postingWallReply, setPostingWallReply] = useState<Record<string, boolean>>({});
 
   const realtimePresence = useUserPresence(profileUser?.id);
 
@@ -310,7 +338,7 @@ const ProfilePage = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const tabs = ["About", "Creations"];
+  const tabs = ["About", "Creations", "Wall"];
   const favorites: any[] = [];
 
   useEffect(() => {
@@ -487,6 +515,116 @@ const ProfilePage = () => {
 
     fetchBadges();
   }, [profileUser?.id]);
+
+  useEffect(() => {
+    const fetchWallPosts = async () => {
+      if (!profileUser?.id) return;
+      try {
+        const res = await fetch(`${API_BASE}/users/${profileUser.id}/wall`);
+        const data = await res.json();
+        if (data.success && data.data?.posts) {
+          setWallPosts(data.data.posts);
+        }
+      } catch (error) {
+        console.error("Error fetching wall posts:", error);
+      }
+    };
+
+    fetchWallPosts();
+  }, [profileUser?.id]);
+
+  const handlePostToWall = async () => {
+    if (!newWallPost.trim() || !profileUser?.id) return;
+    setPostingWallPost(true);
+    try {
+      const res = await fetch(`${API_BASE}/users/${profileUser.id}/wall`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${storage.getAccessToken()}`,
+        },
+        body: JSON.stringify({ content: newWallPost.trim() }),
+      });
+      const data = await res.json();
+      if (data.success && data.data?.post) {
+        setWallPosts([data.data.post, ...wallPosts]);
+        setNewWallPost("");
+      }
+    } catch (error) {
+      console.error("Error posting to wall:", error);
+    } finally {
+      setPostingWallPost(false);
+    }
+  };
+
+  const toggleWallReplies = (postId: string) => {
+    setShowWallReplies((prev) => ({ ...prev, [postId]: !prev[postId] }));
+  };
+
+  const handleWallReplySubmit = async (postId: string) => {
+    const content = wallReplyText[postId];
+    if (!content?.trim() || !profileUser?.id) return;
+    setPostingWallReply({ ...postingWallReply, [postId]: true });
+    try {
+      const res = await fetch(`${API_BASE}/users/${profileUser.id}/wall/${postId}/reply`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${storage.getAccessToken()}`,
+        },
+        body: JSON.stringify({ content: content.trim() }),
+      });
+      const data = await res.json();
+      if (data.success && data.data?.reply) {
+        setWallPosts(
+          wallPosts.map((p) =>
+            p.id === postId ? { ...p, replies: [...p.replies, data.data.reply] } : p
+          )
+        );
+        setWallReplyText({ ...wallReplyText, [postId]: "" });
+      }
+    } catch (error) {
+      console.error("Error posting reply:", error);
+    } finally {
+      setPostingWallReply({ ...postingWallReply, [postId]: false });
+    }
+  };
+
+  const handleDeleteWallPost = async (postId: string) => {
+    if (!profileUser?.id || !confirm("Are you sure you want to delete this post?")) return;
+    try {
+      const res = await fetch(`${API_BASE}/users/${profileUser.id}/wall/${postId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${storage.getAccessToken()}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setWallPosts(wallPosts.filter((p) => p.id !== postId));
+      }
+    } catch (error) {
+      console.error("Error deleting wall post:", error);
+    }
+  };
+
+  const handleDeleteWallReply = async (postId: string, replyId: string) => {
+    if (!profileUser?.id || !confirm("Are you sure you want to delete this reply?")) return;
+    try {
+      const res = await fetch(`${API_BASE}/users/${profileUser.id}/wall/${postId}/reply/${replyId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${storage.getAccessToken()}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setWallPosts(
+          wallPosts.map((p) =>
+            p.id === postId ? { ...p, replies: p.replies.filter((r) => r.id !== replyId) } : p
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Error deleting wall reply:", error);
+    }
+  };
 
   const [groupsViewMode, setGroupsViewMode] = useState<"carousel" | "grid">("carousel");
   const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
@@ -1151,7 +1289,7 @@ const ProfilePage = () => {
                   </div>
                 </div>
               </div>
-            ) : (
+            ) : activeTab === "Creations" ? (
               <div className="py-6">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Experiences</h2>
@@ -1192,6 +1330,192 @@ const ProfilePage = () => {
                         <h3 className="mt-2 text-sm font-bold text-gray-900 dark:text-gray-100">{exp.title}</h3>
                       </div>
                     ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="py-6">
+                <div className="mb-4">
+                  <div className="flex gap-2">
+                    <textarea
+                      value={newWallPost}
+                      onChange={(e) => setNewWallPost(e.target.value)}
+                      placeholder="Say something..."
+                      rows={2}
+                      className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    />
+                    <button
+                      onClick={handlePostToWall}
+                      disabled={!newWallPost.trim() || postingWallPost}
+                      className="px-4 py-2 h-fit bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {postingWallPost ? "Posting..." : "Post"}
+                    </button>
+                  </div>
+                </div>
+
+                {wallPosts.length > 0 ? (
+                  <div className="space-y-6">
+                    {wallPosts.map((post) => (
+                      <div key={post.id} className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                        {/* Post Header */}
+                        <div className="flex gap-3 mb-3">
+                          <UserAvatar
+                            userId={post.author_id}
+                            username={post.author_display_name || post.author_username}
+                            size={40}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <Link
+                                href={`/profile/${post.author_username}`}
+                                className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                              >
+                                {post.author_display_name || post.author_username}
+                              </Link>
+                              {post.author_is_verified && <VerifiedBadge size="sm" />}
+                            </div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              {new Date(post.created_at).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              })} | {new Date(post.created_at).toLocaleTimeString("en-US", {
+                                hour: "numeric",
+                                minute: "2-digit",
+                                hour12: true,
+                              })}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Post Content */}
+                        {post.content && (
+                          <p className="text-sm text-gray-900 dark:text-gray-100 mb-3 whitespace-pre-wrap break-words">
+                            {post.content}
+                          </p>
+                        )}
+
+                        {/* Post Actions */}
+                        <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
+                          {post.replies.length > 0 ? (
+                            <button
+                              onClick={() => toggleWallReplies(post.id)}
+                              className="text-xs text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors"
+                            >
+                              {showWallReplies[post.id] ? "Hide" : "View"} Replies ({post.replies.length})
+                            </button>
+                          ) : (
+                            <span className="text-xs text-gray-500 dark:text-gray-400">No replies yet</span>
+                          )}
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={() => {
+                                if (!showWallReplies[post.id]) {
+                                  toggleWallReplies(post.id);
+                                }
+                                setTimeout(() => {
+                                  const input = document.querySelector(`input[data-wall-post-id="${post.id}"]`) as HTMLInputElement;
+                                  input?.focus();
+                                }, 100);
+                              }}
+                              className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors"
+                            >
+                              Reply
+                            </button>
+                            {post.author_id === currentUser?.id && (
+                              <button
+                                onClick={() => handleDeleteWallPost(post.id)}
+                                className="text-xs text-red-600 dark:text-red-400 hover:underline font-medium transition-colors"
+                              >
+                                Delete
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Replies Section */}
+                        {showWallReplies[post.id] && (
+                          <div className="mt-4 space-y-3">
+                            {/* Reply Input */}
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                data-wall-post-id={post.id}
+                                value={wallReplyText[post.id] || ""}
+                                onChange={(e) =>
+                                  setWallReplyText({ ...wallReplyText, [post.id]: e.target.value })
+                                }
+                                onKeyPress={(e) => {
+                                  if (e.key === "Enter" && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleWallReplySubmit(post.id);
+                                  }
+                                }}
+                                placeholder="Write a reply..."
+                                className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              />
+                              <button
+                                onClick={() => handleWallReplySubmit(post.id)}
+                                disabled={!wallReplyText[post.id]?.trim() || postingWallReply[post.id]}
+                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {postingWallReply[post.id] ? "..." : "Reply"}
+                              </button>
+                            </div>
+
+                            {/* Replies List */}
+                            {post.replies.length > 0 && (
+                              <div className="space-y-3 pl-4 border-l-2 border-gray-300 dark:border-gray-600">
+                                {post.replies.map((reply) => (
+                                  <div key={reply.id} className="flex gap-2">
+                                    <UserAvatar
+                                      userId={reply.author_id}
+                                      username={reply.author_display_name || reply.author_username}
+                                      size={32}
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2">
+                                        <Link
+                                          href={`/profile/${reply.author_username}`}
+                                          className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                                        >
+                                          {reply.author_display_name || reply.author_username}
+                                        </Link>
+                                        {reply.author_is_verified && <VerifiedBadge size="sm" />}
+                                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                                          {new Date(reply.created_at).toLocaleDateString("en-US", {
+                                            month: "short",
+                                            day: "numeric",
+                                          })}
+                                        </span>
+                                      </div>
+                                      <p className="text-xs text-gray-900 dark:text-gray-100 mt-0.5 break-words">
+                                        {reply.content}
+                                      </p>
+                                    </div>
+                                    {reply.author_id === currentUser?.id && (
+                                      <button
+                                        onClick={() => handleDeleteWallReply(post.id, reply.id)}
+                                        className="text-xs text-red-600 dark:text-red-400 hover:underline flex-shrink-0"
+                                      >
+                                        Delete
+                                      </button>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      No wall posts yet. Be the first to post!
+                    </p>
                   </div>
                 )}
               </div>
