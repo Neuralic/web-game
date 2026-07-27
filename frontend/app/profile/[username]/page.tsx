@@ -64,6 +64,13 @@ interface WallPost {
   replies: WallPostReply[];
 }
 
+interface UserGame {
+  id: string;
+  title: string;
+  thumbnailUrl?: string | null;
+  visits: number;
+}
+
 interface AvatarStateData {
   roblox_user_id: string | null;
   hair_thumbnail: string | null;
@@ -180,6 +187,9 @@ const ProfilePage = () => {
     isBlocked: boolean;
   } | null>(null);
   const [isLoadingAction, setIsLoadingAction] = useState(false);
+
+  const [creations, setCreations] = useState<UserGame[]>([]);
+  const [loadingCreations, setLoadingCreations] = useState(true);
 
   const [wallPosts, setWallPosts] = useState<WallPost[]>([]);
   const [newWallPost, setNewWallPost] = useState("");
@@ -517,6 +527,26 @@ const ProfilePage = () => {
   }, [profileUser?.id]);
 
   useEffect(() => {
+    const fetchCreations = async () => {
+      if (!profileUser?.id) return;
+      setLoadingCreations(true);
+      try {
+        const res = await fetch(`${API_BASE}/games/user/${profileUser.id}`);
+        const data = await res.json();
+        if (data.success && data.data?.games) {
+          setCreations(data.data.games);
+        }
+      } catch (error) {
+        console.error('Error fetching creations:', error);
+      } finally {
+        setLoadingCreations(false);
+      }
+    };
+
+    fetchCreations();
+  }, [profileUser?.id]);
+
+  useEffect(() => {
     const fetchWallPosts = async () => {
       if (!profileUser?.id) return;
       try {
@@ -633,17 +663,6 @@ const ProfilePage = () => {
   const maxGroupIndex = Math.max(0, groups.length - groupsPerPage);
 
   const robloxBadges: any[] = [];
-
-  const experiences = [
-    {
-      id: "1",
-      title: `${displayName || "User"}'s Place`,
-      description: "This is your very first AdventureBlox creation. Check it out, then make it your own with AdventureBlox Studio!",
-      imageUrl: "",
-      active: 0,
-      visits: 0,
-    },
-  ];
 
   const currentlyWearing = avatarState
     ? [
@@ -1298,37 +1317,52 @@ const ProfilePage = () => {
                     <button onClick={() => setViewMode("grid")} className={`p-2 ${viewMode === "grid" ? "bg-gray-100 dark:bg-gray-800" : "bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"}`}><LayoutGrid className="w-4 h-4 text-gray-900 dark:text-gray-100" /></button>
                   </div>
                 </div>
-                {viewMode === "list" ? (
+                {loadingCreations ? (
+                  <div className="flex justify-center py-12">
+                    <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                ) : creations.length === 0 ? (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 py-4">No games yet.</p>
+                ) : viewMode === "list" ? (
                   <div className="space-y-6">
-                    {experiences.map((exp) => (
-                      <div key={exp.id} className="flex gap-6 p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-gray-400 dark:hover:border-gray-500 transition-colors cursor-pointer">
+                    {creations.map((game) => (
+                      <Link
+                        key={game.id}
+                        href={`/games/${game.id}`}
+                        className="flex gap-6 p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-gray-400 dark:hover:border-gray-500 transition-colors cursor-pointer"
+                      >
                         <div className="w-[280px] h-[180px] flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
-                          <div className="w-full h-full bg-gradient-to-b from-blue-200 to-green-200 dark:from-blue-900 dark:to-green-900 flex items-center justify-center">
-                            <span className="text-2xl font-bold text-gray-700 dark:text-gray-300">ADVENTUREBLOX</span>
-                          </div>
+                          {game.thumbnailUrl ? (
+                            <img src={game.thumbnailUrl} alt={game.title} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-b from-blue-200 to-green-200 dark:from-blue-900 dark:to-green-900 flex items-center justify-center">
+                              <span className="text-2xl font-bold text-gray-700 dark:text-gray-300">ADVENTUREBLOX</span>
+                            </div>
+                          )}
                         </div>
                         <div className="flex-1 py-2">
-                          <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">{exp.title}</h3>
-                          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{exp.description}</p>
-                          <div className="flex gap-12 mt-8">
-                            <div><p className="text-sm text-gray-600 dark:text-gray-400">Active</p><p className="text-lg font-bold text-gray-900 dark:text-gray-100">{exp.active}</p></div>
-                            <div><p className="text-sm text-gray-600 dark:text-gray-400">Visits</p><p className="text-lg font-bold text-gray-900 dark:text-gray-100">{exp.visits}</p></div>
-                          </div>
+                          <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">{game.title}</h3>
+                          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{game.visits?.toLocaleString() || 0} visits</p>
                         </div>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 ) : (
                   <div className="grid grid-cols-3 gap-4">
-                    {experiences.map((exp) => (
-                      <div key={exp.id} className="cursor-pointer group">
+                    {creations.map((game) => (
+                      <Link key={game.id} href={`/games/${game.id}`} className="cursor-pointer group block">
                         <div className="aspect-[4/3] rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 group-hover:border-gray-400 dark:group-hover:border-gray-500 transition-colors">
-                          <div className="w-full h-full bg-gradient-to-b from-blue-200 to-green-200 dark:from-blue-900 dark:to-green-900 flex items-center justify-center">
-                            <span className="text-xl font-bold text-gray-700 dark:text-gray-300">ADVENTUREBLOX</span>
-                          </div>
+                          {game.thumbnailUrl ? (
+                            <img src={game.thumbnailUrl} alt={game.title} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-b from-blue-200 to-green-200 dark:from-blue-900 dark:to-green-900 flex items-center justify-center">
+                              <span className="text-xl font-bold text-gray-700 dark:text-gray-300">ADVENTUREBLOX</span>
+                            </div>
+                          )}
                         </div>
-                        <h3 className="mt-2 text-sm font-bold text-gray-900 dark:text-gray-100">{exp.title}</h3>
-                      </div>
+                        <h3 className="mt-2 text-sm font-bold text-gray-900 dark:text-gray-100">{game.title}</h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{game.visits?.toLocaleString() || 0} visits</p>
+                      </Link>
                     ))}
                   </div>
                 )}
