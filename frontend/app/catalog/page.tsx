@@ -291,6 +291,24 @@ useEffect(() => {
 
   const popularTags = Object.keys(tagData);
 
+  // Quick subcategory filter tabs — label is the short display name, value is
+  // the actual subcategory stored in the DB (e.g. "Classic Shirts", not "Shirts").
+  const quickSubcategoryFilters = [
+    { label: "Shirts", value: "Classic Shirts" },
+    { label: "Pants", value: "Classic Pants" },
+    { label: "Faces", value: "Classic Faces" },
+  ];
+
+  const toggleQuickSubcategory = (sub: string) => {
+    if (subcategoryFilter === sub) {
+      setCategoryFilter("All");
+      setSubcategoryFilter("");
+    } else {
+      setCategoryFilter("All");
+      setSubcategoryFilter(sub);
+    }
+  };
+
   // Sort options
   const sortOptions = [
     "Relevance",
@@ -384,14 +402,14 @@ useEffect(() => {
               {/* Right Side: Search + Dropdown + Buy Button + Cart */}
               <div className="flex items-center gap-2 flex-1 justify-end">
                 {/* Search Bar */}
-                <div className="w-full max-w-md relative">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
+                <div className="w-full max-w-2xl relative">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 dark:text-gray-400" />
                   <input
                     type="text"
                     placeholder="Search"
                     value={catalogSearch}
                     onChange={(e) => setCatalogSearch(e.target.value)}
-                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded pl-8 pr-3 py-1.5 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg pl-11 pr-4 py-3 text-base text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                 </div>
 
@@ -466,6 +484,26 @@ useEffect(() => {
                 />
               </svg>
             </button>
+
+            {/* Quick Subcategory Filter Tabs */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {quickSubcategoryFilters.map((sub) => (
+                <button
+                  key={sub.value}
+                  onClick={() => toggleQuickSubcategory(sub.value)}
+                  className={`px-4 py-1.5 text-sm font-semibold rounded-full whitespace-nowrap transition-colors flex-shrink-0 ${
+                    subcategoryFilter === sub.value
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
+                  }`}
+                >
+                  {sub.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Divider */}
+            <div className="w-px self-stretch bg-gray-200 dark:bg-gray-700 flex-shrink-0" />
 
             {/* Tags Container */}
             <div
