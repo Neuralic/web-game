@@ -308,8 +308,8 @@ useEffect(() => {
 
   const CatalogItemCard = ({ item }: { item: CatalogItem }) => (
     <Link href={`/catalog/${item.id}`} className="block group">
-      <div className="rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
-        <div className="relative aspect-square bg-gray-100 dark:bg-gray-700">
+      <div className="rounded-lg overflow-hidden bg-gray-800 hover:ring-2 hover:ring-blue-500 transition-all">
+        <div className="relative aspect-square bg-gray-900">
           {item.thumbnailUrl ? (
             <img
               src={item.thumbnailUrl}
@@ -317,15 +317,17 @@ useEffect(() => {
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-400">
+            <div className="w-full h-full flex items-center justify-center text-gray-500">
               <span className="text-4xl">🎮</span>
             </div>
           )}
         </div>
-        <div className="pt-2">
-          <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 mb-1 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400">
+        <div className="p-3">
+          <h3 className="font-semibold text-sm text-white mb-0.5 line-clamp-1 group-hover:text-blue-400 transition-colors">
             {item.name}
           </h3>
+          <p className="text-xs text-gray-400 mb-2 truncate">{item.creatorName || "AdventureBlox"}</p>
+          <p className="text-xs font-semibold text-green-400">Free</p>
         </div>
       </div>
     </Link>
@@ -552,7 +554,7 @@ useEffect(() => {
           <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
             Showing {catalogItems.length} of {totalItems} items
           </p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-4">
             {catalogItems.map((item) => (
               <CatalogItemCard key={item.id} item={item} />
             ))}
@@ -625,7 +627,7 @@ useEffect(() => {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-4">
   {robloxItems.map((item) => (
     <div key={item.id} className="block group cursor-pointer" onClick={async () => {
   const importParams = new URLSearchParams();
@@ -636,8 +638,8 @@ useEffect(() => {
   const data = await res.json();
   if (data.success) window.location.href = `/catalog/${data.data.id}`;
 }}>
-      <div className="rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
-        <div className="relative aspect-square bg-gray-100 dark:bg-gray-700">
+      <div className="rounded-lg overflow-hidden bg-gray-800 hover:ring-2 hover:ring-blue-500 transition-all">
+        <div className="relative aspect-square bg-gray-900">
           {item.thumbnailUrl ? (
             <img
               src={item.thumbnailUrl}
@@ -645,16 +647,17 @@ useEffect(() => {
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-400">
+            <div className="w-full h-full flex items-center justify-center text-gray-500">
               <span className="text-4xl">🎭</span>
             </div>
           )}
         </div>
-        <div className="pt-2">
-          <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 mb-1 line-clamp-2">
+        <div className="p-3">
+          <h3 className="font-semibold text-sm text-white mb-0.5 line-clamp-1">
             {item.name}
           </h3>
-          <p className="text-xs text-green-600 dark:text-green-400">
+          <p className="text-xs text-gray-400 mb-2 truncate">Roblox</p>
+          <p className="text-xs font-semibold text-green-400">
   Free
 </p>
         </div>
