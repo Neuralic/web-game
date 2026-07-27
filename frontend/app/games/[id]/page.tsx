@@ -9,6 +9,7 @@ import Sidebar from "../../components/Sidebar";
 import Footer from "../../components/Footer";
 import UserAvatar from "../../components/UserAvatar";
 import VerifiedBadge from "../../components/VerifiedBadge";
+import { storage } from "@/lib/api";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
@@ -43,6 +44,27 @@ interface GameDetail {
 const TABS = ["About", "Store", "Servers"] as const;
 type Tab = (typeof TABS)[number];
 
+interface GameCommentReply {
+  id: string;
+  content: string;
+  created_at: string;
+  author_id: string;
+  author_username: string;
+  author_display_name?: string;
+  author_is_verified?: boolean;
+}
+
+interface GameComment {
+  id: string;
+  content: string;
+  created_at: string;
+  author_id: string;
+  author_username: string;
+  author_display_name?: string;
+  author_is_verified?: boolean;
+  replies: GameCommentReply[];
+}
+
 const GameDetailPage = () => {
   const params = useParams();
   const gameId = params?.id as string;
@@ -61,6 +83,25 @@ const GameDetailPage = () => {
   const [favorited, setFavorited] = useState(false);
   const [notifyOn, setNotifyOn] = useState(false);
   const [groupName, setGroupName] = useState<string | null>(null);
+
+  const [comments, setComments] = useState<GameComment[]>([]);
+  const [newComment, setNewComment] = useState("");
+  const [postingComment, setPostingComment] = useState(false);
+  const [showReplies, setShowReplies] = useState<Record<string, boolean>>({});
+  const [replyText, setReplyText] = useState<Record<string, string>>({});
+  const [postingReply, setPostingReply] = useState<Record<string, boolean>>({});
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const token = storage.getAccessToken();
+    if (!token) return;
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      setCurrentUserId(payload.userId || null);
+    } catch {
+      // not logged in
+    }
+  }, []);
 
   useEffect(() => {
     if (!gameId) return;
@@ -107,6 +148,117 @@ const GameDetailPage = () => {
 
     fetchGroup();
   }, [game?.groupId]);
+
+  useEffect(() => {
+    if (!gameId) return;
+
+    const fetchComments = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/games/${gameId}/comments`);
+        const data = await res.json();
+        if (data.success && data.data?.comments) {
+          setComments(data.data.comments);
+        }
+      } catch (error) {
+        console.error("Failed to fetch comments:", error);
+      }
+    };
+
+    fetchComments();
+  }, [gameId]);
+
+  const handlePostComment = async () => {
+    if (!newComment.trim() || !gameId) return;
+    setPostingComment(true);
+    try {
+      const res = await fetch(`${API_BASE}/games/${gameId}/comments`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${storage.getAccessToken()}`,
+        },
+        body: JSON.stringify({ content: newComment.trim() }),
+      });
+      const data = await res.json();
+      if (data.success && data.data?.comment) {
+        setComments([data.data.comment, ...comments]);
+        setNewComment("");
+      }
+    } catch (error) {
+      console.error("Failed to post comment:", error);
+    } finally {
+      setPostingComment(false);
+    }
+  };
+
+  const toggleReplies = (commentId: string) => {
+    setShowReplies((prev) => ({ ...prev, [commentId]: !prev[commentId] }));
+  };
+
+  const handleReplySubmit = async (commentId: string) => {
+    const content = replyText[commentId];
+    if (!content?.trim() || !gameId) return;
+    setPostingReply({ ...postingReply, [commentId]: true });
+    try {
+      const res = await fetch(`${API_BASE}/games/${gameId}/comments/${commentId}/reply`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${storage.getAccessToken()}`,
+        },
+        body: JSON.stringify({ content: content.trim() }),
+      });
+      const data = await res.json();
+      if (data.success && data.data?.reply) {
+        setComments(
+          comments.map((c) =>
+            c.id === commentId ? { ...c, replies: [...c.replies, data.data.reply] } : c
+          )
+        );
+        setReplyText({ ...replyText, [commentId]: "" });
+      }
+    } catch (error) {
+      console.error("Failed to post reply:", error);
+    } finally {
+      setPostingReply({ ...postingReply, [commentId]: false });
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!confirm("Are you sure you want to delete this comment?")) return;
+    try {
+      const res = await fetch(`${API_BASE}/games/${gameId}/comments/${commentId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${storage.getAccessToken()}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setComments(comments.filter((c) => c.id !== commentId));
+      }
+    } catch (error) {
+      console.error("Failed to delete comment:", error);
+    }
+  };
+
+  const handleDeleteReply = async (commentId: string, replyId: string) => {
+    if (!confirm("Are you sure you want to delete this reply?")) return;
+    try {
+      const res = await fetch(`${API_BASE}/games/${gameId}/comments/${commentId}/replies/${replyId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${storage.getAccessToken()}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setComments(
+          comments.map((c) =>
+            c.id === commentId ? { ...c, replies: c.replies.filter((r) => r.id !== replyId) } : c
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Failed to delete reply:", error);
+    }
+  };
 
   const creatorName = game?.creator_display_name || game?.creator_username || "Unknown Creator";
   const canPlay = !!game?.placeId;
@@ -381,6 +533,197 @@ const GameDetailPage = () => {
                 No public servers available.
               </div>
             )}
+
+            {/* Comments Section */}
+            <div className="bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 pt-6 mt-8">
+              <h2 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-4">
+                Comments
+              </h2>
+
+              <div className="mb-4">
+                <div className="flex gap-2">
+                  <textarea
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    placeholder="Say something..."
+                    rows={2}
+                    className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  />
+                  <button
+                    onClick={handlePostComment}
+                    disabled={!newComment.trim() || postingComment}
+                    className="px-4 py-2 h-fit bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {postingComment ? "Posting..." : "Post"}
+                  </button>
+                </div>
+              </div>
+
+              {comments.length > 0 ? (
+                <div className="space-y-6">
+                  {comments.map((comment) => (
+                    <div key={comment.id} className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                      {/* Comment Header */}
+                      <div className="flex gap-3 mb-3">
+                        <UserAvatar
+                          userId={comment.author_id}
+                          username={comment.author_display_name || comment.author_username}
+                          size={40}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <Link
+                              href={`/profile/${comment.author_username}`}
+                              className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                            >
+                              {comment.author_display_name || comment.author_username}
+                            </Link>
+                            {comment.author_is_verified && <VerifiedBadge size="sm" />}
+                          </div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {new Date(comment.created_at).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })} | {new Date(comment.created_at).toLocaleTimeString("en-US", {
+                              hour: "numeric",
+                              minute: "2-digit",
+                              hour12: true,
+                            })}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Comment Content */}
+                      {comment.content && (
+                        <p className="text-sm text-gray-900 dark:text-gray-100 mb-3 whitespace-pre-wrap break-words">
+                          {comment.content}
+                        </p>
+                      )}
+
+                      {/* Comment Actions */}
+                      <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
+                        {comment.replies.length > 0 ? (
+                          <button
+                            onClick={() => toggleReplies(comment.id)}
+                            className="text-xs text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors"
+                          >
+                            {showReplies[comment.id] ? "Hide" : "View"} Replies ({comment.replies.length})
+                          </button>
+                        ) : (
+                          <span className="text-xs text-gray-500 dark:text-gray-400">No replies yet</span>
+                        )}
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => {
+                              if (!showReplies[comment.id]) {
+                                toggleReplies(comment.id);
+                              }
+                              setTimeout(() => {
+                                const input = document.querySelector(`input[data-comment-id="${comment.id}"]`) as HTMLInputElement;
+                                input?.focus();
+                              }, 100);
+                            }}
+                            className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors"
+                          >
+                            Reply
+                          </button>
+                          {comment.author_id === currentUserId && (
+                            <button
+                              onClick={() => handleDeleteComment(comment.id)}
+                              className="text-xs text-red-600 dark:text-red-400 hover:underline font-medium transition-colors"
+                            >
+                              Delete
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Replies Section */}
+                      {showReplies[comment.id] && (
+                        <div className="mt-4 space-y-3">
+                          {/* Reply Input */}
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              data-comment-id={comment.id}
+                              value={replyText[comment.id] || ""}
+                              onChange={(e) =>
+                                setReplyText({ ...replyText, [comment.id]: e.target.value })
+                              }
+                              onKeyPress={(e) => {
+                                if (e.key === "Enter" && !e.shiftKey) {
+                                  e.preventDefault();
+                                  handleReplySubmit(comment.id);
+                                }
+                              }}
+                              placeholder="Write a reply..."
+                              className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            <button
+                              onClick={() => handleReplySubmit(comment.id)}
+                              disabled={!replyText[comment.id]?.trim() || postingReply[comment.id]}
+                              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {postingReply[comment.id] ? "..." : "Reply"}
+                            </button>
+                          </div>
+
+                          {/* Replies List */}
+                          {comment.replies.length > 0 && (
+                            <div className="space-y-3 pl-4 border-l-2 border-gray-300 dark:border-gray-600">
+                              {comment.replies.map((reply) => (
+                                <div key={reply.id} className="flex gap-2">
+                                  <UserAvatar
+                                    userId={reply.author_id}
+                                    username={reply.author_display_name || reply.author_username}
+                                    size={32}
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <Link
+                                        href={`/profile/${reply.author_username}`}
+                                        className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                                      >
+                                        {reply.author_display_name || reply.author_username}
+                                      </Link>
+                                      {reply.author_is_verified && <VerifiedBadge size="sm" />}
+                                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                                        {new Date(reply.created_at).toLocaleDateString("en-US", {
+                                          month: "short",
+                                          day: "numeric",
+                                        })}
+                                      </span>
+                                    </div>
+                                    <p className="text-xs text-gray-900 dark:text-gray-100 mt-0.5 break-words">
+                                      {reply.content}
+                                    </p>
+                                  </div>
+                                  {reply.author_id === currentUserId && (
+                                    <button
+                                      onClick={() => handleDeleteReply(comment.id, reply.id)}
+                                      className="text-xs text-red-600 dark:text-red-400 hover:underline flex-shrink-0"
+                                    >
+                                      Delete
+                                    </button>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    No comments yet. Be the first to post!
+                  </p>
+                </div>
+              )}
+            </div>
           </>
         )}
       </main>
