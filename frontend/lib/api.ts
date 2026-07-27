@@ -2082,6 +2082,7 @@ searchRobloxCatalog: async (params: {
     bundleType?: string | number;
     itemType?: string;
     isEmote?: boolean;
+    assetTypes?: string;
     limit?: number;
     cursor?: string;
   } = {}) => {
@@ -2091,6 +2092,7 @@ searchRobloxCatalog: async (params: {
     if (params.bundleType !== undefined) queryParams.append("bundleType", String(params.bundleType));
     if (params.itemType) queryParams.append("itemType", params.itemType);
     if (params.isEmote !== undefined) queryParams.append("isEmote", String(params.isEmote));
+    if (params.assetTypes) queryParams.append("assetTypes", params.assetTypes);
     if (params.limit) queryParams.append("limit", params.limit.toString());
     if (params.cursor) queryParams.append("cursor", params.cursor);
     return apiCall(`/catalog/roblox/search?${queryParams.toString()}`, {
