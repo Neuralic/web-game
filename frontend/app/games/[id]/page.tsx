@@ -28,8 +28,12 @@ interface GameDetail {
   isPublished: boolean;
   visits: number;
   likes: number;
+  dislikes: number;
   favorites: number;
   currentPlayers: number;
+  userLiked?: boolean;
+  userDisliked?: boolean;
+  userFavorited?: boolean;
   is_sponsored?: boolean;
   sponsor_bid?: number;
   universeId?: string | number | null;
@@ -76,11 +80,8 @@ const GameDetailPage = () => {
   const [notFound, setNotFound] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>("About");
 
-  // Favorite/Notify/Like/Dislike are UI-only for now — there's no backend
-  // endpoint yet to persist a toggle, so these just reflect the click locally.
-  const [liked, setLiked] = useState(false);
-  const [disliked, setDisliked] = useState(false);
-  const [favorited, setFavorited] = useState(false);
+  // Notify has no backend endpoint yet, so it just reflects the click locally.
+  // Like/Dislike/Favorite are persisted — see game.userLiked/userDisliked/userFavorited.
   const [notifyOn, setNotifyOn] = useState(false);
   const [groupName, setGroupName] = useState<string | null>(null);
 
@@ -110,7 +111,10 @@ const GameDetailPage = () => {
       setLoading(true);
       setNotFound(false);
       try {
-        const res = await fetch(`${API_BASE}/games/${gameId}`);
+        const token = storage.getAccessToken();
+        const res = await fetch(`${API_BASE}/games/${gameId}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
         const data = await res.json();
         if (data.success && data.data?.game) {
           setGame(data.data.game);
@@ -263,17 +267,71 @@ const GameDetailPage = () => {
   const creatorName = game?.creator_display_name || game?.creator_username || "Unknown Creator";
   const canPlay = !!game?.placeId;
 
-  const likeCount = game ? game.likes + (liked ? 1 : 0) : 0;
-  const favoriteCount = game ? game.favorites + (favorited ? 1 : 0) : 0;
+  const likeCount = game?.likes || 0;
+  const favoriteCount = game?.favorites || 0;
 
-  const handleLike = () => {
-    setLiked((prev) => !prev);
-    if (!liked) setDisliked(false);
+  const handleLike = async () => {
+    if (!game) return;
+    try {
+      const res = await fetch(`${API_BASE}/games/${gameId}/like`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${storage.getAccessToken()}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setGame({
+          ...game,
+          likes: data.data.likes,
+          dislikes: data.data.dislikes,
+          userLiked: data.data.userLiked,
+          userDisliked: data.data.userDisliked,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to toggle like:", error);
+    }
   };
 
-  const handleDislike = () => {
-    setDisliked((prev) => !prev);
-    if (!disliked) setLiked(false);
+  const handleDislike = async () => {
+    if (!game) return;
+    try {
+      const res = await fetch(`${API_BASE}/games/${gameId}/dislike`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${storage.getAccessToken()}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setGame({
+          ...game,
+          likes: data.data.likes,
+          dislikes: data.data.dislikes,
+          userLiked: data.data.userLiked,
+          userDisliked: data.data.userDisliked,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to toggle dislike:", error);
+    }
+  };
+
+  const handleFavorite = async () => {
+    if (!game) return;
+    try {
+      const res = await fetch(`${API_BASE}/games/${gameId}/favorite`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${storage.getAccessToken()}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setGame({
+          ...game,
+          favorites: data.data.favorites,
+          userFavorited: data.data.userFavorited,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to toggle favorite:", error);
+    }
   };
 
   return (
@@ -386,15 +444,15 @@ const GameDetailPage = () => {
                 {/* Favorite / Notify / Like / Dislike */}
                 <div className="flex items-center gap-3">
                   <button
-                    onClick={() => setFavorited((prev) => !prev)}
+                    onClick={handleFavorite}
                     title="Favorite"
                     className={`flex items-center gap-2 px-4 py-3 rounded-lg text-base font-bold border transition-colors ${
-                      favorited
+                      game.userFavorited
                         ? "bg-red-50 dark:bg-red-900/20 border-red-400 text-red-600 dark:text-red-400"
                         : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                     }`}
                   >
-                    <Heart className="w-5 h-5" fill={favorited ? "currentColor" : "none"} />
+                    <Heart className="w-5 h-5" fill={game.userFavorited ? "currentColor" : "none"} />
                     {favoriteCount.toLocaleString()}
                   </button>
 
@@ -415,12 +473,12 @@ const GameDetailPage = () => {
                       onClick={handleLike}
                       title="Like"
                       className={`flex items-center gap-2 px-4 py-3 text-base font-bold transition-colors ${
-                        liked
+                        game.userLiked
                           ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
                           : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                       }`}
                     >
-                      <ThumbsUp className="w-5 h-5" fill={liked ? "currentColor" : "none"} />
+                      <ThumbsUp className="w-5 h-5" fill={game.userLiked ? "currentColor" : "none"} />
                       {likeCount.toLocaleString()}
                     </button>
                     <div className="w-px self-stretch bg-gray-300 dark:bg-gray-600" />
@@ -428,12 +486,12 @@ const GameDetailPage = () => {
                       onClick={handleDislike}
                       title="Dislike"
                       className={`flex items-center px-4 py-3 transition-colors ${
-                        disliked
+                        game.userDisliked
                           ? "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400"
                           : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                       }`}
                     >
-                      <ThumbsDown className="w-5 h-5" fill={disliked ? "currentColor" : "none"} />
+                      <ThumbsDown className="w-5 h-5" fill={game.userDisliked ? "currentColor" : "none"} />
                     </button>
                   </div>
                 </div>
