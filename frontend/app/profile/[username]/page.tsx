@@ -911,12 +911,15 @@ const ProfilePage = () => {
 
           <div className="px-4">
             {/* Profile Banner */}
-            <div className="relative w-full h-[200px] mt-4 rounded-t-lg overflow-hidden bg-gradient-to-r from-blue-500 to-purple-600 dark:from-gray-800 dark:to-gray-900">
+            <div className="relative w-full h-[250px] overflow-hidden bg-gray-100 dark:bg-gray-800">
               {profileUser?.profile_banner_url && (
-                <img
+                <Image
                   src={profileUser.profile_banner_url}
                   alt="Profile banner"
-                  className="w-full h-full object-cover"
+                  fill
+                  className="object-cover"
+                  sizes="100vw"
+                  priority
                 />
               )}
               <div className="absolute inset-0 bg-black/40" />
