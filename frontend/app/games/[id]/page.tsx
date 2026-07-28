@@ -133,6 +133,17 @@ const GameDetailPage = () => {
   }, [gameId]);
 
   useEffect(() => {
+    if (!gameId) return;
+    const token = storage.getAccessToken();
+    if (!token) return;
+
+    fetch(`${API_BASE}/games/${gameId}/play`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch((error) => console.error("Failed to record game play:", error));
+  }, [gameId]);
+
+  useEffect(() => {
     if (!game?.groupId) {
       setGroupName(null);
       return;
