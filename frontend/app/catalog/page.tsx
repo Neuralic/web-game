@@ -40,13 +40,15 @@ interface SubcategoryEntry {
 type RobloxTypeFilter = "All" | "Bundles" | "Emotes" | "Shirts" | "Pants" | "Faces" | "Hair" | "Accessories";
 
 // Maps each Roblox "All Items" quick filter to the Roblox assetType id(s) it
-// should restrict results to. Empirically verified against the live Roblox
-// catalog search API — Shirts (65) and Pants (66) in particular sit inside the
-// backend's default exclusion list, so this needs to be passed through and
-// special-cased there too (see roblox.controller.ts).
+// should restrict results to. Shirts/Pants use the classic clothing asset
+// types (Classic Shirt=11, Classic Pants=12, plus T-Shirt=2 lumped into the
+// Shirts tab) rather than the newer Layered Clothing accessory types
+// (ShirtAccessory=65/PantsAccessory=66), so only classic clothing shows. Some
+// of these ids normally sit in the backend's default exclusion list, so this
+// needs to be passed through and special-cased there too (see roblox.controller.ts).
 const ROBLOX_ASSET_TYPE_FILTERS: Partial<Record<RobloxTypeFilter, string>> = {
-  Shirts: "65",
-  Pants: "66",
+  Shirts: "2,11",
+  Pants: "12",
   Faces: "42",
   Hair: "41",
   Accessories: "8,43,44,45,46,47",
