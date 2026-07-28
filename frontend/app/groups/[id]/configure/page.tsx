@@ -5,7 +5,6 @@ import { useSearchParams, useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import {
-  Upload,
   X,
   Menu,
   Search,
@@ -2373,12 +2372,18 @@ const ConfigureGroupPage = () => {
                           </p>
                           <div className="flex gap-3">
                             {[
-                              { key: "banner", label: "728 x 90 Banner" },
-                              { key: "skyscraper", label: "160 x 600 Skyscraper" },
-                            ].map(({ key, label }) => (
+                              { key: "banner", label: "728 x 90 Banner", file: "728x90" },
+                              { key: "skyscraper", label: "160 x 600 Skyscraper", file: "160x600" },
+                            ].map(({ key, label, file }) => (
                               <button
                                 key={key}
-                                onClick={() => setAdFormat(key as any)}
+                                onClick={() => {
+                                  setAdFormat(key as any);
+                                  const link = document.createElement('a');
+                                  link.href = `/ad-templates/${file}-template.png`;
+                                  link.download = `adventureblox-${file}-ad-template.png`;
+                                  link.click();
+                                }}
                                 className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${adFormat === key
                                     ? "bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900"
                                     : "bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-600"
@@ -2429,14 +2434,14 @@ const ConfigureGroupPage = () => {
                               </div>
                             ) : (
                               <div className="text-center">
-                                <Upload className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-                                <p className="text-gray-700 dark:text-gray-300 mb-2">Drag an image here</p>
-                                <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">- Or -</p>
-                                <label className="inline-block">
+                                <svg className="w-10 h-10 mx-auto mb-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                </svg>
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Drag an image here</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">- Or -</p>
+                                <label className="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors cursor-pointer">
+                                  Select an image from your computer
                                   <input type="file" accept="image/*" onChange={handleAdImageUpload} className="hidden" />
-                                  <span className="px-6 py-2.5 bg-gray-900 dark:bg-gray-100 hover:bg-gray-800 dark:hover:bg-gray-200 text-white dark:text-gray-900 font-medium rounded-lg cursor-pointer inline-block transition-colors text-sm">
-                                    Select an image from your computer
-                                  </span>
                                 </label>
                               </div>
                             )}
@@ -2488,6 +2493,8 @@ const ConfigureGroupPage = () => {
                         </div>
                       </div>
                     </div>
+                    ) : existingAds.length === 0 ? (
+                      <p className="text-sm text-gray-500 dark:text-gray-400 py-4">No ads yet. Create your first ad.</p>
                     ) : (
                       <div className="space-y-6">
                         {(() => {
