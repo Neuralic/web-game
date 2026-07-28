@@ -353,7 +353,8 @@ const ProfilePage = () => {
   }, []);
 
   const tabs = ["About", "Creations", "Wall"];
-  const favorites: any[] = [];
+  const [favoriteGames, setFavoriteGames] = useState<UserGame[]>([]);
+  const [loadingFavorites, setLoadingFavorites] = useState(true);
 
   useEffect(() => {
     const fetchFriends = async () => {
@@ -548,6 +549,26 @@ const ProfilePage = () => {
     };
 
     fetchCreations();
+  }, [profileUser?.id]);
+
+  useEffect(() => {
+    const fetchFavoriteGames = async () => {
+      if (!profileUser?.id) return;
+      setLoadingFavorites(true);
+      try {
+        const res = await fetch(`${API_BASE}/games/favorites/${profileUser.id}`);
+        const data = await res.json();
+        if (data.success && data.data?.games) {
+          setFavoriteGames(data.data.games);
+        }
+      } catch (error) {
+        console.error('Error fetching favorite games:', error);
+      } finally {
+        setLoadingFavorites(false);
+      }
+    };
+
+    fetchFavoriteGames();
   }, [profileUser?.id]);
 
   useEffect(() => {
@@ -1311,7 +1332,31 @@ const ProfilePage = () => {
                     <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Favorites</h2>
                     <button className="flex items-center gap-1 text-sm text-gray-900 dark:text-gray-100 hover:underline">Favorites<ChevronRight className="w-4 h-4" /></button>
                   </div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 py-4">No favorite games yet.</p>
+                  {loadingFavorites ? (
+                    <div className="flex justify-center py-8">
+                      <div className="w-6 h-6 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  ) : favoriteGames.length === 0 ? (
+                    <p className="text-sm text-gray-500 dark:text-gray-400 py-4">No favorite games yet.</p>
+                  ) : (
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+                      {favoriteGames.map((game) => (
+                        <Link key={game.id} href={`/games/${game.id}`} className="cursor-pointer group block">
+                          <div className="aspect-[4/3] rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 group-hover:border-gray-400 dark:group-hover:border-gray-500 transition-colors">
+                            {game.thumbnailUrl ? (
+                              <img src={game.thumbnailUrl} alt={game.title} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full bg-gradient-to-b from-blue-200 to-green-200 dark:from-blue-900 dark:to-green-900 flex items-center justify-center">
+                                <span className="text-xl font-bold text-gray-700 dark:text-gray-300">ADVENTUREBLOX</span>
+                              </div>
+                            )}
+                          </div>
+                          <h3 className="mt-2 text-sm font-bold text-gray-900 dark:text-gray-100 truncate">{game.title}</h3>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{game.visits?.toLocaleString() || 0} visits</p>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="py-6 border-b border-gray-200 dark:border-gray-800">
