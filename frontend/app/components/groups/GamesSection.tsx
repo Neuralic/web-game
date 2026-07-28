@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, ThumbsUp, Users } from "lucide-react";
 import Link from "next/link";
 
 interface Game {
@@ -10,6 +10,9 @@ interface Game {
   thumbnailUrl?: string;
   iconUrl?: string;
   visits: number;
+  likes: number;
+  dislikes: number;
+  currentPlayers: number;
 }
 
 interface GamesSectionProps {
@@ -46,6 +49,12 @@ export default function GamesSection({ groupId }: GamesSectionProps) {
     fetchGames();
   }, [groupId]);
 
+  const likePercentage = (game: Game) => {
+    const total = (game.likes || 0) + (game.dislikes || 0);
+    if (total === 0) return null;
+    return Math.round((game.likes / total) * 100);
+  };
+
   return (
     <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700 mb-4">
       <div className="flex items-center justify-between mb-3">
@@ -67,34 +76,44 @@ export default function GamesSection({ groupId }: GamesSectionProps) {
       </div>
 
       {games.length > 0 ? (
-        <div className="flex gap-4 overflow-x-auto">
-            {games.map((game) => (
-              <Link
-                key={game.id}
-                href={`/games/${game.id}`}
-                className="group block flex-shrink-0"
-              >
-                <div className="w-[150px] h-[150px] border border-gray-200 dark:border-gray-700 rounded overflow-hidden bg-gray-100 dark:bg-gray-800 relative">
-                  <img
-                    src={
-                      game.thumbnailUrl ||
-                      game.iconUrl ||
-                      `https://robohash.org/${game.id}?set=set4`
-                    }
-                    alt={game.title}
-                    className="w-full h-full object-cover group-hover:opacity-90 transition-opacity"
-                  />
-                </div>
-                <div className="mt-2 w-[150px]">
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400">
-                    {game.title}
-                  </h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                    {game.visits?.toLocaleString() || 0} visits
-                  </p>
-                </div>
-              </Link>
-            ))}
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
+            {games.map((game) => {
+              const likePct = likePercentage(game);
+              return (
+                <Link
+                  key={game.id}
+                  href={`/games/${game.id}`}
+                  className="group block"
+                >
+                  <div className="aspect-square border border-gray-200 dark:border-gray-700 rounded overflow-hidden bg-gray-100 dark:bg-gray-800 relative">
+                    <img
+                      src={
+                        game.thumbnailUrl ||
+                        game.iconUrl ||
+                        `https://robohash.org/${game.id}?set=set4`
+                      }
+                      alt={game.title}
+                      className="w-full h-full object-cover group-hover:opacity-90 transition-opacity"
+                    />
+                  </div>
+                  <div className="mt-2">
+                    <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                      {game.title}
+                    </h3>
+                    <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      <span className="flex items-center gap-1">
+                        <ThumbsUp className="w-3.5 h-3.5" />
+                        {likePct !== null ? `${likePct}%` : "N/A"}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Users className="w-3.5 h-3.5" />
+                        {game.currentPlayers?.toLocaleString() || 0}
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
         </div>
       ) : (
         <div className="text-center py-8">
