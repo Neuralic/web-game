@@ -30,6 +30,8 @@ const HomePage = () => {
   const [postingFeed, setPostingFeed] = useState(false);
   const [favoriteGames, setFavoriteGames] = useState<any[]>([]);
   const [loadingFavorites, setLoadingFavorites] = useState(true);
+  const [recentlyPlayed, setRecentlyPlayed] = useState<any[]>([]);
+  const [loadingRecentlyPlayed, setLoadingRecentlyPlayed] = useState(true);
   const { presenceMap } = useRealtime();
 
 
@@ -83,6 +85,26 @@ const HomePage = () => {
     };
 
     fetchFavoriteGames();
+  }, [user?.id]);
+
+  useEffect(() => {
+    const fetchRecentlyPlayed = async () => {
+      if (!user?.id) return;
+      setLoadingRecentlyPlayed(true);
+      try {
+        const res = await fetch(`${API_BASE}/games/recently-played/${user.id}`);
+        const data = await res.json();
+        if (data.success && data.data?.games) {
+          setRecentlyPlayed(data.data.games);
+        }
+      } catch (error) {
+        console.error("Error fetching recently played games:", error);
+      } finally {
+        setLoadingRecentlyPlayed(false);
+      }
+    };
+
+    fetchRecentlyPlayed();
   }, [user?.id]);
 
   const handleFeedImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -228,7 +250,31 @@ const HomePage = () => {
                 <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Recently Played</h2>
                 <Link href="/continue" className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-full transition-colors">See All</Link>
               </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 py-6 text-center">No recently played games yet.</p>
+              {loadingRecentlyPlayed ? (
+                <div className="flex justify-center py-6">
+                  <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+                </div>
+              ) : recentlyPlayed.length === 0 ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400 py-6 text-center">No recently played games yet.</p>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  {recentlyPlayed.slice(0, 4).map((game) => (
+                    <Link key={game.id} href={`/games/${game.id}`} className="cursor-pointer group block">
+                      <div className="aspect-[4/3] rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 group-hover:border-gray-400 dark:group-hover:border-gray-500 transition-colors">
+                        {game.thumbnailUrl ? (
+                          <img src={game.thumbnailUrl} alt={game.title} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-b from-blue-200 to-green-200 dark:from-blue-900 dark:to-green-900 flex items-center justify-center">
+                            <span className="text-xl font-bold text-gray-700 dark:text-gray-300">ADVENTUREBLOX</span>
+                          </div>
+                        )}
+                      </div>
+                      <h3 className="mt-2 text-sm font-bold text-gray-900 dark:text-gray-100 truncate">{game.title}</h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{game.visits?.toLocaleString() || 0} visits</p>
+                    </Link>
+                  ))}
+                </div>
+              )}
             </section>
 
             {/* My Favorites Section */}
