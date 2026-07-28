@@ -147,6 +147,8 @@ const ProfilePage = () => {
   const [showAdReportModal, setShowAdReportModal] = useState(false);
   const [submittingAdReport, setSubmittingAdReport] = useState(false);
   const [showAdReportSuccess, setShowAdReportSuccess] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
 
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [profileUser, setProfileUser] = useState<any>(null);
@@ -693,6 +695,35 @@ const ProfilePage = () => {
     } catch (error) { alert("An error occurred while saving bio."); }
   };
 
+  const handleBannerSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { alert("Image must be under 5MB"); return; }
+
+    setUploadingBanner(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch(`${API_BASE}/users/profile/banner`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${storage.getAccessToken()}` },
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.success && data.data?.url) {
+        setProfileUser({ ...profileUser, profile_banner_url: data.data.url });
+      } else {
+        alert("Failed to upload banner. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error uploading banner:", error);
+      alert("Failed to upload banner. Please try again.");
+    } finally {
+      setUploadingBanner(false);
+      e.target.value = "";
+    }
+  };
+
   const handleFollowToggle = async () => {
     if (!profileUser?.id) return;
     setIsLoadingAction(true);
@@ -879,8 +910,38 @@ const ProfilePage = () => {
           )}
 
           <div className="px-4">
-            {/* Profile Header */}
-            <div className="flex items-start gap-6 py-6 border-b border-gray-200 dark:border-gray-800">
+            {/* Profile Banner */}
+            <div className="relative w-full h-[200px] mt-4 rounded-t-lg overflow-hidden bg-gradient-to-r from-blue-500 to-purple-600 dark:from-gray-800 dark:to-gray-900">
+              {profileUser?.profile_banner_url && (
+                <img
+                  src={profileUser.profile_banner_url}
+                  alt="Profile banner"
+                  className="w-full h-full object-cover"
+                />
+              )}
+              <div className="absolute inset-0 bg-black/40" />
+              {isOwnProfile && (
+                <>
+                  <button
+                    onClick={() => bannerInputRef.current?.click()}
+                    disabled={uploadingBanner}
+                    className="absolute top-3 right-3 px-3 py-1.5 bg-black/50 hover:bg-black/70 text-white text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    {uploadingBanner ? "Uploading..." : "Edit Banner"}
+                  </button>
+                  <input
+                    ref={bannerInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleBannerSelect}
+                    className="hidden"
+                  />
+                </>
+              )}
+            </div>
+
+            {/* Profile Header — pulled up over the banner's bottom edge, same overlap technique as the group page */}
+            <div className="flex items-end gap-6 pb-6 -mt-16 relative z-10 border-b border-gray-200 dark:border-gray-800">
               <div className="relative">
                 {/* Profile pic — always R15 via UserAvatar */}
                 <ProfileHeadshot userId={profileUser?.id || ""} username={displayName || username} />
