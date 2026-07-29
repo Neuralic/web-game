@@ -262,7 +262,15 @@ const AvatarPage = () => {
         available: "true",
       });
       if (response.success && response.data) {
-        setItems(response.data.items as CatalogItem[]);
+        // Layered clothing items sometimes get miscategorized as Classic Pants —
+        // their robloxAssetId is much larger than classic ids (same filter as the catalog page).
+        const fetchedItems = (response.data.items as CatalogItem[]).filter((item) => {
+          if (item.subcategory === "Classic Pants" && Number(item.robloxAssetId) > 100000000000) {
+            return false;
+          }
+          return true;
+        });
+        setItems(fetchedItems);
         setTotalPages(response.data.pagination.totalPages);
         setCurrentPage(response.data.pagination.page);
       } else {
