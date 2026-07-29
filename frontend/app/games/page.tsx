@@ -4,6 +4,7 @@ import Link from "next/link";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
 import Footer from "../components/Footer";
+import UserAdBanner from "../components/UserAdBanner";
 
 interface Game {
   id: string;
@@ -121,11 +122,17 @@ const GamesPage = () => {
   const topRated = [...games].sort((a, b) => b.favorites - a.favorites);
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900">
+    <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} setSidebarOpen={setSidebarOpen} />
 
-      <main className="max-w-[1400px] mx-auto px-6 py-6">
+      <main className="flex-1 flex justify-center gap-4 px-4 py-6">
+        {/* Left Skyscraper Ad */}
+        <div className="hidden xl:block flex-shrink-0">
+          <UserAdBanner format="160x600" />
+        </div>
+
+        <div className="max-w-[1400px] w-full px-2">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Games</h1>
 
         {/* Sponsored Games */}
@@ -167,6 +174,12 @@ const GamesPage = () => {
             <GameRow title="All Games" icon="🎮" games={games} />
           </>
         )}
+        </div>
+
+        {/* Right Skyscraper Ad */}
+        <div className="hidden xl:block flex-shrink-0">
+          <UserAdBanner format="160x600" />
+        </div>
       </main>
       <Footer />
     </div>
