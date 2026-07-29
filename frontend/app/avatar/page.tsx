@@ -413,7 +413,9 @@ const AvatarPage = () => {
   const isFemale = userGender === "female";
 
   // Determine what to show in avatar preview
-  const showCustomRender = customAvatarUrl && !robloxThumbnail;
+  // If the body type slider has been moved, prefer the custom render even when
+  // a Roblox thumbnail is available, since the Roblox thumbnail can't reflect it.
+  const showCustomRender = customAvatarUrl && (bodyType !== 0 || !robloxThumbnail);
   const showRobloxAvatar = !!robloxThumbnail;
   const showDefault = !showCustomRender && !showRobloxAvatar;
 
@@ -449,11 +451,6 @@ const AvatarPage = () => {
                   <div className="absolute inset-0 flex items-center justify-center">
                     <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
                   </div>
-                ) : showRobloxAvatar ? (
-                  <RobloxAvatar3D
-                    robloxUserId={avatarState?.roblox_user_id || ""}
-                    onError={() => setRobloxThumbnail(null)}
-                  />
                 ) : showCustomRender ? (
                   <div className="absolute inset-0 flex items-center justify-center">
                     {renderingCustom ? (
@@ -466,6 +463,11 @@ const AvatarPage = () => {
                       />
                     )}
                   </div>
+                ) : showRobloxAvatar ? (
+                  <RobloxAvatar3D
+                    robloxUserId={avatarState?.roblox_user_id || ""}
+                    onError={() => setRobloxThumbnail(null)}
+                  />
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center">
                     {renderingCustom ? (
