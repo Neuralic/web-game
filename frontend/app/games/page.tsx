@@ -71,9 +71,9 @@ const GamesPage = () => {
   const GameCard = ({ game, isSponsored = false }: { game: Game; isSponsored?: boolean }) => {
     const likePct = likePercentage(game);
     return (
-      <div className="group cursor-pointer flex-shrink-0 w-[220px]">
+      <div className="group cursor-pointer flex-shrink-0 w-[260px]">
         <Link href={`/games/${game.id}`} className="block">
-          <div className="rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-700 aspect-square mb-2 relative">
+          <div className="rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700 aspect-video mb-1.5 relative">
             {game.thumbnailUrl ? (
               <img src={game.thumbnailUrl} alt={game.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
             ) : (
@@ -84,10 +84,9 @@ const GamesPage = () => {
             {isSponsored && (
               <div className="absolute top-2 left-2 bg-yellow-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">Sponsored</div>
             )}
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
           </div>
-          <h3 className="font-semibold text-base text-gray-900 dark:text-gray-100 line-clamp-1 mb-1">{game.title}</h3>
-          <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mb-2">
+          <h3 className="font-bold text-sm text-gray-900 dark:text-gray-100 line-clamp-1">{game.title}</h3>
+          <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mt-0.5 mb-2">
             <span className="flex items-center gap-1">👍 {likePct !== null ? `${likePct}%` : "N/A"}</span>
             <span className="flex items-center gap-1">👥 {game.currentPlayers?.toLocaleString() || 0} playing</span>
           </div>
