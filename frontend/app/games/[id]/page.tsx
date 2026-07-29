@@ -9,6 +9,7 @@ import Sidebar from "../../components/Sidebar";
 import Footer from "../../components/Footer";
 import UserAvatar from "../../components/UserAvatar";
 import VerifiedBadge from "../../components/VerifiedBadge";
+import UserAdBanner from "../../components/UserAdBanner";
 import { storage } from "@/lib/api";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
@@ -350,7 +351,13 @@ const GameDetailPage = () => {
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} setSidebarOpen={setSidebarOpen} />
 
-      <main className="flex-1 max-w-[1100px] w-full mx-auto px-6 py-6">
+      <main className="flex-1 flex justify-center gap-4 px-4 py-6">
+        {/* Left Skyscraper Ad */}
+        <div className="hidden xl:block flex-shrink-0">
+          <UserAdBanner format="160x600" />
+        </div>
+
+        <div className="max-w-[1100px] w-full px-2">
         {loading ? (
           <div className="flex justify-center py-20">
             <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
@@ -795,6 +802,12 @@ const GameDetailPage = () => {
             </div>
           </>
         )}
+        </div>
+
+        {/* Right Skyscraper Ad */}
+        <div className="hidden xl:block flex-shrink-0">
+          <UserAdBanner format="160x600" />
+        </div>
       </main>
 
       <Footer />
