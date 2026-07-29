@@ -61,7 +61,16 @@ const InventoryPage = () => {
       });
 
       if (response.success && response.data) {
-        setItems((response.data as any).items || []);
+        const fetchedItems = ((response.data as any).items || []) as InventoryItem[];
+        const filteredItems = fetchedItems.filter((item) => {
+          if (item.category === 'Backgrounds' || item.subcategory === 'Backgrounds') return false;
+          if (item.name?.toLowerCase().includes('background')) return false;
+          if (item.thumbnailUrl?.toLowerCase().includes('background')) return false;
+          // Layered clothing (large robloxAssetId) can't be equipped on R15.
+          if (item.robloxAssetId && Number(item.robloxAssetId) > 100000000000) return false;
+          return true;
+        });
+        setItems(filteredItems);
         setTotalPages((response.data as any).pagination?.totalPages || 1);
         setTotalItems((response.data as any).pagination?.totalItems || 0);
         setCurrentPage(page);
