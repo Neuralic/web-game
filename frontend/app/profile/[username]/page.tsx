@@ -1209,6 +1209,11 @@ const ProfilePage = () => {
                           )}
                           <Link href={`/groups/${groups[currentGroupIndex]?.id}`} className="w-[260px] h-full flex-shrink-0 bg-blue-500 dark:bg-gray-700 relative block">
                             <Image src={groups[currentGroupIndex]?.image || `https://robohash.org/${groups[currentGroupIndex]?.name}?set=set3`} alt={groups[currentGroupIndex]?.name || ""} fill className="object-cover" sizes="180px" />
+                            {groups[currentGroupIndex]?.rank === "Owner" && (
+                              <span className="absolute top-1.5 left-1.5 px-2 py-0.5 bg-gradient-to-r from-yellow-400 to-amber-500 text-white text-[9px] font-bold rounded-md uppercase tracking-wide shadow-md">
+                                Owner
+                              </span>
+                            )}
                           </Link>
                           <Link href={`/groups/${groups[currentGroupIndex]?.id}`} className="flex-1 p-6 flex flex-col justify-between block">
                             <div>
@@ -1219,11 +1224,6 @@ const ProfilePage = () => {
       <circle cx="12" cy="12" r="12" fill="#1D9BF0"/>
       <path d="M6.5 12.5l3.5 3.5 7.5-8" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
-  )}
-  {groups[currentGroupIndex]?.rank === "Owner" && (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 text-xs font-semibold rounded-full border border-yellow-200 dark:border-yellow-800 flex-shrink-0">
-      Owner
-    </span>
   )}
 </h3>
                               <div className="w-full h-px bg-gray-200 dark:bg-gray-700 my-3" />
@@ -1258,7 +1258,7 @@ const ProfilePage = () => {
                             <div className="aspect-square bg-gray-200 dark:bg-gray-700 overflow-hidden rounded-lg relative">
                               <Image src={group.image} alt={group.name} fill className="object-cover group-hover/card:opacity-90 transition-opacity" sizes="(max-width: 640px) 33vw, 25vw" />
                               {group.rank === "Owner" && (
-                                <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 bg-yellow-500 text-white text-[9px] font-bold rounded uppercase tracking-wide shadow">
+                                <span className="absolute top-1.5 left-1.5 px-2 py-0.5 bg-gradient-to-r from-yellow-400 to-amber-500 text-white text-[9px] font-bold rounded-md uppercase tracking-wide shadow-md">
                                   Owner
                                 </span>
                               )}
