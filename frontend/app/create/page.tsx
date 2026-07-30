@@ -7,7 +7,7 @@ import Footer from "../components/Footer";
 import ProtectedRoute from "../components/ProtectedRoute";
 import { storage } from "@/lib/api";
 import UserAdBanner from "../components/UserAdBanner";
-import { Plus, Trash2, ExternalLink, Gamepad2 } from "lucide-react";
+import { Plus, Trash2, ExternalLink, Gamepad2, Download } from "lucide-react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
@@ -195,6 +195,30 @@ export default function CreatePage() {
               <Plus className="w-4 h-4" />
               Create New
             </button>
+          </div>
+
+          {/* AdventureBlox Studio download */}
+          <div className="mb-8 p-6 bg-gradient-to-br from-blue-600 to-purple-700 rounded-xl shadow-lg text-white">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+              <div>
+                <h2 className="text-2xl font-bold mb-2">AdventureBlox Studio</h2>
+                <p className="text-blue-100 max-w-xl">
+                  Get the classic Studio layout with AdventureBlox branding and quick access buttons
+                </p>
+              </div>
+              <div className="flex flex-col items-start sm:items-end gap-2 flex-shrink-0">
+                <a
+                  href="https://github.com/Neuralic/adventure-backend/releases/download/v1.0.0/AdventureBlox-Studio-Layout-Final.zip"
+                  className="flex items-center gap-2 px-6 py-3 bg-white text-blue-700 font-bold rounded-lg hover:bg-blue-50 transition-colors"
+                >
+                  <Download className="w-5 h-5" />
+                  Download AdventureBlox Studio
+                </a>
+                <span className="text-xs font-semibold px-2.5 py-1 bg-white/20 rounded-full">
+                  Windows only
+                </span>
+              </div>
+            </div>
           </div>
 
           {successMsg && (
