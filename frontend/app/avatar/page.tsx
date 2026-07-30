@@ -112,6 +112,9 @@ const AvatarPage = () => {
   const [updatingSkinColor, setUpdatingSkinColor] = useState(false);
   const [bodyType, setBodyType] = useState(0);
   const bodyTypeRef = useRef(bodyType);
+  // Face section toggle: 3D "Face Accessories" (default, equippable) vs classic
+  // 2D "Classic Faces" (mostly unavailable, shown here despite that).
+  const [showClassicFaces, setShowClassicFaces] = useState(false);
   const tabsRef = useRef<HTMLDivElement>(null);
   const tabsOffsetRef = useRef<number>(0);
 
@@ -253,13 +256,17 @@ const AvatarPage = () => {
         setLoading(false);
         return;
       }
+
+      const isFacesTab = subTab === "Classic Faces";
       const response = await catalogApi.getItems({
         category: mapping.category,
-        subcategory: mapping.subcategory,
+        subcategory: isFacesTab && !showClassicFaces ? "Face Accessories" : mapping.subcategory,
         sort: subTab === "Recently Added" ? "recent" : "relevance",
         page,
         limit: 24,
-        available: "true",
+        // Classic Faces items are almost all marked unavailable — surface them
+        // anyway when the toggle is on, instead of filtering them out.
+        available: isFacesTab && showClassicFaces ? undefined : "true",
       });
       if (response.success && response.data) {
         // Layered clothing items sometimes get miscategorized as Classic Pants —
@@ -281,7 +288,7 @@ const AvatarPage = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [showClassicFaces]);
 
   useEffect(() => {
     fetchItems(activeSubTab, 1);
@@ -651,16 +658,31 @@ const AvatarPage = () => {
                 </div>
 
                 {subTabs[activeTab] && (
-                  <div className="flex gap-4 mt-4">
-                    {subTabs[activeTab].map((subTab) => (
+                  <div className="flex items-center justify-between mt-4">
+                    <div className="flex gap-4">
+                      {subTabs[activeTab].map((subTab) => (
+                        <button
+                          key={subTab}
+                          onClick={() => setActiveSubTab(subTab)}
+                          className={`text-sm transition-colors ${activeSubTab === subTab ? "text-blue-600 dark:text-blue-400 font-semibold" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"}`}
+                        >
+                          {subTab}
+                        </button>
+                      ))}
+                    </div>
+
+                    {activeSubTab === "Classic Faces" && (
                       <button
-                        key={subTab}
-                        onClick={() => setActiveSubTab(subTab)}
-                        className={`text-sm transition-colors ${activeSubTab === subTab ? "text-blue-600 dark:text-blue-400 font-semibold" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"}`}
+                        onClick={() => setShowClassicFaces((prev) => !prev)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                          showClassicFaces
+                            ? "bg-blue-600 border-blue-600 text-white"
+                            : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                        }`}
                       >
-                        {subTab}
+                        Classic Faces
                       </button>
-                    ))}
+                    )}
                   </div>
                 )}
               </div>
