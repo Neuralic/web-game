@@ -133,7 +133,7 @@ const GameDetailPage = () => {
     fetchGame();
   }, [gameId]);
 
-  useEffect(() => {
+  const handlePlayClick = () => {
     if (!gameId) return;
     const token = storage.getAccessToken();
     if (!token) return;
@@ -142,7 +142,7 @@ const GameDetailPage = () => {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
     }).catch((error) => console.error("Failed to record game play:", error));
-  }, [gameId]);
+  };
 
   useEffect(() => {
     if (!game?.groupId) {
@@ -445,6 +445,7 @@ const GameDetailPage = () => {
                 {canPlay ? (
                   <a
                     href={`roblox://experiences/start?placeId=${game.placeId}`}
+                    onClick={handlePlayClick}
                     className="block text-center py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg rounded-lg transition-colors mb-4"
                   >
                     Play
