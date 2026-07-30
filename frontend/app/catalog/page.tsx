@@ -37,23 +37,6 @@ interface SubcategoryEntry {
   itemCount: string;
 }
 
-type RobloxTypeFilter = "All" | "Bundles" | "Emotes" | "Shirts" | "Pants" | "Faces" | "Hair" | "Accessories";
-
-// Maps each Roblox "All Items" quick filter to the Roblox assetType id(s) it
-// should restrict results to. Shirts/Pants use the classic clothing asset
-// types (Classic Shirt=11, Classic Pants=12, plus T-Shirt=2 lumped into the
-// Shirts tab) rather than the newer Layered Clothing accessory types
-// (ShirtAccessory=65/PantsAccessory=66), so only classic clothing shows. Some
-// of these ids normally sit in the backend's default exclusion list, so this
-// needs to be passed through and special-cased there too (see roblox.controller.ts).
-const ROBLOX_ASSET_TYPE_FILTERS: Partial<Record<RobloxTypeFilter, string>> = {
-  Shirts: "2,11",
-  Pants: "12",
-  Faces: "42",
-  Hair: "41",
-  Accessories: "8,43,44,45,46,47",
-};
-
 const CatalogPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -86,14 +69,6 @@ const CatalogPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-const [activeTab, setActiveTab] = useState<"platform" | "roblox">("platform");
-const [robloxItems, setRobloxItems] = useState<any[]>([]);
-const [robloxLoading, setRobloxLoading] = useState(false);
-const [robloxNextCursor, setRobloxNextCursor] = useState<string | null>(null);
-const [robloxPrevCursor, setRobloxPrevCursor] = useState<string | null>(null);
-const [robloxSearch, setRobloxSearch] = useState("");
-const [robloxSearchDebounce, setRobloxSearchDebounce] = useState("");
-const [robloxTypeFilter, setRobloxTypeFilter] = useState<RobloxTypeFilter>("All");
 
   // Fetch categories from API on mount
   useEffect(() => {
@@ -120,44 +95,6 @@ const [robloxTypeFilter, setRobloxTypeFilter] = useState<RobloxTypeFilter>("All"
       setApiSubcategories([]);
     }
   }, [modalSelectedCategory]);
-
-// Debounce Roblox search
-useEffect(() => {
-  const timer = setTimeout(() => {
-    setRobloxSearchDebounce(robloxSearch);
-  }, 400);
-  return () => clearTimeout(timer);
-}, [robloxSearch]);
-
-// Fetch Roblox catalog
-const fetchRobloxItems = useCallback(async (cursor?: string) => {
-  setRobloxLoading(true);
-  try {
-    const response = await (catalogApi as any).searchRobloxCatalog({
-      keyword: robloxSearchDebounce || undefined,
-      bundleType: robloxTypeFilter === "Bundles" ? 3 : undefined,
-      isEmote: robloxTypeFilter === "Emotes" ? true : undefined,
-      assetTypes: ROBLOX_ASSET_TYPE_FILTERS[robloxTypeFilter],
-      limit: 30,
-      cursor: cursor || undefined,
-    });
-    if (response.success && response.data) {
-      setRobloxItems((response.data as any).items || []);
-      setRobloxNextCursor((response.data as any).nextPageCursor || null);
-      setRobloxPrevCursor((response.data as any).previousPageCursor || null);
-    }
-  } catch (error) {
-    console.error("Failed to fetch Roblox catalog:", error);
-  } finally {
-    setRobloxLoading(false);
-  }
-}, [robloxSearchDebounce, robloxTypeFilter]);
-
-useEffect(() => {
-  if (activeTab === "roblox") {
-    fetchRobloxItems();
-  }
-}, [activeTab, fetchRobloxItems]);
 
   // Debounce search input
   useEffect(() => {
@@ -393,28 +330,6 @@ useEffect(() => {
   <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap">
     Catalog
   </h1>
-  <div className="flex border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
-    <button
-      onClick={() => setActiveTab("platform")}
-      className={`px-4 py-1.5 text-sm font-medium transition-colors ${
-        activeTab === "platform"
-          ? "bg-blue-600 text-white"
-          : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-      }`}
-    >
-      AdventureBlox
-    </button>
-    <button
-      onClick={() => setActiveTab("roblox")}
-      className={`px-4 py-1.5 text-sm font-medium transition-colors ${
-        activeTab === "roblox"
-          ? "bg-blue-600 text-white"
-          : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-      }`}
-    >
-      All Items
-    </button>
-  </div>
 </div>
 
               {/* Right Side: Search + Dropdown + Buy Button + Cart */}
@@ -446,7 +361,7 @@ useEffect(() => {
             </div>
 
             {/* Filter Buttons Row */}
-            {activeTab === "platform" && <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
               <button
                 onClick={openCategoryModal}
                 className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1.5 ${
@@ -478,11 +393,11 @@ useEffect(() => {
                   <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                 </svg>
               </button>
-            </div>}
+            </div>
           </div>
         </div>
         {/* Popular Tags */}
-        {activeTab === "platform" && <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+        <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
           <div className="flex items-center gap-2">
             {/* Left Arrow */}
             <button
@@ -589,11 +504,8 @@ useEffect(() => {
             </button>
           </div>
         </div>
-	}
         {/* Catalog Items Grid */}
 <div className="px-4 py-6">
-  {activeTab === "platform" ? (
-    <>
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-blue-500 mb-3" />
@@ -638,110 +550,6 @@ useEffect(() => {
           )}
         </>
       )}
-    </>
-  ) : (
-    <>
-      {/* Roblox Search Bar */}
-      <div className="mb-4 relative max-w-md">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
-        <input
-          type="text"
-          placeholder="Search all items..."
-          value={robloxSearch}
-          onChange={(e) => setRobloxSearch(e.target.value)}
-          className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded pl-8 pr-3 py-1.5 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
-        />
-      </div>
-
-      {/* Roblox Type Filter */}
-      <div className="mb-4 flex items-center gap-2 flex-wrap">
-        {(["All", "Bundles", "Emotes", "Shirts", "Pants", "Faces", "Hair", "Accessories"] as const).map((type) => (
-          <button
-            key={type}
-            onClick={() => setRobloxTypeFilter(type)}
-            className={`px-6 py-2.5 rounded-lg text-base font-bold transition-colors ${
-              robloxTypeFilter === type
-                ? "bg-blue-600 text-white hover:bg-blue-700"
-                : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
-            }`}
-          >
-            {type}
-          </button>
-        ))}
-      </div>
-
-      {robloxLoading ? (
-        <div className="flex flex-col items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-500 mb-3" />
-          <p className="text-gray-500 dark:text-gray-400 text-sm">Loading Roblox catalog...</p>
-        </div>
-      ) : robloxItems.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20">
-          <span className="text-5xl mb-4">🔍</span>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">No items found</h3>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">Try a different search term</p>
-        </div>
-      ) : (
-        <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-4">
-  {robloxItems.map((item) => (
-    <div key={item.id} className="block group cursor-pointer" onClick={async () => {
-  const importParams = new URLSearchParams();
-  if (item.itemType === "Bundle") importParams.append("itemType", "Bundle");
-  if (item.isEmote) importParams.append("isEmote", "true");
-  const qs = importParams.toString();
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'}/catalog/roblox/import/${item.robloxAssetId}${qs ? `?${qs}` : ""}`, { method: 'POST' });
-  const data = await res.json();
-  if (data.success) window.location.href = `/catalog/${data.data.id}`;
-}}>
-      <div className="rounded-lg overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
-        <div className="relative aspect-square bg-gray-100 dark:bg-gray-700">
-          {item.thumbnailUrl ? (
-            <img
-              src={item.thumbnailUrl}
-              alt={item.name}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-400">
-              <span className="text-4xl">🎭</span>
-            </div>
-          )}
-        </div>
-        <div className="p-3">
-          <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 mb-0.5 line-clamp-1">
-            {item.name}
-          </h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 truncate">Roblox</p>
-          <p className="text-xs font-semibold text-green-600 dark:text-green-400">
-  Free
-</p>
-        </div>
-      </div>
-    </div>
-))}
-</div>
-          {/* Pagination */}
-          <div className="flex items-center justify-center gap-2 mt-8 pb-8">
-            <button
-              onClick={() => fetchRobloxItems(robloxPrevCursor || undefined)}
-              disabled={!robloxPrevCursor}
-              className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 font-medium rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Previous
-            </button>
-            <button
-              onClick={() => fetchRobloxItems(robloxNextCursor || undefined)}
-              disabled={!robloxNextCursor}
-              className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 font-medium rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Next
-            </button>
-          </div>
-        </>
-      )}
-    </>
-  )}
 </div>
                 </main>
 
