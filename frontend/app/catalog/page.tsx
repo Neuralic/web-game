@@ -104,6 +104,10 @@ const CatalogPage = () => {
     return () => clearTimeout(timer);
   }, [catalogSearch]);
 
+  // Faces quick filter: "Classic Faces" items are almost all unavailable, so
+  // the tab is merged with "Face Accessories" too or it would show nothing.
+  const FACES_SUBCATEGORIES = ["Classic Faces", "Face Accessories"];
+
   // Fetch catalog items from API
   const fetchItems = useCallback(async (page: number = 1) => {
     setLoading(true);
@@ -113,6 +117,32 @@ const CatalogPage = () => {
         availableParam = "true";
       } else if (unavailableItemsFilter === "Show Only Unavailable Items") {
         availableParam = "false";
+      }
+
+      if (subcategoryFilter === "Classic Faces") {
+        const responses = await Promise.all(
+          FACES_SUBCATEGORIES.map((sub) =>
+            catalogApi.getItems({
+              category: categoryFilter !== "All" ? categoryFilter : undefined,
+              subcategory: sub,
+              search: searchDebounce || undefined,
+              sort: sortBy,
+              page,
+              limit: 30,
+              available: availableParam,
+            })
+          )
+        );
+
+        const items = responses.flatMap((r) => (r.success && r.data ? r.data.items : []));
+        const totalItems = responses.reduce((sum, r) => sum + (r.success && r.data ? r.data.pagination.totalItems : 0), 0);
+        const totalPages = Math.max(1, ...responses.map((r) => (r.success && r.data ? r.data.pagination.totalPages : 1)));
+
+        setCatalogItems(items);
+        setTotalPages(totalPages);
+        setTotalItems(totalItems);
+        setCurrentPage(page);
+        return;
       }
 
       const response = await catalogApi.getItems({
