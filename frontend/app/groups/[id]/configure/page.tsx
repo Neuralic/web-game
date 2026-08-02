@@ -2393,10 +2393,6 @@ const ConfigureGroupPage = () => {
                               </button>
                             ))}
                           </div>
-                          <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
-                            <span>For tips and tricks, read the tutorial: </span>
-                            <a href="#" className="text-blue-600 dark:text-blue-400 hover:underline">How to Design an Effective Ad</a>
-                          </div>
                         </div>
 
                         <div>
