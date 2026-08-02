@@ -208,7 +208,7 @@ export default function CreatePage() {
               </div>
               <div className="flex flex-col items-start sm:items-end gap-2 flex-shrink-0">
                 <a
-                  href="https://github.com/Neuralic/adventure-backend/releases/download/v1.0.0/AdventureBlox-Studio-Layout-Final.zip"
+                  href="https://drive.google.com/uc?export=download&id=1-pY_ZPRZ9qNRH1Tc6_6Emo5MRFlon2vQ"
                   className="flex items-center gap-2 px-6 py-3 bg-white text-blue-700 font-bold rounded-lg hover:bg-blue-50 transition-colors"
                 >
                   <Download className="w-5 h-5" />
