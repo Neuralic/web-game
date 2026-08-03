@@ -726,17 +726,17 @@ const GroupDetailPage = () => {
           <div className="flex items-end gap-4 px-6 pb-6 border-b border-gray-100 dark:border-gray-800 -mt-20 relative z-10">
             {currentGroup ? (
               <>
-                <div className="w-[140px] h-[140px] border-4 border-white dark:border-gray-900 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100 dark:bg-gray-700 relative shadow-lg">
+                <div className="w-[150px] h-[150px] border-4 border-white dark:border-gray-900 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100 dark:bg-gray-700 relative shadow-lg">
                   {currentGroup.icon_url ? (
                     <Image
                       src={currentGroup.icon_url}
                       alt={currentGroup.name}
                       fill
                       className="object-cover"
-                      sizes="100px"
+                      sizes="150px"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-4xl">
+                    <div className="w-full h-full flex items-center justify-center text-5xl">
                       🎮
                     </div>
                   )}
