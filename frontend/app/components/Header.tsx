@@ -284,6 +284,12 @@ useEffect(() => {
               >
                 Create
               </Link>
+              <Link
+                href="/forums"
+                className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white font-bold text-base px-5 py-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              >
+                Forums
+              </Link>
               {/* AdventureBux tab hidden from navigation
               <Link
                 href="/adventurebux"
@@ -296,15 +302,15 @@ useEffect(() => {
 
             {/* Search Bar with Dropdown */}
             <div className="hidden md:flex items-center gap-2 relative" ref={searchDropdownRef}>
-              <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-1.5 w-64">
-                <Search className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+              <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800 rounded px-2 py-1 w-44">
+                <Search className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400 flex-shrink-0" />
                 <input
                   type="text"
-                  placeholder="Search players, groups, games..."
+                  placeholder="Search"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onFocus={() => searchResults.length > 0 && setShowSearchDropdown(true)}
-                  className="bg-transparent text-gray-700 dark:text-gray-300 placeholder:text-gray-500 dark:placeholder:text-gray-400 text-sm focus:outline-none w-full"
+                  className="bg-transparent text-gray-700 dark:text-gray-300 placeholder:text-gray-500 dark:placeholder:text-gray-400 text-xs focus:outline-none w-full"
                 />
               </div>
 
