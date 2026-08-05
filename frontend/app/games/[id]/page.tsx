@@ -71,6 +71,14 @@ interface GamePass {
   updated_at: string;
 }
 
+interface GameServer {
+  id: string;
+  playing: number;
+  maxPlayers: number;
+  fps?: number;
+  ping?: number;
+}
+
 interface GameComment {
   id: string;
   content: string;
@@ -114,6 +122,9 @@ const GameDetailPage = () => {
   const [newPassPrice, setNewPassPrice] = useState("0");
   const [submittingPass, setSubmittingPass] = useState(false);
   const [passError, setPassError] = useState("");
+
+  const [servers, setServers] = useState<GameServer[]>([]);
+  const [loadingServers, setLoadingServers] = useState(true);
 
   useEffect(() => {
     const token = storage.getAccessToken();
@@ -223,6 +234,27 @@ const GameDetailPage = () => {
     };
 
     fetchPasses();
+  }, [gameId]);
+
+  useEffect(() => {
+    if (!gameId) return;
+
+    const fetchServers = async () => {
+      setLoadingServers(true);
+      try {
+        const res = await fetch(`${API_BASE}/games/${gameId}/servers`);
+        const data = await res.json();
+        if (data.success && data.data?.servers) {
+          setServers(data.data.servers);
+        }
+      } catch (error) {
+        console.error("Failed to fetch game servers:", error);
+      } finally {
+        setLoadingServers(false);
+      }
+    };
+
+    fetchServers();
   }, [gameId]);
 
   const handleAddPass = async () => {
@@ -772,8 +804,35 @@ const GameDetailPage = () => {
             )}
 
             {activeTab === "Servers" && (
-              <div className="py-16 text-center text-sm text-gray-500 dark:text-gray-400">
-                No public servers available.
+              <div className="py-6">
+                {loadingServers ? (
+                  <div className="py-16 text-center text-sm text-gray-500 dark:text-gray-400">
+                    Loading...
+                  </div>
+                ) : !game?.placeId || servers.length === 0 ? (
+                  <div className="py-16 text-center text-sm text-gray-500 dark:text-gray-400">
+                    No public servers available.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {servers.map((server) => (
+                      <div key={server.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex flex-col gap-2">
+                        <p className="text-xs font-mono text-gray-500 dark:text-gray-400 truncate" title={server.id}>
+                          Server {server.id.slice(0, 8)}
+                        </p>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                          {server.playing}/{server.maxPlayers} players
+                        </p>
+                        <a
+                          href={`roblox://experiences/start?placeId=${game.placeId}&gameInstanceId=${server.id}`}
+                          className="mt-2 px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors text-center"
+                        >
+                          Join
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
