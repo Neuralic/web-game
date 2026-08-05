@@ -658,14 +658,14 @@ const GroupDetailPage = () => {
                       isActive ? "bg-gray-100 dark:bg-gray-800" : ""
                     }`}
                   >
-                    <div className="w-20 h-20 rounded overflow-hidden bg-gray-200 dark:bg-gray-600 flex-shrink-0 relative">
+                    <div className="w-24 h-24 rounded overflow-hidden bg-gray-200 dark:bg-gray-600 flex-shrink-0 relative">
                       {group.icon_url ? (
                         <Image
                           src={group.icon_url}
                           alt={group.name}
                           fill
                           className="object-cover"
-                          sizes="80px"
+                          sizes="96px"
                         />
                       ) : (
                         <span className="text-3xl flex items-center justify-center w-full h-full">
