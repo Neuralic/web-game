@@ -1373,6 +1373,14 @@ const ProfilePage = () => {
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Profile Views</p>
                       <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{profileUser?.profile_views || 0}</p>
                     </div>
+                    <div className="text-center flex-1">
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Games Played</p>
+                      <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{profileUser?.games_played || 0}</p>
+                    </div>
+                    <div className="text-center flex-1">
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Playtime</p>
+                      <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{profileUser?.playtime || 0}m</p>
+                    </div>
                   </div>
                 </div>
               </div>
