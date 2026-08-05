@@ -31,6 +31,7 @@ interface UserData {
   chat_restriction?: string;
   safe_chat_mode?: boolean;
   block_external_links?: boolean;
+  socialVisibility?: string;
 }
 
 const SettingsPage = () => {
@@ -130,6 +131,7 @@ const [myGroups, setMyGroups] = useState<any[]>([]);
           if (userData.chat_restriction) setChatRestriction(userData.chat_restriction);
           setSafeChatMode(!!userData.safe_chat_mode);
           setBlockExternalLinks(!!userData.block_external_links);
+          setSocialVisibility(userData.socialVisibility || 'no-one');
         }
 
 
