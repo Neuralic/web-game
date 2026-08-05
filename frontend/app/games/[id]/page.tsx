@@ -59,6 +59,18 @@ interface GameCommentReply {
   author_is_verified?: boolean;
 }
 
+interface GamePass {
+  id: string;
+  game_id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  image_url: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 interface GameComment {
   id: string;
   content: string;
@@ -93,6 +105,15 @@ const GameDetailPage = () => {
   const [replyText, setReplyText] = useState<Record<string, string>>({});
   const [postingReply, setPostingReply] = useState<Record<string, boolean>>({});
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  const [passes, setPasses] = useState<GamePass[]>([]);
+  const [loadingPasses, setLoadingPasses] = useState(true);
+  const [showAddPassForm, setShowAddPassForm] = useState(false);
+  const [newPassName, setNewPassName] = useState("");
+  const [newPassDescription, setNewPassDescription] = useState("");
+  const [newPassPrice, setNewPassPrice] = useState("0");
+  const [submittingPass, setSubmittingPass] = useState(false);
+  const [passError, setPassError] = useState("");
 
   useEffect(() => {
     const token = storage.getAccessToken();
@@ -182,6 +203,64 @@ const GameDetailPage = () => {
 
     fetchComments();
   }, [gameId]);
+
+  useEffect(() => {
+    if (!gameId) return;
+
+    const fetchPasses = async () => {
+      setLoadingPasses(true);
+      try {
+        const res = await fetch(`${API_BASE}/games/${gameId}/passes`);
+        const data = await res.json();
+        if (data.success && data.data?.passes) {
+          setPasses(data.data.passes);
+        }
+      } catch (error) {
+        console.error("Failed to fetch game passes:", error);
+      } finally {
+        setLoadingPasses(false);
+      }
+    };
+
+    fetchPasses();
+  }, [gameId]);
+
+  const handleAddPass = async () => {
+    if (!gameId) return;
+    if (!newPassName.trim()) { setPassError("Pass name is required"); return; }
+
+    setSubmittingPass(true);
+    setPassError("");
+    try {
+      const res = await fetch(`${API_BASE}/games/${gameId}/passes`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${storage.getAccessToken()}`,
+        },
+        body: JSON.stringify({
+          name: newPassName.trim(),
+          description: newPassDescription.trim(),
+          price: parseInt(newPassPrice) || 0,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.data?.pass) {
+        setPasses([data.data.pass, ...passes]);
+        setNewPassName("");
+        setNewPassDescription("");
+        setNewPassPrice("0");
+        setShowAddPassForm(false);
+      } else {
+        setPassError(data.message || "Failed to create game pass");
+      }
+    } catch (error) {
+      console.error("Failed to create game pass:", error);
+      setPassError("Failed to create game pass");
+    } finally {
+      setSubmittingPass(false);
+    }
+  };
 
   const handlePostComment = async () => {
     if (!newComment.trim() || !gameId) return;
@@ -600,8 +679,95 @@ const GameDetailPage = () => {
             )}
 
             {activeTab === "Store" && (
-              <div className="py-16 text-center text-sm text-gray-500 dark:text-gray-400">
-                No items for sale yet.
+              <div className="py-6">
+                {game && currentUserId && game.creatorId === currentUserId && (
+                  <div className="mb-6">
+                    <button
+                      onClick={() => { setShowAddPassForm(!showAddPassForm); setPassError(""); }}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-lg transition-colors"
+                    >
+                      {showAddPassForm ? "Cancel" : "Add Game Pass"}
+                    </button>
+
+                    {showAddPassForm && (
+                      <div className="mt-4 border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-3 max-w-md">
+                        {passError && (
+                          <p className="text-sm text-red-500">{passError}</p>
+                        )}
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Name</label>
+                          <input
+                            type="text"
+                            value={newPassName}
+                            onChange={(e) => setNewPassName(e.target.value)}
+                            placeholder="e.g. VIP Access"
+                            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                          <textarea
+                            value={newPassDescription}
+                            onChange={(e) => setNewPassDescription(e.target.value)}
+                            placeholder="What does this pass unlock?"
+                            rows={3}
+                            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Price (AdventureBux)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={newPassPrice}
+                            onChange={(e) => setNewPassPrice(e.target.value)}
+                            className="w-32 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700"
+                          />
+                        </div>
+                        <button
+                          onClick={handleAddPass}
+                          disabled={submittingPass}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {submittingPass ? "Creating..." : "Create Pass"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {loadingPasses ? (
+                  <div className="py-16 text-center text-sm text-gray-500 dark:text-gray-400">
+                    Loading...
+                  </div>
+                ) : passes.length === 0 ? (
+                  <div className="py-16 text-center text-sm text-gray-500 dark:text-gray-400">
+                    No items for sale yet.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {passes.map((pass) => (
+                      <div key={pass.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex flex-col">
+                        {pass.image_url && (
+                          <img src={pass.image_url} alt={pass.name} className="w-full h-32 object-cover rounded mb-3" />
+                        )}
+                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{pass.name}</p>
+                        {pass.description && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex-1">{pass.description}</p>
+                        )}
+                        <div className="flex items-center justify-between mt-3">
+                          <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{pass.price} AdventureBux</span>
+                          <button
+                            onClick={() => alert("Purchasing is not yet available.")}
+                            className="px-4 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg transition-colors"
+                          >
+                            Buy
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
