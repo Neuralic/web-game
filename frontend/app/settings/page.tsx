@@ -103,10 +103,12 @@ const [adFormat, setAdFormat] = useState("728x90");
 const [adImageUrl, setAdImageUrl] = useState("");
 const [adBid, setAdBid] = useState("0");
 const [adGroupId, setAdGroupId] = useState("");
+const [adGameId, setAdGameId] = useState("");
 const [myAds, setMyAds] = useState<any[]>([]);
 const [submittingAd, setSubmittingAd] = useState(false);
 const [adTab, setAdTab] = useState<"create" | "manage">("create");
 const [myGroups, setMyGroups] = useState<any[]>([]);
+const [myGames, setMyGames] = useState<any[]>([]);
 
   // Email editing state
   const [isEditingEmail, setIsEditingEmail] = useState(false);
@@ -140,6 +142,18 @@ const [myGroups, setMyGroups] = useState<any[]>([]);
 if (groupsResponse.success && groupsResponse.data) {
   setMyGroups((groupsResponse.data as any).groups || []);
 }
+        try {
+          const gamesRes = await fetch(`${API_BASE}/games/my-games`, {
+            headers: { Authorization: `Bearer ${storage.getAccessToken()}` },
+          });
+          const gamesData = await gamesRes.json();
+          if (gamesData.success) {
+            const publishedGames = (gamesData.data?.games || []).filter((g: any) => g.isPublished);
+            setMyGames(publishedGames);
+          }
+        } catch (err) {
+          console.error("Failed to fetch games:", err);
+        }
         const socialResponse = await usersApi.getMySocialLinks();
         if (socialResponse.success && socialResponse.data) {
           const links = socialResponse.data.socialLinks || [];
@@ -1019,7 +1033,9 @@ if (groupsResponse.success && groupsResponse.data) {
                             <img src={ad.imageUrl} alt={ad.name} className="w-24 h-12 object-cover rounded border border-gray-200 dark:border-gray-600 flex-shrink-0" />
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{ad.name}</p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">{ad.format} · {ad.group_name || "No group"}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                {ad.format} · {ad.game_title ? `Game: ${ad.game_title}` : ad.group_name ? `Group: ${ad.group_name}` : "No group/game"}
+                              </p>
                               <div className="flex items-center gap-3 mt-1">
                                 <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
                                   ad.status === 'approved' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
@@ -1140,6 +1156,21 @@ if (groupsResponse.success && groupsResponse.data) {
     ))}
   </select>
 </div>
+
+{/* Game selector */}
+<div className="mb-6">
+  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Advertise Game (Optional)</label>
+  <select
+    value={adGameId}
+    onChange={(e) => setAdGameId(e.target.value)}
+    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700"
+  >
+    <option value="">Select a game...</option>
+    {myGames.map((game: any) => (
+      <option key={game.id} value={game.id}>{game.title}</option>
+    ))}
+  </select>
+</div>
                 {/* Bidding */}
                 <div className="mb-6">
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Bidding</h3>
@@ -1163,10 +1194,11 @@ if (groupsResponse.success && groupsResponse.data) {
         imageUrl: adImageUrl,
         bidPerDay: parseInt(adBid) || 0,
         groupId: adGroupId || undefined,
+        gameId: adGameId || undefined,
       });
       if (response.success) {
         setSuccessMessage("Ad submitted for review!");
-        setAdName(""); setAdImageUrl(""); setAdBid("0"); setAdGroupId("");
+        setAdName(""); setAdImageUrl(""); setAdBid("0"); setAdGroupId(""); setAdGameId("");
         setTimeout(() => setSuccessMessage(""), 3000);
         // Refresh my ads
         const adsResponse = await adsApi.getMyAds();
