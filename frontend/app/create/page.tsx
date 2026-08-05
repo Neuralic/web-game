@@ -48,8 +48,20 @@ export default function CreatePage() {
     groupId: "",
   });
 
-  const [groups, setGroups] = useState<{ id: string; name: string; role?: string }[]>([]);
+  const [groups, setGroups] = useState<{ id: string; name: string; role?: string; owner_id?: string }[]>([]);
   const [loadingGroups, setLoadingGroups] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const token = storage.getAccessToken();
+    if (!token) return;
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      setCurrentUserId(payload.userId || null);
+    } catch {
+      // not logged in
+    }
+  }, []);
 
   const fetchMyGames = async () => {
     const token = storage.getAccessToken();
@@ -84,7 +96,7 @@ export default function CreatePage() {
         const data = await res.json();
         if (data.success) {
           const ownedGroups = (data.data.groups || []).filter(
-            (g: { role?: string }) => g.role === "Owner"
+            (g: { owner_id?: string }) => g.owner_id === currentUserId
           );
           setGroups(ownedGroups);
         }
@@ -96,7 +108,7 @@ export default function CreatePage() {
     };
 
     fetchGroups();
-  }, [showCreateModal]);
+  }, [showCreateModal, currentUserId]);
 
   const handleCreate = async () => {
     const token = storage.getAccessToken();
