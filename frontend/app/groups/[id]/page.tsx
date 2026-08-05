@@ -283,9 +283,20 @@ const GroupDetailPage = () => {
     }
   };
 
-  // Get current group - prefer detailed data, fallback to sidebar data
-  const currentGroup =
-    currentGroupDetails || userGroups.find((g) => g.id === groupId);
+  // Get current group - prefer detailed data, fallback to sidebar data.
+  // currentGroupDetails.role can come back missing even for an actual member
+  // if the access token was stale/expired when /groups/:id was called — that
+  // route uses optionalAuth, which silently drops the userId (and therefore
+  // the role lookup) instead of erroring, so it doesn't trigger a token
+  // refresh. userGroups comes from a strictly-authenticated endpoint (so a
+  // stale token there does trigger a refresh) and only ever contains groups
+  // the user is actually a member of, so use it to backfill role when missing.
+  const membershipMatch = userGroups.find(
+    (g) => g.id === (currentGroupDetails?.id || groupId)
+  );
+  const currentGroup = currentGroupDetails
+    ? { ...currentGroupDetails, role: currentGroupDetails.role || membershipMatch?.role }
+    : membershipMatch;
 
   // Fetch wall posts
   useEffect(() => {
