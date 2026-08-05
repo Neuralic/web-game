@@ -13,6 +13,8 @@ interface Ad {
   groupId?: string;
   group_name?: string;
   group_number?: number;
+  gameId?: string;
+  game_title?: string;
 }
 
 interface UserAdBannerProps {
@@ -59,7 +61,9 @@ export default function UserAdBanner({ format, className = "" }: UserAdBannerPro
     );
   }
 
-  const href = ad.groupId && ad.group_number
+  const href = ad.gameId
+    ? `/games/${ad.gameId}`
+    : ad.groupId && ad.group_number
     ? `/groups/${ad.group_number}`
     : '#';
 
