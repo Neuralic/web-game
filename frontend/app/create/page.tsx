@@ -48,7 +48,7 @@ export default function CreatePage() {
     groupId: "",
   });
 
-  const [groups, setGroups] = useState<{ id: string; name: string }[]>([]);
+  const [groups, setGroups] = useState<{ id: string; name: string; role?: string }[]>([]);
   const [loadingGroups, setLoadingGroups] = useState(false);
 
   const fetchMyGames = async () => {
@@ -82,7 +82,12 @@ export default function CreatePage() {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
-        if (data.success) setGroups(data.data.groups || []);
+        if (data.success) {
+          const ownedGroups = (data.data.groups || []).filter(
+            (g: { role?: string }) => g.role === "Owner"
+          );
+          setGroups(ownedGroups);
+        }
       } catch (err) {
         console.error("Failed to fetch groups:", err);
       } finally {
