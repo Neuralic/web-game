@@ -1282,7 +1282,7 @@ const ProfilePage = () => {
 
                 <div className="py-6 border-b border-gray-200 dark:border-gray-800">
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Favorites</h2>
+                    <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">⭐ Favorite Games</h2>
                     <button className="flex items-center gap-1 text-sm text-gray-900 dark:text-gray-100 hover:underline">Favorites<ChevronRight className="w-4 h-4" /></button>
                   </div>
                   {loadingFavorites ? (
