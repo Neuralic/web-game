@@ -658,14 +658,14 @@ const GroupDetailPage = () => {
                       isActive ? "bg-gray-100 dark:bg-gray-800" : ""
                     }`}
                   >
-                    <div className="w-24 h-24 rounded overflow-hidden bg-gray-200 dark:bg-gray-600 flex-shrink-0 relative">
+                    <div className="w-[150px] h-[150px] rounded overflow-hidden bg-gray-200 dark:bg-gray-600 flex-shrink-0 relative">
                       {group.icon_url ? (
                         <Image
                           src={group.icon_url}
                           alt={group.name}
                           fill
                           className="object-cover"
-                          sizes="96px"
+                          sizes="150px"
                         />
                       ) : (
                         <span className="text-3xl flex items-center justify-center w-full h-full">
@@ -674,8 +674,14 @@ const GroupDetailPage = () => {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate flex items-center gap-1">
                         {group.name}
+                        {group.is_verified && (
+                          <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="12" r="12" fill="#1D9BF0"/>
+                            <path d="M6.5 12.5l3.5 3.5 7.5-8" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        )}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
                         {group.member_count?.toLocaleString()} members
