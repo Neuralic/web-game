@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Heart, ThumbsUp, ThumbsDown, Bell, BellOff, Users, Eye, Gamepad2 } from "lucide-react";
 import Header from "../../components/Header";
@@ -93,13 +93,17 @@ interface GameComment {
 const GameDetailPage = () => {
   const params = useParams();
   const gameId = params?.id as string;
+  const searchParams = useSearchParams();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [game, setGame] = useState<GameDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [activeTab, setActiveTab] = useState<Tab>("About");
+  const [activeTab, setActiveTab] = useState<Tab>(() => {
+    const tabParam = searchParams?.get("tab");
+    return (TABS as readonly string[]).includes(tabParam || "") ? (tabParam as Tab) : "About";
+  });
 
   // Notify has no backend endpoint yet, so it just reflects the click locally.
   // Like/Dislike/Favorite are persisted — see game.userLiked/userDisliked/userFavorited.
