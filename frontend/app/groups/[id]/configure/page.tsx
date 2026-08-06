@@ -708,6 +708,42 @@ const ConfigureGroupPage = () => {
     }
   };
 
+  const handleDeleteCover = async () => {
+    if (!groupUuid && !groupId) return;
+    if (!confirm("Are you sure you want to delete the group background?")) return;
+
+    setUploadingCover(true);
+    try {
+      const response = await groupsApi.updateGroup(groupUuid || groupId, {
+        coverPhotoUrl: "",
+      });
+      if (response.success) {
+        setCoverPhotoUrl("");
+        setCoverPreview(null);
+        setSuccessMessage({
+          title: "Success",
+          message: "Group background deleted successfully!",
+        });
+        setShowSuccessModal(true);
+      } else {
+        setSuccessMessage({
+          title: "Error",
+          message: response.error || "Failed to delete group background",
+        });
+        setShowSuccessModal(true);
+      }
+    } catch (error) {
+      console.error("Error deleting cover photo:", error);
+      setSuccessMessage({
+        title: "Error",
+        message: "An error occurred while deleting group background",
+      });
+      setShowSuccessModal(true);
+    } finally {
+      setUploadingCover(false);
+    }
+  };
+
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -1340,6 +1376,16 @@ const ConfigureGroupPage = () => {
                                   Select an image from your computer
                                 </span>
                               </label>
+                              {coverPreview && (
+                                <button
+                                  type="button"
+                                  onClick={handleDeleteCover}
+                                  disabled={uploadingCover}
+                                  className="mt-3 block mx-auto px-6 py-2 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  Delete Background
+                                </button>
+                              )}
                             </div>
                           </div>
                         </div>
