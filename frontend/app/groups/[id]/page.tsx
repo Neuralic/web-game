@@ -727,14 +727,21 @@ const GroupDetailPage = () => {
           {/* Cover Banner - Full width, always show with fallback gradient */}
           <div className="w-full h-[250px] relative overflow-hidden bg-gray-100 dark:bg-gray-800">
             {currentGroup?.cover_photo_url && (
-              <Image
-                src={currentGroup.cover_photo_url}
-                alt={`${currentGroup.name} cover`}
-                fill
-                className="object-cover"
-                sizes="100vw"
-                priority
-              />
+              <a
+                href={currentGroup.cover_photo_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="absolute inset-0 block"
+              >
+                <Image
+                  src={currentGroup.cover_photo_url}
+                  alt={`${currentGroup.name} cover`}
+                  fill
+                  className="object-cover"
+                  sizes="100vw"
+                  priority
+                />
+              </a>
             )}
             <div className="absolute inset-0 bg-black/40" />
           </div>
@@ -745,13 +752,20 @@ const GroupDetailPage = () => {
               <>
                 <div className="w-[200px] h-[200px] border-4 border-white dark:border-gray-900 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100 dark:bg-gray-700 relative shadow-lg">
                   {currentGroup.icon_url ? (
-                    <Image
-                      src={currentGroup.icon_url}
-                      alt={currentGroup.name}
-                      fill
-                      className="object-cover"
-                      sizes="200px"
-                    />
+                    <a
+                      href={currentGroup.icon_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="absolute inset-0 block"
+                    >
+                      <Image
+                        src={currentGroup.icon_url}
+                        alt={currentGroup.name}
+                        fill
+                        className="object-cover"
+                        sizes="200px"
+                      />
+                    </a>
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-5xl">
                       🎮
