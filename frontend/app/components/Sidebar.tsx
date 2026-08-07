@@ -190,7 +190,7 @@ export default function Sidebar({
               </Link>
 
               <Link
-                href={user?.primary_group_id ? `/groups/${user.primary_group_id}` : "/groups"}
+                href={user?.primary_group_id ? `/groups/${user.primary_group_id}` : "/groups?discover=true"}
                 className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                 onClick={onClose}
               >
