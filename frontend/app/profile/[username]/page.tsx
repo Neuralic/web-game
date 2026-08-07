@@ -925,14 +925,21 @@ const ProfilePage = () => {
             {/* Profile Banner */}
             <div className="relative w-full h-[250px] overflow-hidden bg-gray-100 dark:bg-gray-800">
               {profileUser?.profile_banner_url && (
-                <Image
-                  src={profileUser.profile_banner_url}
-                  alt="Profile banner"
-                  fill
-                  className="object-cover"
-                  sizes="100vw"
-                  priority
-                />
+                <a
+                  href={profileUser.profile_banner_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="absolute inset-0 block"
+                >
+                  <Image
+                    src={profileUser.profile_banner_url}
+                    alt="Profile banner"
+                    fill
+                    className="object-cover"
+                    sizes="100vw"
+                    priority
+                  />
+                </a>
               )}
               <div className="absolute inset-0 bg-black/40" />
               {isOwnProfile && (
