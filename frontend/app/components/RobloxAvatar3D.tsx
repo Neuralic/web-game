@@ -46,7 +46,7 @@ export default function RobloxAvatar3D({ robloxUserId, onError }: Props) {
   return (
     <div className="absolute inset-0 rounded-lg overflow-hidden">
       <img src={imageUrl} alt="Roblox Avatar" className="w-full h-full object-contain" />
-      <div className="absolute bottom-4 right-4 bg-white dark:bg-gray-800 px-3 py-1 rounded font-semibold text-sm text-gray-900 dark:text-gray-100 z-20">
+      <div className="absolute bottom-4 right-4 bg-white dark:bg-[#1a1a1a] px-3 py-1 rounded font-semibold text-sm text-gray-900 dark:text-gray-100 z-20">
         Roblox
       </div>
     </div>
