@@ -552,7 +552,7 @@ if (groupsResponse.success && groupsResponse.data) {
   ];
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900">
+    <div className="min-h-screen bg-white dark:bg-black">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <Header
         searchQuery={searchQuery}
@@ -588,7 +588,7 @@ if (groupsResponse.success && groupsResponse.data) {
                   onClick={() => setActiveSection(section.id)}
                   className={`w-full text-left px-3 py-2 text-sm transition-colors border-l-3 ${
                     activeSection === section.id
-                      ? "border-gray-900 dark:border-gray-100 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-semibold"
+                      ? "border-gray-900 dark:border-gray-100 bg-gray-50 dark:bg-[#1a1a1a] text-gray-900 dark:text-gray-100 font-semibold"
                       : "border-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                   }`}
                 >
@@ -600,23 +600,23 @@ if (groupsResponse.success && groupsResponse.data) {
 
           <div className="flex-1 max-w-2xl">
             {activeSection === "account-info" && (
-              <div className="bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 p-6">
+              <div className="bg-white dark:bg-[#1a1a1a] rounded border border-gray-200 dark:border-[#2a2a2a] p-6">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Account Info</h2>
 
                 {/* Display Name */}
-                <div className="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="mb-4 pb-4 border-b border-gray-200 dark:border-[#2a2a2a]">
                   <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Display Name:</div>
                   <input
                     type="text"
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
-                    className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700"
+                    className="w-full border border-gray-300 dark:border-[#2a2a2a] rounded px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424]"
                     placeholder="Enter display name"
                   />
                 </div>
 
                 {/* Username */}
-                <div className="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="mb-4 pb-4 border-b border-gray-200 dark:border-[#2a2a2a]">
                   <div className="flex justify-between items-start">
                     <div>
                       <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Username:</div>
@@ -630,7 +630,7 @@ if (groupsResponse.success && groupsResponse.data) {
                 </div>
 
                 {/* Email */}
-                <div className="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="mb-4 pb-4 border-b border-gray-200 dark:border-[#2a2a2a]">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Email:</div>
@@ -640,14 +640,14 @@ if (groupsResponse.success && groupsResponse.data) {
                             type="email"
                             value={newEmail}
                             onChange={(e) => setNewEmail(e.target.value)}
-                            className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700"
+                            className="w-full border border-gray-300 dark:border-[#2a2a2a] rounded px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424]"
                             placeholder="Enter email address"
                           />
                           <div className="flex gap-2">
                             <button onClick={handleSaveEmail} disabled={savingEmail} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded disabled:opacity-50">
                               {savingEmail ? "Saving..." : "Save Email"}
                             </button>
-                            <button onClick={() => { setIsEditingEmail(false); setNewEmail(user?.email || ""); setErrorMessage(""); }} className="px-3 py-1.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 text-sm font-medium rounded">
+                            <button onClick={() => { setIsEditingEmail(false); setNewEmail(user?.email || ""); setErrorMessage(""); }} className="px-3 py-1.5 bg-gray-200 dark:bg-[#242424] hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 text-sm font-medium rounded">
                               Cancel
                             </button>
                           </div>
@@ -683,7 +683,7 @@ if (groupsResponse.success && groupsResponse.data) {
                     </div>
                   </div>
 
-                  <div className="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+                  <div className="mb-4 pb-4 border-b border-gray-200 dark:border-[#2a2a2a]">
                     <div className="flex justify-between items-start">
                       <div>
                         <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Birthday:</div>
@@ -703,13 +703,13 @@ if (groupsResponse.success && groupsResponse.data) {
                     <div className="flex gap-3">
                       <button
                         onClick={() => setSelectedGender(selectedGender === "female" ? "" : "female")}
-                        className={`flex-1 border rounded py-3 flex items-center justify-center transition-colors ${selectedGender === "female" ? "border-pink-500 bg-pink-500/20 text-pink-500 dark:bg-pink-500/30" : "border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"}`}
+                        className={`flex-1 border rounded py-3 flex items-center justify-center transition-colors ${selectedGender === "female" ? "border-pink-500 bg-pink-500/20 text-pink-500 dark:bg-pink-500/30" : "border-gray-300 dark:border-[#2a2a2a] hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"}`}
                       >
                         <FontAwesomeIcon icon={faPersonDress} className="w-5 h-5" />
                       </button>
                       <button
                         onClick={() => setSelectedGender(selectedGender === "male" ? "" : "male")}
-                        className={`flex-1 border rounded py-3 flex items-center justify-center transition-colors ${selectedGender === "male" ? "border-blue-500 bg-blue-500/20 text-blue-500 dark:bg-blue-500/30" : "border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"}`}
+                        className={`flex-1 border rounded py-3 flex items-center justify-center transition-colors ${selectedGender === "male" ? "border-blue-500 bg-blue-500/20 text-blue-500 dark:bg-blue-500/30" : "border-gray-300 dark:border-[#2a2a2a] hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"}`}
                       >
                         <FontAwesomeIcon icon={faPerson} className="w-5 h-5" />
                       </button>
@@ -719,12 +719,12 @@ if (groupsResponse.success && groupsResponse.data) {
 
                   <div className="mb-4">
                     <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Language</div>
-                    <select className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700">
+                    <select className="w-full border border-gray-300 dark:border-[#2a2a2a] rounded px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424]">
                       <option>English (United States)</option>
                     </select>
                   </div>
 
-                  <div className="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+                  <div className="mb-4 pb-4 border-b border-gray-200 dark:border-[#2a2a2a]">
                     <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Account Location:</div>
                     <div className="text-gray-900 dark:text-gray-100">Nigeria</div>
                     <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Based on signup location</div>
@@ -736,12 +736,12 @@ if (groupsResponse.success && groupsResponse.data) {
                 </div>
 
                 {/* Roblox Account */}
-                <div className="mb-6 pb-6 border-b border-gray-200 dark:border-gray-700">
+                <div className="mb-6 pb-6 border-b border-gray-200 dark:border-[#2a2a2a]">
                   <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">Roblox Account</h3>
                   {user?.roblox_username ? (
                     <div className="flex items-center gap-4">
                       {user.roblox_avatar_url && (
-                        <img src={user.roblox_avatar_url} alt={user.roblox_username} className="w-16 h-16 rounded-full border border-gray-200 dark:border-gray-700" />
+                        <img src={user.roblox_avatar_url} alt={user.roblox_username} className="w-16 h-16 rounded-full border border-gray-200 dark:border-[#2a2a2a]" />
                       )}
                       <div className="flex-1">
                         <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{user.roblox_username}</p>
@@ -756,7 +756,7 @@ if (groupsResponse.success && groupsResponse.data) {
                     <div className="space-y-3">
                       <p className="text-sm text-gray-600 dark:text-gray-400">Connect your Roblox account to unlock platform features.</p>
                       <div className="flex gap-2">
-                        <input type="text" value={robloxUsername} onChange={(e) => setRobloxUsername(e.target.value)} placeholder="Enter your Roblox username" className="flex-1 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700" />
+                        <input type="text" value={robloxUsername} onChange={(e) => setRobloxUsername(e.target.value)} placeholder="Enter your Roblox username" className="flex-1 border border-gray-300 dark:border-[#2a2a2a] rounded px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424]" />
                         <button onClick={handleConnectRoblox} disabled={connectingRoblox} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded disabled:opacity-50">
                           {connectingRoblox ? "Connecting..." : "Connect"}
                         </button>
@@ -779,12 +779,12 @@ if (groupsResponse.success && groupsResponse.data) {
                     ].map((field) => (
                       <div key={field.label}>
                         <label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">{field.label}</label>
-                        <input type="text" value={field.value} onChange={(e) => field.setter(e.target.value)} placeholder={field.placeholder} className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 placeholder:text-gray-400 dark:placeholder:text-gray-500" />
+                        <input type="text" value={field.value} onChange={(e) => field.setter(e.target.value)} placeholder={field.placeholder} className="w-full border border-gray-300 dark:border-[#2a2a2a] rounded px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424] placeholder:text-gray-400 dark:placeholder:text-gray-500" />
                       </div>
                     ))}
                   </div>
 
-                  <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 mb-4">
+                  <div className="mt-4 pt-4 border-t border-gray-200 dark:border-[#2a2a2a] mb-4">
                     <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Social networks visibility</h4>
                     <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">Who can see links to your social network profiles</p>
                     <div className="space-y-2">
@@ -811,10 +811,10 @@ if (groupsResponse.success && groupsResponse.data) {
             )}
 
             {activeSection === "security" && (
-              <div className="bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 p-6">
+              <div className="bg-white dark:bg-[#1a1a1a] rounded border border-gray-200 dark:border-[#2a2a2a] p-6">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">Security</h2>
                 <div className="space-y-6">
-                  <div className="pb-6 border-b border-gray-200 dark:border-gray-700">
+                  <div className="pb-6 border-b border-gray-200 dark:border-[#2a2a2a]">
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">Password</h3>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Change your account password</p>
                     <button
@@ -822,7 +822,7 @@ if (groupsResponse.success && groupsResponse.data) {
   className="px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 font-semibold rounded text-sm hover:bg-gray-800 dark:hover:bg-gray-200"
 >Change Password</button>
                   </div>
-                  <div className="pb-6 border-b border-gray-200 dark:border-gray-700">
+                  <div className="pb-6 border-b border-gray-200 dark:border-[#2a2a2a]">
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">Two-Factor Authentication</h3>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Add an extra layer of security to your account</p>
 
@@ -840,7 +840,7 @@ if (groupsResponse.success && groupsResponse.data) {
                     ) : show2FASetup ? (
                       <div className="space-y-3">
                         {qrCode && (
-                          <div className="flex flex-col items-center gap-2 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+                          <div className="flex flex-col items-center gap-2 p-4 bg-gray-50 dark:bg-black rounded-lg border border-gray-200 dark:border-[#2a2a2a]">
                             <img src={qrCode} alt="2FA QR Code" className="w-40 h-40" />
                             <p className="text-xs text-gray-500 dark:text-gray-400">Scan this with your authenticator app</p>
                             {twoFactorSecret && (
@@ -857,7 +857,7 @@ if (groupsResponse.success && groupsResponse.data) {
                             value={twoFactorCode}
                             onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                             placeholder="6-digit code"
-                            className="w-32 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 tracking-widest"
+                            className="w-32 border border-gray-300 dark:border-[#2a2a2a] rounded px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424] tracking-widest"
                           />
                           <button
                             onClick={handleConfirmEnable2FA}
@@ -868,7 +868,7 @@ if (groupsResponse.success && groupsResponse.data) {
                           </button>
                           <button
                             onClick={handleCancel2FASetup}
-                            className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-semibold rounded text-sm"
+                            className="px-4 py-2 bg-gray-200 dark:bg-[#242424] text-gray-900 dark:text-gray-100 font-semibold rounded text-sm"
                           >
                             Cancel
                           </button>
@@ -890,10 +890,10 @@ if (groupsResponse.success && groupsResponse.data) {
             )}
 
             {activeSection === "privacy" && (
-              <div className="bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 p-6">
+              <div className="bg-white dark:bg-[#1a1a1a] rounded border border-gray-200 dark:border-[#2a2a2a] p-6">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">Privacy & Content Restrictions</h2>
                 <div className="space-y-6">
-                  <div className="pb-6 border-b border-gray-200 dark:border-gray-700">
+                  <div className="pb-6 border-b border-gray-200 dark:border-[#2a2a2a]">
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Who can message me</h3>
                     <div className="space-y-2">
                       {privacyOptions.map((opt) => (
@@ -904,7 +904,7 @@ if (groupsResponse.success && groupsResponse.data) {
                       ))}
                     </div>
                   </div>
-                  <div className="pb-6 border-b border-gray-200 dark:border-gray-700">
+                  <div className="pb-6 border-b border-gray-200 dark:border-[#2a2a2a]">
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Who can follow me</h3>
                     <div className="space-y-2">
                       {privacyOptions.map((opt) => (
@@ -915,7 +915,7 @@ if (groupsResponse.success && groupsResponse.data) {
                       ))}
                     </div>
                   </div>
-                  <div className="pb-6 border-b border-gray-200 dark:border-gray-700">
+                  <div className="pb-6 border-b border-gray-200 dark:border-[#2a2a2a]">
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Who can see my inventory</h3>
                     <div className="space-y-2">
                       {privacyOptions.map((opt) => (
@@ -926,7 +926,7 @@ if (groupsResponse.success && groupsResponse.data) {
                       ))}
                     </div>
                   </div>
-                  <div className="pb-6 border-b border-gray-200 dark:border-gray-700">
+                  <div className="pb-6 border-b border-gray-200 dark:border-[#2a2a2a]">
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Content restrictions</h3>
                     <label className="flex items-center gap-3 cursor-pointer">
                       <input type="checkbox" className="w-4 h-4" />
@@ -944,7 +944,7 @@ if (groupsResponse.success && groupsResponse.data) {
             )}
 
             {activeSection === "notifications" && (
-              <div className="bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 p-6">
+              <div className="bg-white dark:bg-[#1a1a1a] rounded border border-gray-200 dark:border-[#2a2a2a] p-6">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">Notifications</h2>
                 <div className="space-y-1 mb-6">
                   {[
@@ -957,14 +957,14 @@ if (groupsResponse.success && groupsResponse.data) {
                     { key: "gameUpdates", label: "Game updates", desc: "Updates from games you follow" },
                     { key: "platformAnnouncements", label: "Platform announcements", desc: "Important announcements from AdventureBlox" },
                   ].map((item) => (
-                    <div key={item.key} className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-700 last:border-0">
+                    <div key={item.key} className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-[#2a2a2a] last:border-0">
                       <div>
                         <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{item.label}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">{item.desc}</p>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" checked={notifications[item.key as keyof typeof notifications]} onChange={(e) => setNotifications(prev => ({ ...prev, [item.key]: e.target.checked }))} className="sr-only peer" />
-                        <div className="w-10 h-5 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                        <div className="w-10 h-5 bg-gray-200 dark:bg-[#242424] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
                       </label>
                     </div>
                   ))}
@@ -976,13 +976,13 @@ if (groupsResponse.success && groupsResponse.data) {
             )}
 
             {activeSection === "membership" && (
-              <div className="bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 p-6">
+              <div className="bg-white dark:bg-[#1a1a1a] rounded border border-gray-200 dark:border-[#2a2a2a] p-6">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">Membership</h2>
                 <div className="bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg p-6 text-white mb-6">
                   <h3 className="text-lg font-bold mb-1">AdventureBlox Free</h3>
                   <p className="text-sm text-white/80">Your current plan</p>
                 </div>
-                <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-5 mb-4">
+                <div className="border border-gray-200 dark:border-[#2a2a2a] rounded-lg p-5 mb-4">
                   <div className="flex items-start justify-between mb-4">
                     <div>
                       <h3 className="font-bold text-gray-900 dark:text-gray-100">AdventureBlox Premium</h3>
@@ -1003,11 +1003,11 @@ if (groupsResponse.success && groupsResponse.data) {
             )}
 
             {activeSection === "user-ads" && (
-              <div className="bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 p-6">
+              <div className="bg-white dark:bg-[#1a1a1a] rounded border border-gray-200 dark:border-[#2a2a2a] p-6">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">User Ads</h2>
 
                 {/* Tabs */}
-                <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
+                <div className="flex border-b border-gray-200 dark:border-[#2a2a2a] mb-6">
                   <button
                     onClick={() => setAdTab("create")}
                     className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${adTab === "create" ? "border-blue-600 text-blue-600 dark:text-blue-400" : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"}`}
@@ -1029,8 +1029,8 @@ if (groupsResponse.success && groupsResponse.data) {
                     ) : (
                       <div className="space-y-4">
                         {myAds.map((ad: any) => (
-                          <div key={ad.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex gap-4 items-start">
-                            <img src={ad.imageUrl} alt={ad.name} className="w-24 h-12 object-cover rounded border border-gray-200 dark:border-gray-600 flex-shrink-0" />
+                          <div key={ad.id} className="border border-gray-200 dark:border-[#2a2a2a] rounded-lg p-4 flex gap-4 items-start">
+                            <img src={ad.imageUrl} alt={ad.name} className="w-24 h-12 object-cover rounded border border-gray-200 dark:border-[#2a2a2a] flex-shrink-0" />
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{ad.name}</p>
                               <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -1081,7 +1081,7 @@ if (groupsResponse.success && groupsResponse.data) {
     className={`px-4 py-2 border rounded-lg text-sm font-medium transition-colors ${
       adFormat === f.value
         ? "border-blue-600 bg-blue-600 text-white"
-        : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+        : "border-gray-300 dark:border-[#2a2a2a] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
     }`}
   >
     {f.label}
@@ -1095,16 +1095,16 @@ if (groupsResponse.success && groupsResponse.data) {
                   <div className="mb-6">
 <div className="mb-6">
   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Name your Ad</label>
-  <input type="text" value={adName} onChange={(e) => setAdName(e.target.value)} placeholder="Enter ad name" className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700" />
+  <input type="text" value={adName} onChange={(e) => setAdName(e.target.value)} placeholder="Enter ad name" className="w-full border border-gray-300 dark:border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424]" />
 </div>
                     <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Upload an Ad</label>
-                  <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center">
+                  <div className="border-2 border-dashed border-gray-300 dark:border-[#2a2a2a] rounded-lg p-8 text-center">
                     <svg className="w-10 h-10 mx-auto mb-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                     </svg>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Drag an image here</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">- Or -</p>
-                    <label className="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors cursor-pointer">
+                    <label className="px-4 py-2 bg-white dark:bg-[#242424] border border-gray-300 dark:border-[#2a2a2a] rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors cursor-pointer">
   Select an image from your computer
   <input
     type="file"
@@ -1134,7 +1134,7 @@ if (groupsResponse.success && groupsResponse.data) {
 
 {adImageUrl && (
   <div className="mt-3">
-    <img src={adImageUrl} alt="Ad preview" className="max-h-24 rounded-lg border border-gray-300 dark:border-gray-600" />
+    <img src={adImageUrl} alt="Ad preview" className="max-h-24 rounded-lg border border-gray-300 dark:border-[#2a2a2a]" />
   </div>
 )}
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">The ad needs to be approved by a Moderator before it can be launched from your Ad Page</p>
@@ -1148,7 +1148,7 @@ if (groupsResponse.success && groupsResponse.data) {
   <select
     value={adGroupId}
     onChange={(e) => setAdGroupId(e.target.value)}
-    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700"
+    className="w-full border border-gray-300 dark:border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424]"
   >
     <option value="">Select a group...</option>
     {myGroups.map((group: any) => (
@@ -1163,7 +1163,7 @@ if (groupsResponse.success && groupsResponse.data) {
   <select
     value={adGameId}
     onChange={(e) => setAdGameId(e.target.value)}
-    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700"
+    className="w-full border border-gray-300 dark:border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424]"
   >
     <option value="">Select a game...</option>
     {myGames.map((game: any) => (
@@ -1176,7 +1176,7 @@ if (groupsResponse.success && groupsResponse.data) {
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Bidding</h3>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Set how many AdventureBux you want to bid per day to run your ad</p>
                   <div className="flex items-center gap-3">
-                    <input type="number" min="0" value={adBid} onChange={(e) => setAdBid(e.target.value)} placeholder="0" className="w-32 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700" />
+                    <input type="number" min="0" value={adBid} onChange={(e) => setAdBid(e.target.value)} placeholder="0" className="w-32 border border-gray-300 dark:border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424]" />
                     <span className="text-sm text-gray-600 dark:text-gray-400">AdventureBux / day</span>
                   </div>
                 </div>
@@ -1220,10 +1220,10 @@ if (groupsResponse.success && groupsResponse.data) {
             )}
 
             {activeSection === "parental" && (
-              <div className="bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 p-6">
+              <div className="bg-white dark:bg-[#1a1a1a] rounded border border-gray-200 dark:border-[#2a2a2a] p-6">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">Parental Controls</h2>
                 <div className="space-y-6">
-                  <div className="pb-6 border-b border-gray-200 dark:border-gray-700">
+                  <div className="pb-6 border-b border-gray-200 dark:border-[#2a2a2a]">
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">Account PIN</h3>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Set a PIN to prevent changes to parental control settings</p>
                     <div className="flex gap-2">
@@ -1235,7 +1235,7 @@ if (groupsResponse.success && groupsResponse.data) {
                         value={accountPin}
                         onChange={(e) => setAccountPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
                         placeholder="4-digit PIN"
-                        className="w-32 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 tracking-widest"
+                        className="w-32 border border-gray-300 dark:border-[#2a2a2a] rounded px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424] tracking-widest"
                       />
                       <button
                         onClick={handleSetPin}
@@ -1246,7 +1246,7 @@ if (groupsResponse.success && groupsResponse.data) {
                       </button>
                     </div>
                   </div>
-                  <div className="pb-6 border-b border-gray-200 dark:border-gray-700">
+                  <div className="pb-6 border-b border-gray-200 dark:border-[#2a2a2a]">
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Chat restrictions</h3>
                     <div className="space-y-2">
                       {[
@@ -1314,27 +1314,27 @@ if (groupsResponse.success && groupsResponse.data) {
 
       {showPasswordModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6">
+          <div className="bg-white dark:bg-[#1a1a1a] rounded-xl shadow-2xl max-w-md w-full p-6">
             <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">Change Password</h2>
             <div className="space-y-4 mb-6">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Current Password</label>
-                <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700" />
+                <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="w-full border border-gray-300 dark:border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424]" />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">New Password</label>
-                <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700" />
+                <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full border border-gray-300 dark:border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424]" />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Confirm New Password</label>
-                <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700" />
+                <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full border border-gray-300 dark:border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424]" />
               </div>
             </div>
             {errorMessage && <p className="text-sm text-red-600 dark:text-red-400 mb-4">{errorMessage}</p>}
             <div className="flex gap-3">
               <button
                 onClick={() => { setShowPasswordModal(false); setCurrentPassword(""); setNewPassword(""); setConfirmPassword(""); setErrorMessage(""); }}
-                className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-semibold rounded-lg text-sm"
+                className="flex-1 px-4 py-2 bg-gray-100 dark:bg-[#242424] hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-semibold rounded-lg text-sm"
               >Cancel</button>
               <button
                 onClick={async () => {
