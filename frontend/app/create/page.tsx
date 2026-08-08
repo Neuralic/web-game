@@ -189,7 +189,7 @@ export default function CreatePage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-white dark:bg-gray-900">
+      <div className="min-h-screen bg-white dark:bg-black">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} setSidebarOpen={setSidebarOpen} />
 
@@ -255,7 +255,7 @@ export default function CreatePage() {
             </div>
           ) : games.length === 0 ? (
             <div className="text-center py-20">
-              <div className="w-20 h-20 mx-auto mb-6 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+              <div className="w-20 h-20 mx-auto mb-6 bg-gray-100 dark:bg-[#1a1a1a] rounded-full flex items-center justify-center">
                 <Gamepad2 className="w-10 h-10 text-gray-400" />
               </div>
               <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">No Games Yet</h2>
@@ -270,7 +270,7 @@ export default function CreatePage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {games.map((game) => (
-                <div key={game.id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden hover:shadow-lg transition-shadow">
+                <div key={game.id} className="bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded-xl overflow-hidden hover:shadow-lg transition-shadow">
                   <div className="aspect-video bg-gradient-to-br from-blue-500 to-purple-600 relative">
                     {game.thumbnailUrl ? (
                       <img src={game.thumbnailUrl} alt={game.title} className="w-full h-full object-cover" />
@@ -290,7 +290,7 @@ export default function CreatePage() {
                     <div className="flex items-center gap-2">
                       <a
                         href={`/games?highlight=${game.id}`}
-  className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 text-sm font-medium rounded-lg transition-colors"
+  className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 bg-gray-100 dark:bg-[#242424] hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 text-sm font-medium rounded-lg transition-colors"
 >
   <ExternalLink className="w-3.5 h-3.5" />
   View
@@ -321,7 +321,7 @@ export default function CreatePage() {
         {/* Create Modal */}
         {showCreateModal && (
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6">
+            <div className="bg-white dark:bg-[#1a1a1a] rounded-xl shadow-2xl max-w-md w-full p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Publish a Game</h2>
                 <button onClick={() => setShowCreateModal(false)} className="text-gray-500 hover:text-gray-900 dark:hover:text-gray-100">
@@ -333,13 +333,13 @@ export default function CreatePage() {
               <div className="flex gap-2 mb-6">
                 <button
                   onClick={() => setCreateMethod("roblox")}
-                  className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-colors ${createMethod === "roblox" ? "bg-blue-600 text-white" : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"}`}
+                  className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-colors ${createMethod === "roblox" ? "bg-blue-600 text-white" : "bg-gray-100 dark:bg-[#242424] text-gray-700 dark:text-gray-300"}`}
                 >
                   Import from Roblox
                 </button>
                 <button
                   onClick={() => setCreateMethod("manual")}
-                  className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-colors ${createMethod === "manual" ? "bg-blue-600 text-white" : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"}`}
+                  className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-colors ${createMethod === "manual" ? "bg-blue-600 text-white" : "bg-gray-100 dark:bg-[#242424] text-gray-700 dark:text-gray-300"}`}
                 >
                   Manual
                 </button>
@@ -354,13 +354,13 @@ export default function CreatePage() {
                       value={form.universeId}
                       onChange={(e) => setForm({ ...form, universeId: e.target.value })}
                       placeholder="e.g. 1818"
-                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700"
+                      className="w-full border border-gray-300 dark:border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424]"
                     />
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Find this in Roblox Studio under Game Settings</p>
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Genre</label>
-                    <select value={form.genre} onChange={(e) => setForm({ ...form, genre: e.target.value })} className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700">
+                    <select value={form.genre} onChange={(e) => setForm({ ...form, genre: e.target.value })} className="w-full border border-gray-300 dark:border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424]">
                       {genres.map(g => <option key={g}>{g}</option>)}
                     </select>
                   </div>
@@ -374,7 +374,7 @@ export default function CreatePage() {
                       value={form.title}
                       onChange={(e) => setForm({ ...form, title: e.target.value })}
                       placeholder="Game title"
-                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700"
+                      className="w-full border border-gray-300 dark:border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424]"
                     />
                   </div>
                   <div>
@@ -384,7 +384,7 @@ export default function CreatePage() {
                       onChange={(e) => setForm({ ...form, description: e.target.value })}
                       placeholder="Describe your game..."
                       rows={3}
-                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 resize-none"
+                      className="w-full border border-gray-300 dark:border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424] resize-none"
                     />
                   </div>
                   <div>
@@ -394,7 +394,7 @@ export default function CreatePage() {
                       value={form.thumbnailUrl}
                       onChange={(e) => setForm({ ...form, thumbnailUrl: e.target.value })}
                       placeholder="https://..."
-                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700"
+                      className="w-full border border-gray-300 dark:border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424]"
                     />
                   </div>
                   <div>
@@ -403,7 +403,7 @@ export default function CreatePage() {
                       value={form.groupId}
                       onChange={(e) => setForm({ ...form, groupId: e.target.value })}
                       disabled={loadingGroups}
-                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 disabled:opacity-50"
+                      className="w-full border border-gray-300 dark:border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424] disabled:opacity-50"
                     >
                       <option value="">None (publish to profile)</option>
                       {groups.map((group) => (
@@ -414,7 +414,7 @@ export default function CreatePage() {
                   <div className="flex gap-3">
                     <div className="flex-1">
                       <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Genre</label>
-                      <select value={form.genre} onChange={(e) => setForm({ ...form, genre: e.target.value })} className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700">
+                      <select value={form.genre} onChange={(e) => setForm({ ...form, genre: e.target.value })} className="w-full border border-gray-300 dark:border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424]">
                         {genres.map(g => <option key={g}>{g}</option>)}
                       </select>
                     </div>
@@ -426,7 +426,7 @@ export default function CreatePage() {
                         onChange={(e) => setForm({ ...form, maxPlayers: e.target.value })}
                         min="1"
                         max="100"
-                        className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700"
+                        className="w-full border border-gray-300 dark:border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424]"
                       />
                     </div>
                   </div>
@@ -440,7 +440,7 @@ export default function CreatePage() {
               <div className="flex gap-3 mt-6">
                 <button
                   onClick={() => setShowCreateModal(false)}
-                  className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-semibold rounded-lg transition-colors"
+                  className="flex-1 px-4 py-2 bg-gray-100 dark:bg-[#242424] hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-semibold rounded-lg transition-colors"
                 >
                   Cancel
                 </button>
