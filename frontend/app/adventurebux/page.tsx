@@ -80,7 +80,7 @@ const AdventureBuxPage = () => {
   if (comingSoon) {
     return (
       <ProtectedRoute>
-        <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
+        <div className="min-h-screen bg-white dark:bg-black flex flex-col">
           <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
           <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} setSidebarOpen={setSidebarOpen} />
 
@@ -104,7 +104,7 @@ const AdventureBuxPage = () => {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
+      <div className="min-h-screen bg-white dark:bg-black flex flex-col">
         {/* Header */}
         <Header
           searchQuery={searchQuery}
@@ -143,7 +143,7 @@ const AdventureBuxPage = () => {
               {packages.map((pkg) => (
                 <div
                   key={pkg.id}
-                  className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+                  className="bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded-lg p-4"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -172,7 +172,7 @@ const AdventureBuxPage = () => {
                     </div>
 
                     {/* Buy Button */}
-                    <button className="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-semibold px-6 py-2 rounded-lg transition-colors">
+                    <button className="bg-gray-200 dark:bg-[#242424] hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-semibold px-6 py-2 rounded-lg transition-colors">
                       {pkg.price}
                     </button>
                   </div>
@@ -187,7 +187,7 @@ const AdventureBuxPage = () => {
               Enjoy exclusive perks
             </h3>
 
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+            <div className="bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded-lg p-6">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <h4 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
@@ -227,7 +227,7 @@ const AdventureBuxPage = () => {
                 </div>
 
                 {/* Subscribe Button */}
-                <button className="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-semibold px-6 py-2 rounded-lg transition-colors whitespace-nowrap">
+                <button className="bg-gray-200 dark:bg-[#242424] hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-semibold px-6 py-2 rounded-lg transition-colors whitespace-nowrap">
                   {membershipPerks.price}
                 </button>
               </div>
@@ -244,7 +244,7 @@ const AdventureBuxPage = () => {
               {faqs.map((faq, index) => (
                 <div
                   key={index}
-                  className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
+                  className="bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded-lg overflow-hidden"
                 >
                   <button
                     onClick={() => toggleFaq(index)}
