@@ -139,6 +139,7 @@ const GroupDetailPage = () => {
   });
   const [eventImage, setEventImage] = useState<File | null>(null);
   const [eventImagePreview, setEventImagePreview] = useState<string | null>(null);
+  const [eventError, setEventError] = useState<string | null>(null);
 
   // Fetch user's groups for sidebar + primary group
   useEffect(() => {
@@ -238,20 +239,25 @@ const GroupDetailPage = () => {
     const groupUuid = currentGroupDetails?.id;
     if (!groupUuid || !eventForm.title) return;
     setCreatingEvent(true);
+    setEventError(null);
     try {
       let imageUrl: string | undefined;
       if (eventImage) {
-        const uploadResponse = await uploadApi.uploadImage(eventImage, 'event');
-        if (uploadResponse.success && uploadResponse.data) {
-          imageUrl = (uploadResponse.data as { url: string }).url;
+        try {
+          const uploadResponse = await uploadApi.uploadImage(eventImage, 'event');
+          if (uploadResponse.success && uploadResponse.data) {
+            imageUrl = (uploadResponse.data as { url: string }).url;
+          }
+        } catch (uploadError) {
+          console.error("Image upload failed, continuing without image:", uploadError);
         }
       }
       const response = await groupsApi.createGroupEvent(groupUuid, {
         title: eventForm.title,
         description: eventForm.description || undefined,
         imageUrl,
-        startDate: eventForm.startDate,
-        endDate: eventForm.endDate,
+        startDate: new Date(eventForm.startDate).toISOString(),
+        endDate: new Date(eventForm.endDate).toISOString(),
         location: eventForm.location || undefined,
       });
       if (response.success && response.data) {
@@ -261,9 +267,12 @@ const GroupDetailPage = () => {
         setEventImage(null);
         if (eventImagePreview) URL.revokeObjectURL(eventImagePreview);
         setEventImagePreview(null);
+      } else {
+        setEventError(response.error || "Failed to create event.");
       }
     } catch (error) {
       console.error("Error creating event:", error);
+      setEventError("Failed to create event. Please try again.");
     } finally {
       setCreatingEvent(false);
     }
@@ -1534,6 +1543,28 @@ const GroupDetailPage = () => {
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Start Date & Time *</label>
+                      <input
+                        type="datetime-local"
+                        value={eventForm.startDate}
+                        onChange={(e) => setEventForm({ ...eventForm, startDate: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Select date and time (include AM/PM)</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">End Date & Time *</label>
+                      <input
+                        type="datetime-local"
+                        value={eventForm.endDate}
+                        onChange={(e) => setEventForm({ ...eventForm, endDate: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Select date and time (include AM/PM)</p>
+                    </div>
+                  </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Event Image</label>
                     <div className="flex items-center gap-3">
@@ -1568,6 +1599,9 @@ const GroupDetailPage = () => {
                       </div>
                     )}
                   </div>
+                  {eventError && (
+                    <p className="text-sm text-red-500">{eventError}</p>
+                  )}
                   <button
                     onClick={handleCreateEvent}
                     disabled={!eventForm.title || !eventForm.startDate || !eventForm.endDate || creatingEvent}
