@@ -18,7 +18,7 @@ const TransactionsPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
+    <div className="min-h-screen bg-white dark:bg-black flex flex-col">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} setSidebarOpen={setSidebarOpen} />
 
@@ -28,22 +28,22 @@ const TransactionsPage = () => {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-5">
+          <div className="bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded-lg p-5">
             <p className="text-sm text-gray-500 dark:text-gray-400">Current Balance</p>
             <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">◈ 0</p>
           </div>
-          <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-5">
+          <div className="bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded-lg p-5">
             <p className="text-sm text-gray-500 dark:text-gray-400">Total Earned</p>
             <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">◈ 0</p>
           </div>
-          <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-5">
+          <div className="bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded-lg p-5">
             <p className="text-sm text-gray-500 dark:text-gray-400">Total Spent</p>
             <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">◈ 0</p>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
+        <div className="flex border-b border-gray-200 dark:border-[#2a2a2a] mb-6">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -63,9 +63,9 @@ const TransactionsPage = () => {
         </div>
 
         {/* Transactions Table */}
-        <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+        <div className="border border-gray-200 dark:border-[#2a2a2a] rounded-lg overflow-hidden">
           <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-800">
+            <thead className="bg-gray-50 dark:bg-[#1a1a1a]">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Date</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Type</th>
