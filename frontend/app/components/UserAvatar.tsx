@@ -48,7 +48,7 @@ export default function UserAvatar({ userId, username, size = 96, className = ""
     return (
       <div
         style={style}
-        className={`rounded-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center flex-shrink-0 ${className}`}
+        className={`rounded-full bg-gray-300 dark:bg-[#242424] flex items-center justify-center flex-shrink-0 ${className}`}
       >
         <span className="text-gray-600 dark:text-gray-300 font-bold" style={{ fontSize: size * 0.35 }}>
           {initials}
@@ -61,7 +61,7 @@ export default function UserAvatar({ userId, username, size = 96, className = ""
     return (
       <div
         style={style}
-        className={`rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0 ${className}`}
+        className={`rounded-full overflow-hidden bg-gray-200 dark:bg-[#242424] flex-shrink-0 ${className}`}
       >
         <img
           src={imageUrl}
@@ -75,7 +75,7 @@ export default function UserAvatar({ userId, username, size = 96, className = ""
   }
 
   return (
-    <div style={style} className={`rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0 ${className}`}>
+    <div style={style} className={`rounded-full overflow-hidden bg-gray-200 dark:bg-[#242424] flex-shrink-0 ${className}`}>
       <img
         src={imageUrl}
         alt={username || "User avatar"}
