@@ -462,7 +462,7 @@ const GameDetailPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
+    <div className="min-h-screen bg-white dark:bg-black flex flex-col">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} setSidebarOpen={setSidebarOpen} />
 
@@ -479,7 +479,7 @@ const GameDetailPage = () => {
           </div>
         ) : notFound || !game ? (
           <div className="text-center py-20">
-            <div className="w-20 h-20 mx-auto mb-6 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+            <div className="w-20 h-20 mx-auto mb-6 bg-gray-100 dark:bg-[#1a1a1a] rounded-full flex items-center justify-center">
               <Gamepad2 className="w-10 h-10 text-gray-400" />
             </div>
             <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">Game Not Found</h2>
@@ -496,7 +496,7 @@ const GameDetailPage = () => {
             <div className="flex flex-col lg:flex-row gap-6 mb-6">
               {/* Left ~60% — thumbnail/media */}
               <div className="lg:w-[60%] flex-shrink-0">
-                <div className="rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-700 aspect-video relative">
+                <div className="rounded-xl overflow-hidden bg-gray-200 dark:bg-[#242424] aspect-video relative">
                   {game.thumbnailUrl ? (
                     <img src={game.thumbnailUrl} alt={game.title} className="w-full h-full object-cover" />
                   ) : (
@@ -517,7 +517,7 @@ const GameDetailPage = () => {
               {/* Right ~40% — game info panel */}
               <div className="lg:w-[40%] min-w-0 flex flex-col">
                 <div className="flex items-start gap-3 mb-5">
-                  <div className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 bg-gray-200 dark:bg-gray-700">
+                  <div className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 bg-gray-200 dark:bg-[#242424]">
                     {game.iconUrl ? (
                       <img src={game.iconUrl} alt={game.title} className="w-full h-full object-cover" />
                     ) : (
@@ -551,7 +551,7 @@ const GameDetailPage = () => {
 
                 {/* Maturity rating badge */}
                 <div className="mb-6">
-                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-gray-100 dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-[#2a2a2a]">
                     Maturity: {game.ageRating || "All Ages"}
                   </span>
                 </div>
@@ -569,7 +569,7 @@ const GameDetailPage = () => {
                   <button
                     disabled
                     title="This game isn't linked to a playable Roblox place yet"
-                    className="py-3 bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-bold text-lg rounded-lg cursor-not-allowed mb-4"
+                    className="py-3 bg-gray-300 dark:bg-[#242424] text-gray-500 dark:text-gray-400 font-bold text-lg rounded-lg cursor-not-allowed mb-4"
                   >
                     Game not available
                   </button>
@@ -583,7 +583,7 @@ const GameDetailPage = () => {
                     className={`flex items-center gap-2 px-4 py-3 rounded-lg text-base font-bold border transition-colors ${
                       game.userFavorited
                         ? "bg-red-50 dark:bg-red-900/20 border-red-400 text-red-600 dark:text-red-400"
-                        : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                        : "border-gray-300 dark:border-[#2a2a2a] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                     }`}
                   >
                     <Heart className="w-5 h-5" fill={game.userFavorited ? "currentColor" : "none"} />
@@ -596,13 +596,13 @@ const GameDetailPage = () => {
                     className={`flex items-center justify-center p-3 rounded-lg border transition-colors ${
                       notifyOn
                         ? "bg-blue-50 dark:bg-blue-900/20 border-blue-400 text-blue-600 dark:text-blue-400"
-                        : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                        : "border-gray-300 dark:border-[#2a2a2a] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                     }`}
                   >
                     {notifyOn ? <Bell className="w-5 h-5" fill="currentColor" /> : <BellOff className="w-5 h-5" />}
                   </button>
 
-                  <div className="flex items-center rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden">
+                  <div className="flex items-center rounded-lg border border-gray-300 dark:border-[#2a2a2a] overflow-hidden">
                     <button
                       onClick={handleLike}
                       title="Like"
@@ -684,7 +684,7 @@ const GameDetailPage = () => {
                     {game.tags.map((tag) => (
                       <span
                         key={tag}
-                        className="px-2.5 py-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-medium rounded-full"
+                        className="px-2.5 py-1 bg-gray-100 dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300 text-xs font-medium rounded-full"
                       >
                         {tag}
                       </span>
@@ -697,7 +697,7 @@ const GameDetailPage = () => {
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Created By</h3>
                   <Link
                     href={game.creator_username ? `/profile/${game.creator_username}` : "#"}
-                    className="flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    className="flex items-center gap-3 p-3 border border-gray-200 dark:border-[#2a2a2a] rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                   >
                     <UserAvatar userId={game.creatorId} username={creatorName} size={48} headshot />
                     <div className="min-w-0">
@@ -726,7 +726,7 @@ const GameDetailPage = () => {
                     </button>
 
                     {showAddPassForm && (
-                      <div className="mt-4 border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-3 max-w-md">
+                      <div className="mt-4 border border-gray-200 dark:border-[#2a2a2a] rounded-lg p-4 space-y-3 max-w-md">
                         {passError && (
                           <p className="text-sm text-red-500">{passError}</p>
                         )}
@@ -737,7 +737,7 @@ const GameDetailPage = () => {
                             value={newPassName}
                             onChange={(e) => setNewPassName(e.target.value)}
                             placeholder="e.g. VIP Access"
-                            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700"
+                            className="w-full border border-gray-300 dark:border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424]"
                           />
                         </div>
                         <div>
@@ -747,7 +747,7 @@ const GameDetailPage = () => {
                             onChange={(e) => setNewPassDescription(e.target.value)}
                             placeholder="What does this pass unlock?"
                             rows={3}
-                            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700"
+                            className="w-full border border-gray-300 dark:border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424]"
                           />
                         </div>
                         <div>
@@ -757,7 +757,7 @@ const GameDetailPage = () => {
                             min="0"
                             value={newPassPrice}
                             onChange={(e) => setNewPassPrice(e.target.value)}
-                            className="w-32 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700"
+                            className="w-32 border border-gray-300 dark:border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424]"
                           />
                         </div>
                         <button
@@ -783,7 +783,7 @@ const GameDetailPage = () => {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {passes.map((pass) => (
-                      <div key={pass.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex flex-col">
+                      <div key={pass.id} className="border border-gray-200 dark:border-[#2a2a2a] rounded-lg p-4 flex flex-col">
                         {pass.image_url && (
                           <img src={pass.image_url} alt={pass.name} className="w-full h-32 object-cover rounded mb-3" />
                         )}
@@ -820,7 +820,7 @@ const GameDetailPage = () => {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {servers.map((server) => (
-                      <div key={server.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex flex-col gap-2">
+                      <div key={server.id} className="border border-gray-200 dark:border-[#2a2a2a] rounded-lg p-4 flex flex-col gap-2">
                         <p className="text-xs font-mono text-gray-500 dark:text-gray-400 truncate" title={server.id}>
                           Server {server.id.slice(0, 8)}
                         </p>
@@ -841,7 +841,7 @@ const GameDetailPage = () => {
             )}
 
             {/* Comments Section */}
-            <div className="bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 pt-6 mt-8">
+            <div className="bg-white dark:bg-black border-t border-gray-100 dark:border-gray-800 pt-6 mt-8">
               <h2 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-4">
                 Comments
               </h2>
@@ -853,7 +853,7 @@ const GameDetailPage = () => {
                     onChange={(e) => setNewComment(e.target.value)}
                     placeholder="Say something..."
                     rows={2}
-                    className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-[#2a2a2a] rounded bg-gray-50 dark:bg-[#242424] text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                   />
                   <button
                     onClick={handlePostComment}
@@ -868,7 +868,7 @@ const GameDetailPage = () => {
               {comments.length > 0 ? (
                 <div className="space-y-6">
                   {comments.map((comment) => (
-                    <div key={comment.id} className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                    <div key={comment.id} className="bg-gray-50 dark:bg-[#1a1a1a] rounded-lg p-4 border border-gray-200 dark:border-[#2a2a2a]">
                       {/* Comment Header */}
                       <div className="flex gap-3 mb-3">
                         <UserAvatar
@@ -908,7 +908,7 @@ const GameDetailPage = () => {
                       )}
 
                       {/* Comment Actions */}
-                      <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-[#2a2a2a]">
                         {comment.replies.length > 0 ? (
                           <button
                             onClick={() => toggleReplies(comment.id)}
@@ -964,7 +964,7 @@ const GameDetailPage = () => {
                                 }
                               }}
                               placeholder="Write a reply..."
-                              className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-[#2a2a2a] rounded bg-white dark:bg-[#242424] text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                             <button
                               onClick={() => handleReplySubmit(comment.id)}
@@ -977,7 +977,7 @@ const GameDetailPage = () => {
 
                           {/* Replies List */}
                           {comment.replies.length > 0 && (
-                            <div className="space-y-3 pl-4 border-l-2 border-gray-300 dark:border-gray-600">
+                            <div className="space-y-3 pl-4 border-l-2 border-gray-300 dark:border-[#2a2a2a]">
                               {comment.replies.map((reply) => (
                                 <div key={reply.id} className="flex gap-2">
                                   <UserAvatar
