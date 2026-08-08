@@ -66,7 +66,7 @@ export default function MembersSection({ groupId }: MembersSectionProps) {
   });
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700 mb-4">
+    <div className="bg-white dark:bg-black rounded-lg p-4 border border-gray-200 dark:border-[#2a2a2a] mb-4">
       <div className="flex flex-col gap-3 mb-3">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Members</h2>
@@ -81,14 +81,14 @@ export default function MembersSection({ groupId }: MembersSectionProps) {
               </button>
             </div>
             <div className="relative">
-              <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center justify-between gap-2 min-w-[200px] px-3 py-1.5 border border-gray-200 dark:border-gray-700 rounded text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+              <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center justify-between gap-2 min-w-[200px] px-3 py-1.5 border border-gray-200 dark:border-[#2a2a2a] rounded text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                 <span>{roles.find(r => r.id === selectedRole)?.name || "Select Role"}</span>
                 <ChevronDown className="w-4 h-4 flex-shrink-0" />
               </button>
               {isDropdownOpen && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setIsDropdownOpen(false)} />
-                  <div className="absolute right-0 top-full mt-1 w-full min-w-[200px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-lg z-20 py-1 max-h-[300px] overflow-y-auto">
+                  <div className="absolute right-0 top-full mt-1 w-full min-w-[200px] bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded shadow-lg z-20 py-1 max-h-[300px] overflow-y-auto">
                     {roles.map((role) => (
                       <button key={role.id} onClick={() => { setSelectedRole(role.id); setIsDropdownOpen(false); }} className={`w-full px-3 py-2 text-left text-sm whitespace-nowrap transition-colors ${selectedRole === role.id ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium" : "text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"}`}>
                         {role.name}
