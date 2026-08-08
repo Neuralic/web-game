@@ -90,7 +90,7 @@ const GroupsPage = () => {
   }, [router]);
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900">
+    <div className="min-h-screen bg-white dark:bg-black">
       {/* Sidebar */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
@@ -117,13 +117,13 @@ const GroupsPage = () => {
             <input
               type="text"
               placeholder="Search"
-              className="w-full pl-12 pr-4 py-3 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-12 pr-4 py-3 bg-gray-100 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
         </div>
 
         {/* Info Text */}
-        <p className="text-gray-600 dark:text-gray-400 text-sm mb-8 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+        <p className="text-gray-600 dark:text-gray-400 text-sm mb-8 bg-gray-50 dark:bg-[#1a1a1a] p-4 rounded-lg">
           Join a group to connect with people like you! Groups exist for all
           types of communities - fan clubs, help communities, hobbies,
           corporations, and more. Groups have their own walls and shared places.
@@ -168,7 +168,7 @@ const GroupsPage = () => {
                   href={groupHref(group)}
                   className="group cursor-pointer"
                 >
-                  <div className="aspect-square bg-gray-200 dark:bg-gray-700 rounded-lg mb-2 flex items-center justify-center overflow-hidden group-hover:ring-2 ring-blue-500 transition-all relative">
+                  <div className="aspect-square bg-gray-200 dark:bg-[#242424] rounded-lg mb-2 flex items-center justify-center overflow-hidden group-hover:ring-2 ring-blue-500 transition-all relative">
                     {group.icon_url ? (
                       <Image
                         src={group.icon_url}
@@ -217,7 +217,7 @@ const GroupsPage = () => {
                   href={groupHref(group)}
                   className="group cursor-pointer"
                 >
-                  <div className="aspect-square bg-gray-200 dark:bg-gray-700 rounded-lg mb-2 flex items-center justify-center overflow-hidden group-hover:ring-2 ring-blue-500 transition-all relative">
+                  <div className="aspect-square bg-gray-200 dark:bg-[#242424] rounded-lg mb-2 flex items-center justify-center overflow-hidden group-hover:ring-2 ring-blue-500 transition-all relative">
                     {group.icon_url ? (
                       <Image
                         src={group.icon_url}
@@ -262,7 +262,7 @@ const GroupsPage = () => {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {allGroups.filter(g => g.name.toLowerCase().includes('role') || g.name.toLowerCase().includes('job')).slice(0, 6).map((group) => (
                 <Link key={group.id} href={groupHref(group)} className="group cursor-pointer">
-                  <div className="aspect-square bg-gray-200 dark:bg-gray-700 rounded-lg mb-2 flex items-center justify-center overflow-hidden group-hover:ring-2 ring-blue-500 transition-all relative">
+                  <div className="aspect-square bg-gray-200 dark:bg-[#242424] rounded-lg mb-2 flex items-center justify-center overflow-hidden group-hover:ring-2 ring-blue-500 transition-all relative">
                     {group.icon_url ? <Image src={group.icon_url} alt={group.name} fill className="object-cover" sizes="16vw" /> : <span className="text-4xl">🎭</span>}
                   </div>
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{group.name}</h3>
@@ -282,7 +282,7 @@ const GroupsPage = () => {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {allGroups.filter(g => g.name.toLowerCase().includes('studio')).slice(0, 6).map((group) => (
                 <Link key={group.id} href={groupHref(group)} className="group cursor-pointer">
-                  <div className="aspect-square bg-gray-200 dark:bg-gray-700 rounded-lg mb-2 flex items-center justify-center overflow-hidden group-hover:ring-2 ring-blue-500 transition-all relative">
+                  <div className="aspect-square bg-gray-200 dark:bg-[#242424] rounded-lg mb-2 flex items-center justify-center overflow-hidden group-hover:ring-2 ring-blue-500 transition-all relative">
                     {group.icon_url ? <Image src={group.icon_url} alt={group.name} fill className="object-cover" sizes="16vw" /> : <span className="text-4xl">🎬</span>}
                   </div>
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{group.name}</h3>
@@ -302,7 +302,7 @@ const GroupsPage = () => {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {allGroups.filter(g => g.name.toLowerCase().includes('fan') || g.name.toLowerCase().includes('build')).slice(0, 6).map((group) => (
                 <Link key={group.id} href={groupHref(group)} className="group cursor-pointer">
-                  <div className="aspect-square bg-gray-200 dark:bg-gray-700 rounded-lg mb-2 flex items-center justify-center overflow-hidden group-hover:ring-2 ring-blue-500 transition-all relative">
+                  <div className="aspect-square bg-gray-200 dark:bg-[#242424] rounded-lg mb-2 flex items-center justify-center overflow-hidden group-hover:ring-2 ring-blue-500 transition-all relative">
                     {group.icon_url ? <Image src={group.icon_url} alt={group.name} fill className="object-cover" sizes="16vw" /> : <span className="text-4xl">⭐</span>}
                   </div>
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{group.name}</h3>
