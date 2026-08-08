@@ -27,9 +27,9 @@ const SponsoredPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
+    <div className="min-h-screen bg-white dark:bg-black flex flex-col">
       {/* Top Navigation Bar */}
-      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50">
+      <header className="bg-white dark:bg-black border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50">
         <div className="flex items-center justify-between px-4 py-3">
           {/* Left Section - Menu & Logo */}
           <div className="flex items-center gap-4">
@@ -65,7 +65,7 @@ const SponsoredPage = () => {
 
           {/* Right Section - Search & User */}
           <div className="flex items-center gap-3">
-            <div className="hidden md:flex items-center gap-2 bg-gray-100 dark:bg-gray-800 rounded-lg px-4 py-2 w-64">
+            <div className="hidden md:flex items-center gap-2 bg-gray-100 dark:bg-[#1a1a1a] rounded-lg px-4 py-2 w-64">
               <Search className="w-4 h-4 text-gray-500 dark:text-gray-400" />
               <input
                 type="text"
@@ -85,7 +85,7 @@ const SponsoredPage = () => {
             <ThemeToggle />
             
             {/* Currency Display */}
-            <div className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg">
+            <div className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 dark:bg-[#1a1a1a] rounded-lg">
               <div className="w-5 h-5 bg-gray-800 dark:bg-gray-200 rounded-full flex items-center justify-center">
                 <span className="text-white dark:text-gray-900 text-xs font-bold">◈</span>
               </div>
@@ -102,7 +102,7 @@ const SponsoredPage = () => {
               </button>
               
               {settingsOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50">
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#1a1a1a] rounded-lg shadow-lg border border-gray-200 dark:border-[#2a2a2a] py-2 z-50">
                   <Link 
                     href="/settings" 
                     className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -149,8 +149,8 @@ const SponsoredPage = () => {
         
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
           {games.map((game) => (
-            <div key={game.id} className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
-              <div className="aspect-video bg-gray-200 dark:bg-gray-700 flex items-center justify-center relative group">
+            <div key={game.id} className="bg-white dark:bg-[#1a1a1a] rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
+              <div className="aspect-video bg-gray-200 dark:bg-[#242424] flex items-center justify-center relative group">
                 <div className="text-gray-400 dark:text-gray-500 text-sm">Game Thumbnail</div>
                 
                 {/* Sponsored Badge */}
