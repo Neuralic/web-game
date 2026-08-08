@@ -126,7 +126,7 @@ const CreateGroupPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
+    <div className="min-h-screen bg-white dark:bg-black flex flex-col">
       {/* Sidebar */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
@@ -159,7 +159,7 @@ const CreateGroupPage = () => {
               type="text"
               value={groupName}
               onChange={(e) => setGroupName(e.target.value.slice(0, 50))}
-              className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 bg-white dark:bg-[#1a1a1a] border border-gray-300 dark:border-[#2a2a2a] rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="mygroup"
             />
             <div className="text-right text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -176,7 +176,7 @@ const CreateGroupPage = () => {
               value={description}
               onChange={(e) => setDescription(e.target.value.slice(0, 1000))}
               rows={6}
-              className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full px-4 py-3 bg-white dark:bg-[#1a1a1a] border border-gray-300 dark:border-[#2a2a2a] rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               placeholder="this is my group lets play togther"
             />
             <div className="text-right text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -189,11 +189,11 @@ const CreateGroupPage = () => {
             <label className="block text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
               Group Icon<span className="text-red-500">*</span>
             </label>
-            <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-8">
+            <div className="border-2 border-dashed border-gray-300 dark:border-[#2a2a2a] rounded-lg p-8">
               <div className="flex items-start gap-6">
                 {/* Preview */}
                 <div className="flex-shrink-0">
-                  <div className="w-48 h-48 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden flex items-center justify-center border border-gray-200 dark:border-gray-700">
+                  <div className="w-48 h-48 bg-gray-100 dark:bg-[#1a1a1a] rounded-lg overflow-hidden flex items-center justify-center border border-gray-200 dark:border-[#2a2a2a]">
                     {emblemPreview ? (
                       <img
                         src={emblemPreview}
@@ -226,7 +226,7 @@ const CreateGroupPage = () => {
                       onChange={handleEmblemUpload}
                       className="hidden"
                     />
-                    <span className="px-6 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 rounded-lg cursor-pointer inline-block text-sm font-medium">
+                    <span className="px-6 py-2 bg-gray-200 dark:bg-[#242424] hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 rounded-lg cursor-pointer inline-block text-sm font-medium">
                       Select an image from your computer
                     </span>
                   </label>
@@ -244,11 +244,11 @@ const CreateGroupPage = () => {
               Group background must be one of the available dimensions: 720x228,
               1440x456
             </p>
-            <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-8">
+            <div className="border-2 border-dashed border-gray-300 dark:border-[#2a2a2a] rounded-lg p-8">
               <div className="flex items-start gap-6">
                 {/* Preview */}
                 <div className="flex-shrink-0">
-                  <div className="w-48 h-32 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden flex items-center justify-center border border-gray-200 dark:border-gray-700">
+                  <div className="w-48 h-32 bg-gray-100 dark:bg-[#1a1a1a] rounded-lg overflow-hidden flex items-center justify-center border border-gray-200 dark:border-[#2a2a2a]">
                     {coverPhotoPreview ? (
                       <img
                         src={coverPhotoPreview}
@@ -281,7 +281,7 @@ const CreateGroupPage = () => {
                       onChange={handleCoverPhotoUpload}
                       className="hidden"
                     />
-                    <span className="px-6 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 rounded-lg cursor-pointer inline-block text-sm font-medium">
+                    <span className="px-6 py-2 bg-gray-200 dark:bg-[#242424] hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 rounded-lg cursor-pointer inline-block text-sm font-medium">
                       Select an image from your computer
                     </span>
                   </label>
@@ -331,7 +331,7 @@ const CreateGroupPage = () => {
               <button
                 type="button"
                 disabled={creating}
-                className="px-8 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-8 py-3 bg-gray-200 dark:bg-[#242424] hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
