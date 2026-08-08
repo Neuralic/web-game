@@ -359,9 +359,9 @@ export default function ChatWidget() {
     <>
       {/* Chat List Window */}
       {isChatListOpen && (
-        <div className="fixed bottom-0 right-4 w-80 h-96 bg-white dark:bg-gray-800 rounded-t-lg shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col z-50">
+        <div className="fixed bottom-0 right-4 w-80 h-96 bg-white dark:bg-[#1a1a1a] rounded-t-lg shadow-2xl border border-gray-200 dark:border-[#2a2a2a] flex flex-col z-50">
           {/* Header */}
-          <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-[#2a2a2a]">
             <h3 className="font-bold text-gray-900 dark:text-gray-100">Chat</h3>
             <div className="flex items-center gap-1">
               <button className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors">
@@ -377,14 +377,14 @@ export default function ChatWidget() {
           </div>
 
           {/* Search */}
-          <div className="p-3 border-b border-gray-200 dark:border-gray-700">
+          <div className="p-3 border-b border-gray-200 dark:border-[#2a2a2a]">
             <div className="relative">
               <input
                 type="text"
                 placeholder="Search friends and conversations"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 pl-8 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full bg-gray-100 dark:bg-[#242424] border border-gray-300 dark:border-[#2a2a2a] rounded px-3 py-2 pl-8 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
               <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd"/>
@@ -401,7 +401,7 @@ export default function ChatWidget() {
                 <button
                   key={contact.id}
                   onClick={() => isConversation ? openChatWindow(contact) : openChatWindowFromFriend(contact)}
-                  className="w-full flex items-center gap-3 p-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700"
+                  className="w-full flex items-center gap-3 p-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-[#2a2a2a]"
                 >
                   <div className="relative flex-shrink-0">
                     <UserAvatar userId={contact.id} username={contact.display_name || contact.username} size={40} headshot />
@@ -453,11 +453,11 @@ export default function ChatWidget() {
       {openChats.map((chat, index) => (
         <div
           key={chat.id}
-          className="fixed bottom-0 w-80 h-96 bg-white dark:bg-gray-800 rounded-t-lg shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col z-50"
+          className="fixed bottom-0 w-80 h-96 bg-white dark:bg-[#1a1a1a] rounded-t-lg shadow-2xl border border-gray-200 dark:border-[#2a2a2a] flex flex-col z-50"
           style={{ right: `${(index + 1) * 336 + 16}px` }}
         >
           {/* Chat Header */}
-          <div className="flex items-center gap-3 p-3 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-3 p-3 border-b border-gray-200 dark:border-[#2a2a2a]">
             <UserAvatar userId={chat.id} username={chat.displayName || chat.name} size={32} headshot />
             <div className="flex-1 min-w-0">
               <h3 className="font-bold text-sm text-gray-900 dark:text-gray-100 truncate">
@@ -495,7 +495,7 @@ export default function ChatWidget() {
                 <p className="text-xs text-gray-600 dark:text-gray-400 mb-4">
                   {chat.username}
                 </p>
-                <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 max-w-xs mx-auto">
+                <div className="bg-gray-100 dark:bg-[#242424] rounded-lg p-4 max-w-xs mx-auto">
                   <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
                     Start a conversation with {chat.name}
                   </p>
@@ -517,7 +517,7 @@ export default function ChatWidget() {
                         className={`max-w-[70%] rounded-lg px-3 py-2 ${
                           isCurrentUser
                             ? 'bg-blue-600 text-white'
-                            : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
+                            : 'bg-gray-200 dark:bg-[#242424] text-gray-900 dark:text-gray-100'
                         }`}
                       >
                         <p className="text-sm break-words">{msg.content}</p>
@@ -534,7 +534,7 @@ export default function ChatWidget() {
                 })}
                 {typingUsers[chat.id] && (
                   <div className="flex justify-start">
-                    <div className="bg-gray-200 dark:bg-gray-700 rounded-2xl rounded-bl-md px-3 py-2.5 flex items-center gap-1">
+                    <div className="bg-gray-200 dark:bg-[#242424] rounded-2xl rounded-bl-md px-3 py-2.5 flex items-center gap-1">
                       <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                       <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                       <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
@@ -547,7 +547,7 @@ export default function ChatWidget() {
           </div>
 
           {/* Message Input */}
-          <div className="p-3 border-t border-gray-200 dark:border-gray-700">
+          <div className="p-3 border-t border-gray-200 dark:border-[#2a2a2a]">
             <div className="flex items-center gap-2">
               <input
                 type="text"
@@ -555,7 +555,7 @@ export default function ChatWidget() {
                 value={messageInputs[chat.id] || ""}
                 onChange={(e) => handleInputChange(chat.id, e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSendMessage(chat.id)}
-                className="flex-1 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="flex-1 bg-gray-100 dark:bg-[#242424] border border-gray-300 dark:border-[#2a2a2a] rounded px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
               <button
                 onClick={() => handleSendMessage(chat.id)}
