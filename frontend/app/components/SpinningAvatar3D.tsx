@@ -175,7 +175,7 @@ export default function SpinningAvatar3D({ userId, onError }: Props) {
         </div>
       )}
       <div ref={containerRef} className="w-full h-full" />
-      <div className="absolute bottom-4 right-4 bg-white dark:bg-gray-800 px-3 py-1 rounded font-semibold text-sm text-gray-900 dark:text-gray-100 z-20">
+      <div className="absolute bottom-4 right-4 bg-white dark:bg-[#1a1a1a] px-3 py-1 rounded font-semibold text-sm text-gray-900 dark:text-gray-100 z-20">
         3D
       </div>
     </div>
