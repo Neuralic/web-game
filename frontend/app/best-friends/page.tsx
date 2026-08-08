@@ -97,7 +97,7 @@ export default function BestFriendsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
+    <div className="min-h-screen bg-white dark:bg-black flex flex-col">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <Header
         searchQuery={searchQuery}
@@ -128,7 +128,7 @@ export default function BestFriendsPage() {
               placeholder="Search best friends..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-4 py-3 bg-gray-100 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded-lg text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
         </div>
@@ -172,13 +172,13 @@ export default function BestFriendsPage() {
             {filteredFriends.map((friend) => (
               <div
                 key={friend.id}
-                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
+                className="bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded-lg p-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
               >
                 {/* Friend Card Header */}
                 <div className="flex items-start justify-between mb-3">
                   <Link href={`/profile/${friend.username}`} className="flex items-center gap-3 flex-1">
                     <div className="relative">
-                      <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-700">
+                      <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-100 dark:bg-[#242424]">
                         <Image
                           src={friend.avatar_url || `https://robohash.org/${friend.username}?set=set3`}
                           alt={friend.username}
@@ -216,7 +216,7 @@ export default function BestFriendsPage() {
                       <MoreHorizontal className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                     </button>
                     {showMenu === friend.id && (
-                      <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 min-w-[160px] z-10">
+                      <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg py-1 min-w-[160px] z-10">
                         <Link
                           href={`/profile/${friend.username}`}
                           className="block px-4 py-2 text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -260,7 +260,7 @@ export default function BestFriendsPage() {
                 <div className="flex gap-2">
                   <Link
                     href={`/profile/${friend.username}`}
-                    className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 text-xs font-medium rounded-lg transition-colors text-center"
+                    className="flex-1 px-3 py-2 bg-gray-100 dark:bg-[#242424] hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 text-xs font-medium rounded-lg transition-colors text-center"
                   >
                     Profile
                   </Link>
