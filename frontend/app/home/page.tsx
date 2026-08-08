@@ -158,7 +158,7 @@ const HomePage = () => {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-white dark:bg-gray-900">
+      <div className="min-h-screen bg-white dark:bg-black">
         <AnnouncementBanner />
         <Header
           searchQuery={searchQuery}
@@ -185,7 +185,7 @@ const HomePage = () => {
                     username={user?.display_name || user?.username}
                     size={120}
                     headshot
-                    className="border-2 border-gray-200 dark:border-gray-700 cursor-pointer hover:opacity-90 transition-opacity"
+                    className="border-2 border-gray-200 dark:border-[#2a2a2a] cursor-pointer hover:opacity-90 transition-opacity"
                   />
                 </Link>
                 <div>
@@ -210,7 +210,7 @@ const HomePage = () => {
 
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-4">
                 <Link href="/connect" className="flex flex-col items-center gap-2 cursor-pointer hover:opacity-80">
-                  <div className="w-20 h-20 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center border-2 border-gray-300 dark:border-gray-600">
+                  <div className="w-20 h-20 rounded-full bg-gray-200 dark:bg-[#242424] flex items-center justify-center border-2 border-gray-300 dark:border-[#2a2a2a]">
                     <Plus className="w-8 h-8 text-gray-600 dark:text-gray-400" />
                   </div>
                   <p className="text-xs font-semibold text-gray-900 dark:text-gray-100">Add Friend</p>
@@ -260,7 +260,7 @@ const HomePage = () => {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {recentlyPlayed.slice(0, 4).map((game) => (
                     <Link key={game.id} href={`/games/${game.id}`} className="cursor-pointer group block">
-                      <div className="aspect-[4/3] rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 group-hover:border-gray-400 dark:group-hover:border-gray-500 transition-colors">
+                      <div className="aspect-[4/3] rounded-lg overflow-hidden bg-gray-100 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] group-hover:border-gray-400 dark:group-hover:border-gray-500 transition-colors">
                         {game.thumbnailUrl ? (
                           <img src={game.thumbnailUrl} alt={game.title} className="w-full h-full object-cover" />
                         ) : (
@@ -293,7 +293,7 @@ const HomePage = () => {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {favoriteGames.slice(0, 4).map((game) => (
                     <Link key={game.id} href={`/games/${game.id}`} className="cursor-pointer group block">
-                      <div className="aspect-[4/3] rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 group-hover:border-gray-400 dark:group-hover:border-gray-500 transition-colors">
+                      <div className="aspect-[4/3] rounded-lg overflow-hidden bg-gray-100 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] group-hover:border-gray-400 dark:group-hover:border-gray-500 transition-colors">
                         {game.thumbnailUrl ? (
                           <img src={game.thumbnailUrl} alt={game.title} className="w-full h-full object-cover" />
                         ) : (
@@ -315,7 +315,7 @@ const HomePage = () => {
               <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">My Feed</h2>
 
               {/* Post Composer */}
-              <div className="mb-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+              <div className="mb-6 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded-lg p-4">
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">What&apos;s happening today?</p>
                 <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-3">FEED</h3>
                 <div className="flex gap-2">
@@ -324,7 +324,7 @@ const HomePage = () => {
                     onChange={(e) => setFeedPostText(e.target.value)}
                     placeholder="What's on your mind?"
                     rows={3}
-                    className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-gray-50 dark:bg-[#242424] text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                   />
                   <div className="flex flex-col gap-1 justify-end">
                     <label className="p-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg cursor-pointer transition-colors" title="Attach image">
@@ -342,7 +342,7 @@ const HomePage = () => {
                 </div>
                 {feedPostImagePreview && (
                   <div className="mt-2 relative inline-block">
-                    <img src={feedPostImagePreview} alt="Preview" className="max-h-24 rounded-lg border border-gray-300 dark:border-gray-600" />
+                    <img src={feedPostImagePreview} alt="Preview" className="max-h-24 rounded-lg border border-gray-300 dark:border-[#2a2a2a]" />
                     <button onClick={handleRemoveFeedImage} className="absolute -top-2 -right-2 p-0.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors">
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -354,7 +354,7 @@ const HomePage = () => {
               {feedPosts.length > 0 ? (
                 <div className="space-y-4">
                   {feedPosts.map((post: any) => (
-                    <div key={post.id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                    <div key={post.id} className="bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded-lg p-4">
                       <div className="flex gap-3">
                         <UserAvatar userId={post.author_id} username={post.author_display_name || post.author_username} size={40} headshot />
                         <div className="flex-1 min-w-0">
@@ -383,12 +383,12 @@ const HomePage = () => {
                       </div>
 
                       {post.image_url && (
-                        <div className="mt-3 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+                        <div className="mt-3 rounded-lg overflow-hidden border border-gray-200 dark:border-[#2a2a2a]">
                           <img src={post.image_url} alt="Post image" className="max-w-full max-h-96 object-contain" />
                         </div>
                       )}
 
-                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100 dark:border-[#2a2a2a]">
                         <div className="flex items-center gap-4">
                           <button
                             onClick={async () => {
