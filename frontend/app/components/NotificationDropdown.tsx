@@ -76,10 +76,10 @@ export default function NotificationDropdown({ isOpen, onClose }: NotificationDr
   return (
     <div
       ref={dropdownRef}
-      className="absolute top-full right-0 mt-2 w-96 bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 max-h-[600px] flex flex-col z-50"
+      className="absolute top-full right-0 mt-2 w-96 bg-white dark:bg-[#1a1a1a] rounded-lg shadow-2xl border border-gray-200 dark:border-[#2a2a2a] max-h-[600px] flex flex-col z-50"
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+      <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-[#2a2a2a]">
         <h3 className="font-bold text-gray-900 dark:text-gray-100">Notifications</h3>
         {notifications.length > 0 && (
           <button
@@ -95,7 +95,7 @@ export default function NotificationDropdown({ isOpen, onClose }: NotificationDr
       <div className="flex-1 overflow-y-auto">
         {notifications.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-            <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-3">
+            <div className="w-16 h-16 bg-gray-100 dark:bg-[#242424] rounded-full flex items-center justify-center mb-3">
               <svg className="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
               </svg>
@@ -107,7 +107,7 @@ export default function NotificationDropdown({ isOpen, onClose }: NotificationDr
           notifications.map((notification) => (
             <div
               key={notification.id}
-              className={`p-4 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
+              className={`p-4 border-b border-gray-100 dark:border-[#2a2a2a] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
                 !notification.is_read ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''
               }`}
               onClick={() => !notification.is_read && markAsRead(notification.id)}
@@ -168,7 +168,7 @@ export default function NotificationDropdown({ isOpen, onClose }: NotificationDr
                           e.stopPropagation();
                           handleRejectRequest(notification.id, notification.related_item_id!);
                         }}
-                        className="flex-1 px-3 py-1.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 text-xs font-medium rounded transition-colors"
+                        className="flex-1 px-3 py-1.5 bg-gray-200 dark:bg-[#242424] hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 text-xs font-medium rounded transition-colors"
                       >
                         Decline
                       </button>
@@ -213,7 +213,7 @@ export default function NotificationDropdown({ isOpen, onClose }: NotificationDr
       </div>
 
       {/* Settings Link */}
-      <div className="p-3 border-t border-gray-200 dark:border-gray-700">
+      <div className="p-3 border-t border-gray-200 dark:border-[#2a2a2a]">
         <Link
           href="/settings"
           className="block text-center text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
