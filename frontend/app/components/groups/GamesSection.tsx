@@ -56,7 +56,7 @@ export default function GamesSection({ groupId }: GamesSectionProps) {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700 mb-4">
+    <div className="bg-white dark:bg-black rounded-lg p-4 border border-gray-200 dark:border-[#2a2a2a] mb-4">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">
           Games
@@ -85,7 +85,7 @@ export default function GamesSection({ groupId }: GamesSectionProps) {
                   href={`/games/${game.id}`}
                   className="group block"
                 >
-                  <div className="aspect-square border border-gray-200 dark:border-gray-700 rounded overflow-hidden bg-gray-100 dark:bg-gray-800 relative">
+                  <div className="aspect-square border border-gray-200 dark:border-[#2a2a2a] rounded overflow-hidden bg-gray-100 dark:bg-[#1a1a1a] relative">
                     <img
                       src={
                         game.thumbnailUrl ||
