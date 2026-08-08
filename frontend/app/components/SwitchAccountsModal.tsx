@@ -134,9 +134,9 @@ export default function SwitchAccountsModal({
       ></div>
 
       {/* Modal */}
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md z-[101]">
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-[#1a1a1a] rounded-lg shadow-xl w-full max-w-md z-[101]">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-[#2a2a2a]">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">
             Switch Accounts
           </h2>
@@ -225,10 +225,10 @@ export default function SwitchAccountsModal({
             <button
               onClick={handleAddAccount}
               disabled={switching}
-              className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border-2 border-dashed border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border-2 border-dashed border-gray-300 dark:border-[#2a2a2a] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {/* Plus Icon */}
-              <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full flex-shrink-0 flex items-center justify-center">
+              <div className="w-12 h-12 bg-gray-200 dark:bg-[#242424] rounded-full flex-shrink-0 flex items-center justify-center">
                 <Plus className="w-6 h-6 text-gray-600 dark:text-gray-400" />
               </div>
 
