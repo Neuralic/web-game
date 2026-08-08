@@ -73,6 +73,7 @@ const GroupDetailPage = () => {
   const [shoutImage, setShoutImage] = useState<File | null>(null);
   const [shoutImagePreview, setShoutImagePreview] = useState<string | null>(null);
   const [groupSearch, setGroupSearch] = useState("");
+  const [searchMyGroups, setSearchMyGroups] = useState("");
   const [openPostMenu, setOpenPostMenu] = useState<string | null>(null);
   const [userGroups, setUserGroups] = useState<Group[]>([]);
   const [currentGroupDetails, setCurrentGroupDetails] = useState<Group | null>(
@@ -623,6 +624,8 @@ const GroupDetailPage = () => {
             <input
               type="text"
               placeholder="Search My Groups"
+              value={searchMyGroups}
+              onChange={(e) => setSearchMyGroups(e.target.value)}
               className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-gray-800 border-none rounded text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
@@ -640,8 +643,11 @@ const GroupDetailPage = () => {
                 </p>
               </div>
             ) : (() => {
-              const primaryGroup = userGroups.find(g => g.id === primaryGroupId);
-              const otherGroups = userGroups.filter(g => g.id !== primaryGroupId);
+              const filteredGroups = userGroups.filter((g) =>
+                g.name.toLowerCase().includes(searchMyGroups.toLowerCase())
+              );
+              const primaryGroup = filteredGroups.find(g => g.id === primaryGroupId);
+              const otherGroups = filteredGroups.filter(g => g.id !== primaryGroupId);
 
               const renderGroupItem = (group: Group) => {
                 const href = group.group_number
@@ -691,7 +697,13 @@ const GroupDetailPage = () => {
                 );
               };
 
-              return (
+              return filteredGroups.length === 0 ? (
+                <div className="py-4 text-center">
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                    No groups match your search
+                  </p>
+                </div>
+              ) : (
                 <>
                   {primaryGroup && (
                     <div className="mb-3">
