@@ -105,14 +105,14 @@ function ProfileHeadshot({ userId, username }: { userId: string; username: strin
 
   if (!imageUrl) {
     return (
-      <div className="w-36 h-36 rounded-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center flex-shrink-0 border-2 border-gray-200 dark:border-gray-700">
+      <div className="w-36 h-36 rounded-full bg-gray-300 dark:bg-[#242424] flex items-center justify-center flex-shrink-0 border-2 border-gray-200 dark:border-[#2a2a2a]">
         <span className="text-gray-600 dark:text-gray-300 font-bold text-4xl">{initials}</span>
       </div>
     );
   }
 
   return (
-    <div className="w-36 h-36 rounded-full overflow-hidden flex-shrink-0 border-2 border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
+    <div className="w-36 h-36 rounded-full overflow-hidden flex-shrink-0 border-2 border-gray-200 dark:border-[#2a2a2a] bg-gray-100 dark:bg-[#1a1a1a]">
       <img
         src={imageUrl}
         alt={username}
@@ -900,7 +900,7 @@ const ProfilePage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
+    <div className="min-h-screen bg-white dark:bg-black flex flex-col">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} setSidebarOpen={setSidebarOpen} />
 
@@ -923,7 +923,7 @@ const ProfilePage = () => {
 
           <div className="px-4">
             {/* Profile Banner */}
-            <div className="relative w-full h-[250px] overflow-hidden bg-gray-100 dark:bg-gray-800">
+            <div className="relative w-full h-[250px] overflow-hidden bg-gray-100 dark:bg-[#1a1a1a]">
               {profileUser?.profile_banner_url && (
                 <a
                   href={profileUser.profile_banner_url}
@@ -1002,15 +1002,15 @@ const ProfilePage = () => {
                       <>
                         {isOwnProfile ? (
                           <>
-                            <button onClick={() => setShowEditProfileModal(true)} className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium rounded-lg text-sm transition-colors">Edit Profile</button>
-                            <Link href="/avatar"><button className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium rounded-lg text-sm transition-colors">Edit Avatar</button></Link>
+                            <button onClick={() => setShowEditProfileModal(true)} className="px-4 py-2 bg-gray-200 dark:bg-[#242424] hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium rounded-lg text-sm transition-colors">Edit Profile</button>
+                            <Link href="/avatar"><button className="px-4 py-2 bg-gray-200 dark:bg-[#242424] hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium rounded-lg text-sm transition-colors">Edit Avatar</button></Link>
                           </>
                         ) : (
                           <>
                             {relationship?.isFriend ? (
                               <>
-                                <button onClick={() => openChatWithUser(profileUser.id, profileUser.username, profileUser.display_name, profileUser.avatar_url)} className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium rounded-lg text-sm transition-colors">Message</button>
-                                <button onClick={handleUnfriend} disabled={isLoadingAction} className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium rounded-lg text-sm transition-colors disabled:opacity-50">Unfriend</button>
+                                <button onClick={() => openChatWithUser(profileUser.id, profileUser.username, profileUser.display_name, profileUser.avatar_url)} className="px-4 py-2 bg-gray-200 dark:bg-[#242424] hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium rounded-lg text-sm transition-colors">Message</button>
+                                <button onClick={handleUnfriend} disabled={isLoadingAction} className="px-4 py-2 bg-gray-200 dark:bg-[#242424] hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium rounded-lg text-sm transition-colors disabled:opacity-50">Unfriend</button>
                               </>
                             ) : relationship?.friendRequestStatus === 'sent' ? (
                               <button disabled className="px-4 py-2 bg-gray-400 text-white font-medium rounded-lg text-sm cursor-not-allowed">Request Sent</button>
@@ -1029,7 +1029,7 @@ const ProfilePage = () => {
                         <MoreHorizontal className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                       </button>
                       {showProfileMenu && (
-                        <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 min-w-[180px] z-50">
+                        <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg py-1 min-w-[180px] z-50">
                           {isOwnProfile ? (
                             <>
                               <button className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700" onClick={() => setShowProfileMenu(false)}>Inventory</button>
@@ -1042,13 +1042,13 @@ const ProfilePage = () => {
                                   <button className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700" onClick={() => { handleBestFriendToggle(); setShowProfileMenu(false); }}>
                                     {relationship?.isBestFriend ? 'Remove Best Friend' : 'Make Best Friend'}
                                   </button>
-                                  <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+                                  <div className="border-t border-gray-200 dark:border-[#2a2a2a] my-1"></div>
                                 </>
                               )}
                               <button className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700" onClick={() => { handleFollowToggle(); setShowProfileMenu(false); }}>
                                 {relationship?.isFollowing ? 'Unfollow' : 'Follow'}
                               </button>
-                              <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+                              <div className="border-t border-gray-200 dark:border-[#2a2a2a] my-1"></div>
                               <button className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700" onClick={() => { handleBlockUser(); setShowProfileMenu(false); }}>Block User</button>
                               <button className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700" onClick={handleReportAbuse}>Report Abuse</button>
                             </>
@@ -1119,14 +1119,14 @@ const ProfilePage = () => {
 
                   {isEditingBio ? (
                     <div>
-                      <textarea value={editedBio} onChange={(e) => setEditedBio(e.target.value.slice(0, 1000))} placeholder="Tell the AdventureBlox community about what you like to make, build, and explore..." className="w-full h-24 p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600" />
+                      <textarea value={editedBio} onChange={(e) => setEditedBio(e.target.value.slice(0, 1000))} placeholder="Tell the AdventureBlox community about what you like to make, build, and explore..." className="w-full h-24 p-3 border border-gray-200 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600" />
                       <div className="flex items-center justify-between mt-2">
                         <p className="text-xs text-gray-600 dark:text-gray-400">Keep yourself safe, do not share personal details online.</p>
                         <p className="text-xs text-gray-600 dark:text-gray-400">{editedBio.length}/1000</p>
                       </div>
                       <div className="flex justify-end gap-3 mt-4">
-                        <button onClick={handleCancelBio} className="px-6 py-2 text-sm font-medium text-gray-900 dark:text-gray-100 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-700">Cancel</button>
-                        <button onClick={handleSaveBio} className="px-6 py-2 text-sm font-medium text-gray-900 dark:text-gray-100 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-700">Save</button>
+                        <button onClick={handleCancelBio} className="px-6 py-2 text-sm font-medium text-gray-900 dark:text-gray-100 bg-gray-100 dark:bg-[#1a1a1a] hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg border border-gray-200 dark:border-[#2a2a2a]">Cancel</button>
+                        <button onClick={handleSaveBio} className="px-6 py-2 text-sm font-medium text-gray-900 dark:text-gray-100 bg-gray-100 dark:bg-[#1a1a1a] hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg border border-gray-200 dark:border-[#2a2a2a]">Save</button>
                       </div>
                     </div>
                   ) : bio ? (
@@ -1162,7 +1162,7 @@ const ProfilePage = () => {
                         {visibleWearingItems.length > 0 ? (
                           visibleWearingItems.map((item) => (
                             <div key={item.id} className="cursor-pointer group">
-                              <div className="w-24 h-24 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 group-hover:border-gray-400 dark:group-hover:border-gray-500 transition-colors">
+                              <div className="w-24 h-24 bg-gray-100 dark:bg-[#1a1a1a] rounded-lg overflow-hidden border border-gray-200 dark:border-[#2a2a2a] group-hover:border-gray-400 dark:group-hover:border-gray-500 transition-colors">
                                 <img src={item.thumb} alt={item.id} className="w-full h-full object-contain p-1" />
                               </div>
                             </div>
@@ -1201,20 +1201,20 @@ const ProfilePage = () => {
                     <div className="flex items-center justify-between mb-4">
                       <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Groups</h2>
                       <div className="flex items-center gap-1">
-                        <button onClick={() => setGroupsViewMode("carousel")} className={`p-2 rounded transition-colors ${groupsViewMode === "carousel" ? "bg-gray-100 dark:bg-gray-800" : "bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"}`}><Monitor className="w-4 h-4 text-gray-600 dark:text-gray-400" /></button>
-                        <button onClick={() => setGroupsViewMode("grid")} className={`p-2 rounded transition-colors ${groupsViewMode === "grid" ? "bg-gray-100 dark:bg-gray-800" : "bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"}`}><LayoutGrid className="w-4 h-4 text-gray-600 dark:text-gray-400" /></button>
+                        <button onClick={() => setGroupsViewMode("carousel")} className={`p-2 rounded transition-colors ${groupsViewMode === "carousel" ? "bg-gray-100 dark:bg-[#1a1a1a]" : "bg-white dark:bg-black hover:bg-gray-50 dark:hover:bg-gray-800"}`}><Monitor className="w-4 h-4 text-gray-600 dark:text-gray-400" /></button>
+                        <button onClick={() => setGroupsViewMode("grid")} className={`p-2 rounded transition-colors ${groupsViewMode === "grid" ? "bg-gray-100 dark:bg-[#1a1a1a]" : "bg-white dark:bg-black hover:bg-gray-50 dark:hover:bg-gray-800"}`}><LayoutGrid className="w-4 h-4 text-gray-600 dark:text-gray-400" /></button>
                       </div>
                     </div>
 
                     {groupsViewMode === "carousel" && groups.length > 0 && (
-                      <div className="relative border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-800">
+                      <div className="relative border border-gray-200 dark:border-[#2a2a2a] rounded-lg overflow-hidden bg-white dark:bg-[#1a1a1a]">
                         <div className="flex h-[260px]">
                           {currentGroupIndex > 0 && (
-                            <button onClick={(e) => { e.preventDefault(); setCurrentGroupIndex(Math.max(0, currentGroupIndex - 1)); }} className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white/80 dark:bg-gray-900/80 flex items-center justify-center hover:bg-white dark:hover:bg-gray-900 transition-colors shadow">
+                            <button onClick={(e) => { e.preventDefault(); setCurrentGroupIndex(Math.max(0, currentGroupIndex - 1)); }} className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white/80 dark:bg-black/80 flex items-center justify-center hover:bg-white dark:hover:bg-gray-900 transition-colors shadow">
                               <ChevronLeft className="w-4 h-4 text-gray-700 dark:text-gray-300" />
                             </button>
                           )}
-                          <Link href={`/groups/${groups[currentGroupIndex]?.id}`} className="w-[260px] h-full flex-shrink-0 bg-blue-500 dark:bg-gray-700 relative block">
+                          <Link href={`/groups/${groups[currentGroupIndex]?.id}`} className="w-[260px] h-full flex-shrink-0 bg-blue-500 dark:bg-[#242424] relative block">
                             <Image src={groups[currentGroupIndex]?.image || `https://robohash.org/${groups[currentGroupIndex]?.name}?set=set3`} alt={groups[currentGroupIndex]?.name || ""} fill className="object-cover" sizes="180px" />
                             {groups[currentGroupIndex]?.rank === "Owner" && (
                               <span className="absolute top-1.5 left-1.5 px-2 py-0.5 bg-gradient-to-r from-yellow-400 to-amber-500 text-white text-[9px] font-bold rounded-md uppercase tracking-wide shadow-md">
@@ -1233,7 +1233,7 @@ const ProfilePage = () => {
     </svg>
   )}
 </h3>
-                              <div className="w-full h-px bg-gray-200 dark:bg-gray-700 my-3" />
+                              <div className="w-full h-px bg-gray-200 dark:bg-[#242424] my-3" />
                               {groups[currentGroupIndex]?.description && (
                                 <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3">{groups[currentGroupIndex]?.description}</p>
                               )}
@@ -1250,7 +1250,7 @@ const ProfilePage = () => {
                             </div>
                           </Link>
                           {currentGroupIndex < groups.length - 1 && (
-                            <button onClick={(e) => { e.preventDefault(); setCurrentGroupIndex(Math.min(groups.length - 1, currentGroupIndex + 1)); }} className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white/80 dark:bg-gray-900/80 flex items-center justify-center hover:bg-white dark:hover:bg-gray-900 transition-colors shadow">
+                            <button onClick={(e) => { e.preventDefault(); setCurrentGroupIndex(Math.min(groups.length - 1, currentGroupIndex + 1)); }} className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white/80 dark:bg-black/80 flex items-center justify-center hover:bg-white dark:hover:bg-gray-900 transition-colors shadow">
                               <ChevronRight className="w-4 h-4 text-gray-700 dark:text-gray-300" />
                             </button>
                           )}
@@ -1262,7 +1262,7 @@ const ProfilePage = () => {
                       <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                         {groups.map((group) => (
                           <Link key={group.id} href={`/groups/${group.id}`} className="block group/card">
-                            <div className="aspect-square bg-gray-200 dark:bg-gray-700 overflow-hidden rounded-lg relative">
+                            <div className="aspect-square bg-gray-200 dark:bg-[#242424] overflow-hidden rounded-lg relative">
                               <Image src={group.image} alt={group.name} fill className="object-cover group-hover/card:opacity-90 transition-opacity" sizes="(max-width: 640px) 33vw, 25vw" />
                               {group.rank === "Owner" && (
                                 <span className="absolute top-1.5 left-1.5 px-2 py-0.5 bg-gradient-to-r from-yellow-400 to-amber-500 text-white text-[9px] font-bold rounded-md uppercase tracking-wide shadow-md">
@@ -1302,7 +1302,7 @@ const ProfilePage = () => {
                     <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
                       {favoriteGames.map((game) => (
                         <Link key={game.id} href={`/games/${game.id}`} className="cursor-pointer group block">
-                          <div className="aspect-[4/3] rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 group-hover:border-gray-400 dark:group-hover:border-gray-500 transition-colors">
+                          <div className="aspect-[4/3] rounded-lg overflow-hidden bg-gray-100 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] group-hover:border-gray-400 dark:group-hover:border-gray-500 transition-colors">
                             {game.thumbnailUrl ? (
                               <img src={game.thumbnailUrl} alt={game.title} className="w-full h-full object-cover" />
                             ) : (
@@ -1328,7 +1328,7 @@ const ProfilePage = () => {
                     <div className="flex gap-4 flex-wrap">
                       {adventureBadges.map((badge) => (
                         <div key={badge.id} className="flex flex-col items-center w-20 text-center" title={badge.description || badge.name}>
-                          <div className="w-16 h-16 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                          <div className="w-16 h-16 rounded-lg overflow-hidden border border-gray-200 dark:border-[#2a2a2a] bg-gray-100 dark:bg-[#1a1a1a] flex items-center justify-center">
                             {badge.image_url ? (
                               <img src={badge.image_url} alt={badge.name} className="w-full h-full object-contain p-1" />
                             ) : (
@@ -1395,9 +1395,9 @@ const ProfilePage = () => {
               <div className="py-6">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Games</h2>
-                  <div className="flex border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-                    <button onClick={() => setViewMode("list")} className={`p-2 ${viewMode === "list" ? "bg-gray-100 dark:bg-gray-800" : "bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"}`}><Monitor className="w-4 h-4 text-gray-900 dark:text-gray-100" /></button>
-                    <button onClick={() => setViewMode("grid")} className={`p-2 ${viewMode === "grid" ? "bg-gray-100 dark:bg-gray-800" : "bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"}`}><LayoutGrid className="w-4 h-4 text-gray-900 dark:text-gray-100" /></button>
+                  <div className="flex border border-gray-200 dark:border-[#2a2a2a] rounded-lg overflow-hidden">
+                    <button onClick={() => setViewMode("list")} className={`p-2 ${viewMode === "list" ? "bg-gray-100 dark:bg-[#1a1a1a]" : "bg-white dark:bg-black hover:bg-gray-50 dark:hover:bg-gray-800"}`}><Monitor className="w-4 h-4 text-gray-900 dark:text-gray-100" /></button>
+                    <button onClick={() => setViewMode("grid")} className={`p-2 ${viewMode === "grid" ? "bg-gray-100 dark:bg-[#1a1a1a]" : "bg-white dark:bg-black hover:bg-gray-50 dark:hover:bg-gray-800"}`}><LayoutGrid className="w-4 h-4 text-gray-900 dark:text-gray-100" /></button>
                   </div>
                 </div>
                 {loadingCreations ? (
@@ -1412,9 +1412,9 @@ const ProfilePage = () => {
                       <Link
                         key={game.id}
                         href={`/games/${game.id}`}
-                        className="flex gap-6 p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-gray-400 dark:hover:border-gray-500 transition-colors cursor-pointer"
+                        className="flex gap-6 p-4 border border-gray-200 dark:border-[#2a2a2a] rounded-lg hover:border-gray-400 dark:hover:border-gray-500 transition-colors cursor-pointer"
                       >
-                        <div className="w-[280px] h-[180px] flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
+                        <div className="w-[280px] h-[180px] flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-[#1a1a1a]">
                           {game.thumbnailUrl ? (
                             <img src={game.thumbnailUrl} alt={game.title} className="w-full h-full object-cover" />
                           ) : (
@@ -1444,7 +1444,7 @@ const ProfilePage = () => {
                   <div className="grid grid-cols-3 gap-4">
                     {creations.map((game) => (
                       <Link key={game.id} href={`/games/${game.id}`} className="cursor-pointer group block">
-                        <div className="aspect-[4/3] rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 group-hover:border-gray-400 dark:group-hover:border-gray-500 transition-colors">
+                        <div className="aspect-[4/3] rounded-lg overflow-hidden bg-gray-100 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] group-hover:border-gray-400 dark:group-hover:border-gray-500 transition-colors">
                           {game.thumbnailUrl ? (
                             <img src={game.thumbnailUrl} alt={game.title} className="w-full h-full object-cover" />
                           ) : (
@@ -1469,7 +1469,7 @@ const ProfilePage = () => {
                       onChange={(e) => setNewWallPost(e.target.value)}
                       placeholder="Say something..."
                       rows={4}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-[#2a2a2a] rounded bg-gray-50 dark:bg-[#242424] text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                     />
                     <div className="flex justify-end">
                       <button
@@ -1486,7 +1486,7 @@ const ProfilePage = () => {
                 {wallPosts.length > 0 ? (
                   <div className="space-y-6">
                     {wallPosts.map((post) => (
-                      <div key={post.id} className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                      <div key={post.id} className="bg-gray-50 dark:bg-[#1a1a1a] rounded-lg p-4 border border-gray-200 dark:border-[#2a2a2a]">
                         {/* Post Header */}
                         <div className="flex gap-3 mb-3">
                           <UserAvatar
@@ -1526,7 +1526,7 @@ const ProfilePage = () => {
                         )}
 
                         {/* Post Actions */}
-                        <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-[#2a2a2a]">
                           {post.replies.length > 0 ? (
                             <button
                               onClick={() => toggleWallReplies(post.id)}
@@ -1582,7 +1582,7 @@ const ProfilePage = () => {
                                   }
                                 }}
                                 placeholder="Write a reply..."
-                                className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-[#2a2a2a] rounded bg-white dark:bg-[#242424] text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                               />
                               <button
                                 onClick={() => handleWallReplySubmit(post.id)}
@@ -1595,7 +1595,7 @@ const ProfilePage = () => {
 
                             {/* Replies List */}
                             {post.replies.length > 0 && (
-                              <div className="space-y-3 pl-4 border-l-2 border-gray-300 dark:border-gray-600">
+                              <div className="space-y-3 pl-4 border-l-2 border-gray-300 dark:border-[#2a2a2a]">
                                 {post.replies.map((reply) => (
                                   <div key={reply.id} className="flex gap-2">
                                     <UserAvatar
@@ -1661,32 +1661,32 @@ const ProfilePage = () => {
 
       {showEditProfileModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-md w-full p-6 relative">
+          <div className="bg-white dark:bg-[#1a1a1a] rounded-lg shadow-2xl max-w-md w-full p-6 relative">
             <button onClick={() => { setShowEditProfileModal(false); setEditedDisplayName(displayName); setEditedUsername(username.replace("@", "")); setEditedStatusMessage(statusMessage); }} className="absolute top-4 right-4 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
             <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">Edit Profile</h2>
             <div className="mb-6">
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Display Name</label>
-              <input type="text" value={editedDisplayName} onChange={(e) => setEditedDisplayName(e.target.value)} maxLength={20} className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-4 py-2.5 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <input type="text" value={editedDisplayName} onChange={(e) => setEditedDisplayName(e.target.value)} maxLength={20} className="w-full bg-gray-100 dark:bg-[#242424] border border-gray-300 dark:border-[#2a2a2a] rounded px-4 py-2.5 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" />
               <div className="text-right text-sm text-gray-600 dark:text-gray-400 mt-1">{editedDisplayName.length}/20</div>
             </div>
             <div className="mb-6">
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Username</label>
               <div className="relative flex items-center">
                 <span className="absolute left-4 text-gray-500 dark:text-gray-400 font-medium select-none pointer-events-none">@</span>
-                <input type="text" value={editedUsername} onChange={(e) => setEditedUsername(e.target.value)} maxLength={20} className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-4 py-2.5 pl-8 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="username" />
+                <input type="text" value={editedUsername} onChange={(e) => setEditedUsername(e.target.value)} maxLength={20} className="w-full bg-gray-100 dark:bg-[#242424] border border-gray-300 dark:border-[#2a2a2a] rounded px-4 py-2.5 pl-8 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="username" />
               </div>
               <div className="text-right text-sm text-gray-600 dark:text-gray-400 mt-1">{editedUsername.length}/20</div>
             </div>
             <div className="mb-6">
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Status Message</label>
-              <input type="text" value={editedStatusMessage} onChange={(e) => setEditedStatusMessage(e.target.value)} maxLength={50} className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-4 py-2.5 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="What's on your mind?" />
+              <input type="text" value={editedStatusMessage} onChange={(e) => setEditedStatusMessage(e.target.value)} maxLength={50} className="w-full bg-gray-100 dark:bg-[#242424] border border-gray-300 dark:border-[#2a2a2a] rounded px-4 py-2.5 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="What's on your mind?" />
               <div className="text-right text-sm text-gray-600 dark:text-gray-400 mt-1">{editedStatusMessage.length}/50</div>
             </div>
             {saveError && <div className="mb-4 bg-red-500/10 border border-red-500 text-red-500 px-4 py-3 rounded text-sm">{saveError}</div>}
             <div className="flex items-center gap-3 justify-end">
-              <button onClick={() => { setShowEditProfileModal(false); setEditedDisplayName(displayName); setEditedUsername(username.replace("@", "")); setEditedStatusMessage(statusMessage); }} className="px-6 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium rounded transition-colors">Cancel</button>
+              <button onClick={() => { setShowEditProfileModal(false); setEditedDisplayName(displayName); setEditedUsername(username.replace("@", "")); setEditedStatusMessage(statusMessage); }} className="px-6 py-2 bg-gray-200 dark:bg-[#242424] hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium rounded transition-colors">Cancel</button>
               <button onClick={handleSaveProfile} disabled={isSavingProfile} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed">{isSavingProfile ? "Saving..." : "Save"}</button>
             </div>
           </div>
