@@ -311,8 +311,8 @@ const CatalogPage = () => {
 
   const CatalogItemCard = ({ item }: { item: CatalogItem }) => (
     <Link href={`/catalog/${item.id}`} className="block group">
-      <div className="rounded-lg overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
-        <div className="relative aspect-square bg-gray-100 dark:bg-gray-700">
+      <div className="rounded-lg overflow-hidden bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] hover:shadow-lg transition-shadow">
+        <div className="relative aspect-square bg-gray-100 dark:bg-[#242424]">
           {item.thumbnailUrl ? (
             <img
               src={item.thumbnailUrl}
@@ -337,7 +337,7 @@ const CatalogPage = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+    <div className="min-h-screen bg-gray-50 dark:bg-black flex flex-col">
       {/* Sidebar */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
@@ -351,7 +351,7 @@ const CatalogPage = () => {
       {/* Main Content */}
       <main className="flex-1 w-full">
         {/* Top Bar - Marketplace Header */}
-        <div className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+        <div className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-black">
           <div className="px-4 py-3">
             {/* Title + Search + Dropdown + Buy Button Row */}
             <div className="flex items-center justify-between gap-3 mb-3">
@@ -372,7 +372,7 @@ const CatalogPage = () => {
                     placeholder="Search"
                     value={catalogSearch}
                     onChange={(e) => setCatalogSearch(e.target.value)}
-                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg pl-11 pr-4 py-3 text-base text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full bg-gray-100 dark:bg-[#1a1a1a] border border-gray-300 dark:border-[#2a2a2a] rounded-lg pl-11 pr-4 py-3 text-base text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                 </div>
 
@@ -380,7 +380,7 @@ const CatalogPage = () => {
                 <select
                   value={categoryFilter}
                   onChange={(e) => { setCategoryFilter(e.target.value); setSubcategoryFilter(""); }}
-                  className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded px-3 py-1.5 text-sm text-gray-900 dark:text-gray-100 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
+                  className="bg-white dark:bg-[#1a1a1a] border border-gray-300 dark:border-[#2a2a2a] rounded px-3 py-1.5 text-sm text-gray-900 dark:text-gray-100 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
                 >
                   <option value="All">All</option>
                   {apiCategories.map((cat) => (
@@ -397,7 +397,7 @@ const CatalogPage = () => {
                 className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1.5 ${
                   categoryFilter !== "All" || subcategoryFilter
                     ? "bg-blue-600 text-white hover:bg-blue-700"
-                    : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
+                    : "bg-gray-200 dark:bg-[#242424] text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
                 }`}
               >
                 {subcategoryFilter ? `${categoryFilter} › ${subcategoryFilter}` : categoryFilter}
@@ -407,7 +407,7 @@ const CatalogPage = () => {
               </button>
               <button
                 onClick={() => setShowSortModal(true)}
-                className="px-4 py-1.5 rounded-md text-sm font-medium bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors flex items-center gap-1.5"
+                className="px-4 py-1.5 rounded-md text-sm font-medium bg-gray-200 dark:bg-[#242424] text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors flex items-center gap-1.5"
               >
                 Sort by {sortBy}
                 <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
@@ -416,7 +416,7 @@ const CatalogPage = () => {
               </button>
               <button
                 onClick={() => setShowUnavailableModal(true)}
-                className="px-4 py-1.5 rounded-md text-sm font-medium bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors flex items-center gap-1.5"
+                className="px-4 py-1.5 rounded-md text-sm font-medium bg-gray-200 dark:bg-[#242424] text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors flex items-center gap-1.5"
               >
                 {unavailableItemsFilter}
                 <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
@@ -427,7 +427,7 @@ const CatalogPage = () => {
           </div>
         </div>
         {/* Popular Tags */}
-        <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+        <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-black">
           <div className="flex items-center gap-2">
             {/* Left Arrow */}
             <button
@@ -457,7 +457,7 @@ const CatalogPage = () => {
                   className={`px-4 py-1.5 text-sm font-semibold rounded-full whitespace-nowrap transition-colors flex-shrink-0 ${
                     subcategoryFilter === sub.value
                       ? "bg-blue-600 text-white"
-                      : "bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
+                      : "bg-gray-200 dark:bg-[#242424] hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
                   }`}
                 >
                   {sub.label}
@@ -466,7 +466,7 @@ const CatalogPage = () => {
             </div>
 
             {/* Divider */}
-            <div className="w-px self-stretch bg-gray-200 dark:bg-gray-700 flex-shrink-0" />
+            <div className="w-px self-stretch bg-gray-200 dark:bg-[#242424] flex-shrink-0" />
 
             {/* Tags Container */}
             <div
@@ -506,7 +506,7 @@ const CatalogPage = () => {
                   <button
                     key={`${item.tag}-${index}`}
                     onClick={() => toggleTag(item.tag)}
-                    className="px-4 py-1.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-full whitespace-nowrap transition-colors flex-shrink-0"
+                    className="px-4 py-1.5 bg-gray-200 dark:bg-[#242424] hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-full whitespace-nowrap transition-colors flex-shrink-0"
                   >
                     {item.tag}
                   </button>
@@ -562,7 +562,7 @@ const CatalogPage = () => {
               <button
                 onClick={() => fetchItems(currentPage - 1)}
                 disabled={currentPage <= 1}
-                className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 font-medium rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-white dark:bg-[#1a1a1a] border border-gray-300 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-100 font-medium rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Previous
               </button>
@@ -572,7 +572,7 @@ const CatalogPage = () => {
               <button
                 onClick={() => fetchItems(currentPage + 1)}
                 disabled={currentPage >= totalPages}
-                className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 font-medium rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-white dark:bg-[#1a1a1a] border border-gray-300 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-100 font-medium rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Next
               </button>
@@ -586,7 +586,7 @@ const CatalogPage = () => {
       {/* Category Modal — two-level: category then subcategory */}
       {showCategoryModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg p-6">
+          <div className="bg-white dark:bg-[#1a1a1a] rounded-lg shadow-xl w-full max-w-lg p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Category</h3>
               <button onClick={() => setShowCategoryModal(false)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
@@ -660,7 +660,7 @@ const CatalogPage = () => {
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => applyCategoryModal("All", "")}
-                className="flex-1 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-semibold rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-sm"
+                className="flex-1 py-2.5 border border-gray-300 dark:border-[#2a2a2a] text-gray-700 dark:text-gray-300 font-semibold rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-sm"
               >
                 Clear
               </button>
@@ -678,7 +678,7 @@ const CatalogPage = () => {
       {/* Sort By Modal */}
       {showSortModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
+          <div className="bg-white dark:bg-[#1a1a1a] rounded-lg shadow-xl max-w-md w-full p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
                 Sort By
@@ -722,7 +722,7 @@ const CatalogPage = () => {
       {/* Unavailable Items Modal */}
       {showUnavailableModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
+          <div className="bg-white dark:bg-[#1a1a1a] rounded-lg shadow-xl max-w-md w-full p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
                 Unavailable Items
