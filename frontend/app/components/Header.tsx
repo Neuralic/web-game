@@ -242,7 +242,7 @@ useEffect(() => {
         onSwitchSuccess={handleSwitchSuccess}
       />
 
-      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50">
+      <header className="bg-white dark:bg-black border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50">
         <div className="flex items-center justify-between gap-4 px-4 py-2.5">
           {/* Left Section - Takes more space */}
           <div className="flex items-center gap-4 flex-1">
@@ -302,7 +302,7 @@ useEffect(() => {
 
             {/* Search Bar with Dropdown */}
             <div className="hidden md:flex items-center gap-2 relative" ref={searchDropdownRef}>
-              <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 rounded-full px-4 py-2 w-72">
+              <div className="flex items-center gap-2 bg-gray-100 dark:bg-[#1a1a1a] rounded-full px-4 py-2 w-72">
                 <Search className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
                 <input
                   type="text"
@@ -316,9 +316,9 @@ useEffect(() => {
 
               {/* Search Results Dropdown */}
               {showSearchDropdown && (searchResults.length > 0 || groupSearchResults.length > 0 || gameSearchResults.length > 0 || isSearching) && (
-                <div className="absolute top-full left-0 mt-2 w-96 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 max-h-[28rem] overflow-hidden z-50">
+                <div className="absolute top-full left-0 mt-2 w-96 bg-white dark:bg-[#1a1a1a] rounded-lg shadow-xl border border-gray-200 dark:border-[#2a2a2a] max-h-[28rem] overflow-hidden z-50">
                   {/* Category Tabs */}
-                  <div className="flex border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex border-b border-gray-200 dark:border-[#2a2a2a]">
                     {(['Players', 'Groups', 'Games'] as SearchCategory[]).map((cat) => {
                       const count = cat === 'Players' ? searchResults.length : cat === 'Groups' ? groupSearchResults.length : gameSearchResults.length;
                       return (
@@ -353,7 +353,7 @@ useEffect(() => {
                           searchResults.map((result) => (
                             <div
                               key={result.id}
-                              className="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-b-0 flex items-center gap-3"
+                              className="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-[#2a2a2a] last:border-b-0 flex items-center gap-3"
                             >
                               <Link
                                 href={`/profile/${result.username}`}
@@ -423,7 +423,7 @@ useEffect(() => {
                                 setShowSearchDropdown(false);
                                 setSearchQuery("");
                               }}
-                              className="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-b-0 flex items-center gap-3"
+                              className="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-[#2a2a2a] last:border-b-0 flex items-center gap-3"
                             >
                               <div className="w-10 h-10 bg-gray-300 dark:bg-gray-600 rounded flex-shrink-0 overflow-hidden relative">
                                 {group.icon_url ? (
@@ -463,7 +463,7 @@ useEffect(() => {
                                 setShowSearchDropdown(false);
                                 setSearchQuery("");
                               }}
-                              className="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-b-0 flex items-center gap-3"
+                              className="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-[#2a2a2a] last:border-b-0 flex items-center gap-3"
                             >
                               <div className="w-10 h-10 bg-gray-300 dark:bg-gray-600 rounded flex-shrink-0 overflow-hidden relative">
                                 {game.thumbnail_url || game.icon_url ? (
@@ -578,7 +578,7 @@ useEffect(() => {
                   </div>
 
                   {/* Hover Dropdown */}
-                  <div className="absolute right-0 top-full mt-1 w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150">
+                  <div className="absolute right-0 top-full mt-1 w-52 bg-white dark:bg-[#1a1a1a] rounded-lg shadow-lg border border-gray-200 dark:border-[#2a2a2a] py-2 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150">
                     <Link
                       href="/adventurebux"
                       className="block px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium"
@@ -628,7 +628,7 @@ useEffect(() => {
                       ></div>
 
                       {/* Dropdown Menu */}
-                      <div className="fixed top-16 right-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50">
+                      <div className="fixed top-16 right-1 w-48 bg-white dark:bg-[#1a1a1a] rounded-lg shadow-lg border border-gray-200 dark:border-[#2a2a2a] py-2 z-50">
                         <Link
                           href="/settings"
                           className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
