@@ -211,7 +211,7 @@ function FriendsPageContent() {
   const currentData = getCurrentData();
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
+    <div className="min-h-screen bg-white dark:bg-black flex flex-col">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <Header
         searchQuery={searchQuery}
@@ -256,7 +256,7 @@ function FriendsPageContent() {
           </div>
 
           {activeTab === "Connections" && (
-            <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 rounded-lg px-4 py-2 w-64">
+            <div className="flex items-center gap-2 bg-gray-100 dark:bg-[#1a1a1a] rounded-lg px-4 py-2 w-64">
               <Search className="w-4 h-4 text-gray-500 dark:text-gray-400" />
               <input
                 type="text"
@@ -274,7 +274,7 @@ function FriendsPageContent() {
           {currentData.map((user) => (
             <div
               key={user.id}
-              className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6 hover:shadow-lg transition-shadow border border-gray-200 dark:border-gray-700 relative"
+              className="bg-gray-100 dark:bg-[#1a1a1a] rounded-lg p-6 hover:shadow-lg transition-shadow border border-gray-200 dark:border-[#2a2a2a] relative"
             >
               {/* 3-dot menu */}
               {(activeTab === "Friends" || activeTab === "Following") && (
@@ -289,7 +289,7 @@ function FriendsPageContent() {
                   {openMenuId === user.id && (
                     <>
                       <div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)} />
-                      <div className="absolute right-0 mt-1 w-32 bg-white dark:bg-gray-700 rounded shadow-lg border border-gray-200 dark:border-gray-600 z-20">
+                      <div className="absolute right-0 mt-1 w-32 bg-white dark:bg-[#242424] rounded shadow-lg border border-gray-200 dark:border-[#2a2a2a] z-20">
                         <button
                           onClick={() => setOpenMenuId(null)}
                           className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-600 rounded"
@@ -372,7 +372,7 @@ function FriendsPageContent() {
                       onClick={() => {
                         if (user.request_id) handleDeclineRequest(user.request_id);
                       }}
-                      className="flex-1 p-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 rounded transition-colors flex items-center justify-center"
+                      className="flex-1 p-2 bg-gray-200 dark:bg-[#242424] hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 rounded transition-colors flex items-center justify-center"
                     >
                       <X className="w-5 h-5" />
                     </button>
@@ -400,7 +400,7 @@ function FriendsPageContent() {
 export default function FriendsPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center">
         <div className="text-gray-600 dark:text-gray-400">Loading...</div>
       </div>
     }>
