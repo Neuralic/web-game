@@ -100,7 +100,7 @@ export default function SocialLinksSection({ groupId }: { groupId?: string }) {
 
   if (loading) {
     return (
-      <div className="p-4 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+      <div className="p-4 bg-white dark:bg-black border-b border-gray-200 dark:border-gray-800">
         <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-3">Social Links</h2>
         <p className="text-sm text-gray-600 dark:text-gray-400">Loading...</p>
       </div>
@@ -112,9 +112,9 @@ export default function SocialLinksSection({ groupId }: { groupId?: string }) {
   }
 
   return (
-    <div className="p-4 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+    <div className="p-4 bg-white dark:bg-black border-b border-gray-200 dark:border-gray-800">
       <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-3">Social Links</h2>
-      
+
       <div className="flex flex-wrap gap-3">
         {socialLinks.map((link) => {
           const config = PLATFORM_CONFIG[link.platform];
@@ -126,7 +126,7 @@ export default function SocialLinksSection({ groupId }: { groupId?: string }) {
               href={link.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-3 px-4 py-3 border border-gray-200 dark:border-gray-700 rounded bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="flex items-center gap-3 px-4 py-3 border border-gray-200 dark:border-[#2a2a2a] rounded bg-gray-50 dark:bg-[#1a1a1a] hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             >
               <IconComponent className={`w-6 h-6 ${config.color}`} />
               <span className="text-sm text-gray-900 dark:text-gray-100">
@@ -139,4 +139,3 @@ export default function SocialLinksSection({ groupId }: { groupId?: string }) {
     </div>
   );
 }
-
