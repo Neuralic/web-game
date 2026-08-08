@@ -105,7 +105,7 @@ const MembershipPage = () => {
 
     return (
         <ProtectedRoute>
-            <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
+            <div className="min-h-screen bg-white dark:bg-black flex flex-col">
                 <Header
                     searchQuery={searchQuery}
                     setSearchQuery={setSearchQuery}
@@ -115,7 +115,7 @@ const MembershipPage = () => {
 
                 {/* Sticky Membership Header */}
                 <div
-                    className={`fixed top-0 left-0 right-0 z-40 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 transition-all duration-300 ${
+                    className={`fixed top-0 left-0 right-0 z-40 bg-white/95 dark:bg-black/95 backdrop-blur-sm border-b border-gray-200 dark:border-[#2a2a2a] transition-all duration-300 ${
                         showStickyHeader ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"
                     }`}
                 >
@@ -214,7 +214,7 @@ const MembershipPage = () => {
                     </section>
 
                     {/* Membership Benefits */}
-                    <section className="bg-white dark:bg-gray-900 py-16 px-4">
+                    <section className="bg-white dark:bg-black py-16 px-4">
                         <div className="max-w-5xl mx-auto">
                             <div className="text-center mb-8">
                                 <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
@@ -344,7 +344,7 @@ const MembershipPage = () => {
                     </section>
 
                     {/* Pricing */}
-                    <section className="bg-white dark:bg-gray-900 py-16 px-4">
+                    <section className="bg-white dark:bg-black py-16 px-4">
                         <div className="max-w-5xl mx-auto">
                             <div className="text-center mb-12">
                                 <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -356,7 +356,7 @@ const MembershipPage = () => {
                                 {membershipTiers.map((tier, index) => (
                                     <div
                                         key={tier.id}
-                                        className={`relative bg-gray-100 dark:bg-gray-800 rounded-2xl p-5 text-center transition-all hover:shadow-lg ${
+                                        className={`relative bg-gray-100 dark:bg-[#1a1a1a] rounded-2xl p-5 text-center transition-all hover:shadow-lg ${
                                             index === 3 ? "ring-2 ring-amber-400 dark:ring-amber-500" : ""
                                         }`}
                                     >
@@ -430,7 +430,7 @@ const MembershipPage = () => {
                             </div>
 
                             {/* Disclaimer */}
-                            <div className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed border-t border-gray-200 dark:border-gray-700 pt-6">
+                            <div className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed border-t border-gray-200 dark:border-[#2a2a2a] pt-6">
                                 <p>
                                     Get AdventureBux to purchase upgrades for your avatar or buy special abilities in games. If you are under 18 make sure you have the permission of your parent or legal guardian before making a purchase. Making a purchase without permission may result in your account being deleted. By clicking "Submit Order" (1) you authorize us to charge your account every month until you cancel the subscription, and (2) you represent that you understand and agree to the{" "}
                                     <Link href="/terms" className="text-blue-600 dark:text-blue-400 hover:underline">
