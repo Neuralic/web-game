@@ -427,7 +427,7 @@ const AvatarPage = () => {
   const showDefault = !showCustomRender && !showRobloxAvatar;
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
+    <div className="min-h-screen bg-white dark:bg-black flex flex-col">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} setSidebarOpen={setSidebarOpen} />
 
@@ -522,13 +522,13 @@ const AvatarPage = () => {
                     )}
                   </div>
                 )}
-                <div className="absolute bottom-4 right-4 bg-white dark:bg-gray-800 px-3 py-1 rounded font-semibold text-sm text-gray-900 dark:text-gray-100 z-20">
+                <div className="absolute bottom-4 right-4 bg-white dark:bg-[#1a1a1a] px-3 py-1 rounded font-semibold text-sm text-gray-900 dark:text-gray-100 z-20">
                   {showRobloxAvatar ? "Roblox" : showCustomRender ? "R15" : "2D"}
                 </div>
               </div>
 
               {/* Body Type Slider */}
-              <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+              <div className="mt-4 p-4 bg-gray-50 dark:bg-[#1a1a1a] rounded-lg border border-gray-200 dark:border-[#2a2a2a]">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-gray-900 dark:text-gray-100">Body Type</span>
                   <span className="text-sm text-gray-600 dark:text-gray-400">{bodyType}%</span>
@@ -539,12 +539,12 @@ const AvatarPage = () => {
                   max="100"
                   value={bodyType}
                   onChange={(e) => setBodyType(Number(e.target.value))}
-                  className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                  className="w-full h-2 bg-gray-200 dark:bg-[#242424] rounded-lg appearance-none cursor-pointer"
                 />
               </div>
 
               {/* Skin Tone */}
-              <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+              <div className="mt-4 p-4 bg-gray-50 dark:bg-[#1a1a1a] rounded-lg border border-gray-200 dark:border-[#2a2a2a]">
                 <span className="text-sm font-medium text-gray-900 dark:text-gray-100 block mb-3">Skin Tone</span>
                 <div className="flex gap-2.5">
                   {SKIN_TONES.map((tone) => {
@@ -587,14 +587,14 @@ const AvatarPage = () => {
                     </button>
                   </div>
                 ) : showRobloxLink ? (
-                  <div className="p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+                  <div className="p-3 bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded-lg">
                     <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">Enter your Roblox username to show your avatar</p>
                     <input
                       type="text"
                       value={robloxUsername}
                       onChange={e => setRobloxUsername(e.target.value)}
                       placeholder="Roblox username"
-                      className="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 mb-2"
+                      className="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-[#2a2a2a] rounded bg-white dark:bg-[#242424] text-gray-900 dark:text-gray-100 mb-2"
                     />
                     <div className="flex gap-2">
                       <button
@@ -615,7 +615,7 @@ const AvatarPage = () => {
                 ) : (
                   <button
                     onClick={() => setShowRobloxLink(true)}
-                    className="w-full py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center justify-center gap-2 transition-colors"
+                    className="w-full py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center justify-center gap-2 transition-colors"
                   >
                     <Link2 className="w-4 h-4" /> Link Roblox Account
                   </button>
@@ -638,7 +638,7 @@ const AvatarPage = () => {
 
             {/* Right - Items Grid */}
             <div className="flex-1">
-              <div ref={tabsRef} className={`${isTabsSticky ? "fixed top-[70px] left-0 right-0 z-40 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4" : ""}`}>
+              <div ref={tabsRef} className={`${isTabsSticky ? "fixed top-[70px] left-0 right-0 z-40 bg-white dark:bg-black border-b border-gray-200 dark:border-gray-800 px-4" : ""}`}>
                 <div className={`${isTabsSticky ? "max-w-[1400px] mx-auto" : ""} flex gap-6 border-b border-gray-200 dark:border-gray-800`}>
                   {mainTabs.map((tab) => (
                     <button
@@ -677,7 +677,7 @@ const AvatarPage = () => {
                         className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
                           showClassicFaces
                             ? "bg-blue-600 border-blue-600 text-white"
-                            : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                            : "bg-white dark:bg-[#1a1a1a] border-gray-300 dark:border-[#2a2a2a] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                         }`}
                       >
                         Classic Faces
@@ -708,13 +708,13 @@ const AvatarPage = () => {
                         className="rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer relative"
                       >
                         {equippedItems.has(item.id) && (
-                          <div className="absolute top-2 right-2 w-6 h-6 bg-white dark:bg-gray-700 rounded flex items-center justify-center z-10 border border-gray-300 dark:border-gray-600">
+                          <div className="absolute top-2 right-2 w-6 h-6 bg-white dark:bg-[#242424] rounded flex items-center justify-center z-10 border border-gray-300 dark:border-[#2a2a2a]">
                             <svg className="w-4 h-4 text-gray-900 dark:text-gray-100" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                             </svg>
                           </div>
                         )}
-                        <div className={`aspect-square rounded-lg overflow-hidden border-2 transition-colors ${equippedItems.has(item.id) ? "border-blue-500" : "border-gray-200 dark:border-gray-700"} bg-gray-100 dark:bg-gray-800`}>
+                        <div className={`aspect-square rounded-lg overflow-hidden border-2 transition-colors ${equippedItems.has(item.id) ? "border-blue-500" : "border-gray-200 dark:border-[#2a2a2a]"} bg-gray-100 dark:bg-[#1a1a1a]`}>
                           {item.thumbnailUrl ? (
                             <img src={item.thumbnailUrl} alt={item.name} className="w-full h-full object-cover" />
                           ) : (
@@ -733,9 +733,9 @@ const AvatarPage = () => {
 
                   {totalPages > 1 && (
                     <div className="flex items-center justify-center gap-2 mt-8">
-                      <button onClick={() => fetchItems(activeSubTab, currentPage - 1)} disabled={currentPage <= 1} className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-sm disabled:opacity-50">Previous</button>
+                      <button onClick={() => fetchItems(activeSubTab, currentPage - 1)} disabled={currentPage <= 1} className="px-4 py-2 bg-white dark:bg-[#1a1a1a] border border-gray-300 dark:border-[#2a2a2a] rounded text-sm disabled:opacity-50">Previous</button>
                       <span className="text-sm text-gray-600 dark:text-gray-400">Page {currentPage} of {totalPages}</span>
-                      <button onClick={() => fetchItems(activeSubTab, currentPage + 1)} disabled={currentPage >= totalPages} className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-sm disabled:opacity-50">Next</button>
+                      <button onClick={() => fetchItems(activeSubTab, currentPage + 1)} disabled={currentPage >= totalPages} className="px-4 py-2 bg-white dark:bg-[#1a1a1a] border border-gray-300 dark:border-[#2a2a2a] rounded text-sm disabled:opacity-50">Next</button>
                     </div>
                   )}
                 </>
