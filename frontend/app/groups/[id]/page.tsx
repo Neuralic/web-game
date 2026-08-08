@@ -600,7 +600,7 @@ const GroupDetailPage = () => {
   const tabs = ["About", "Store", "Alliances", "Events"];
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-black">
       {/* Sidebar */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
@@ -635,7 +635,7 @@ const GroupDetailPage = () => {
               placeholder="Search My Groups"
               value={searchMyGroups}
               onChange={(e) => setSearchMyGroups(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-gray-800 border-none rounded text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-[#1a1a1a] border-none rounded text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
 
@@ -670,7 +670,7 @@ const GroupDetailPage = () => {
                     key={group.id}
                     href={href}
                     className={`flex items-center gap-3 py-2 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ${
-                      isActive ? "bg-gray-100 dark:bg-gray-800" : ""
+                      isActive ? "bg-gray-100 dark:bg-[#1a1a1a]" : ""
                     }`}
                   >
                     <div className="w-[150px] h-[150px] rounded overflow-hidden bg-gray-200 dark:bg-gray-600 flex-shrink-0 relative">
@@ -735,7 +735,7 @@ const GroupDetailPage = () => {
           <div className="mt-4">
             <Link
               href="/groups/create"
-              className="block w-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-semibold py-2.5 text-sm rounded-lg transition-colors text-center"
+              className="block w-full bg-gray-200 dark:bg-[#242424] hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-semibold py-2.5 text-sm rounded-lg transition-colors text-center"
             >
               Create Group
             </Link>
@@ -744,9 +744,9 @@ const GroupDetailPage = () => {
 
         {/* Main Content - 75% width, Only Scrollable Section */}
         <div className="w-3/4 ml-[25%]">
-          <div className="bg-white dark:bg-gray-900">
+          <div className="bg-white dark:bg-black">
           {/* Cover Banner - Full width, always show with fallback gradient */}
-          <div className="w-full h-[250px] relative overflow-hidden bg-gray-100 dark:bg-gray-800">
+          <div className="w-full h-[250px] relative overflow-hidden bg-gray-100 dark:bg-[#1a1a1a]">
             {currentGroup?.cover_photo_url && (
               <a
                 href={currentGroup.cover_photo_url}
@@ -771,7 +771,7 @@ const GroupDetailPage = () => {
           <div className="flex items-end gap-4 px-6 pb-6 border-b border-gray-100 dark:border-gray-800 -mt-20 relative z-10">
             {currentGroup ? (
               <>
-                <div className="w-[200px] h-[200px] border-4 border-white dark:border-gray-900 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100 dark:bg-gray-700 relative shadow-lg">
+                <div className="w-[200px] h-[200px] border-4 border-white dark:border-gray-900 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100 dark:bg-[#242424] relative shadow-lg">
                   {currentGroup.icon_url ? (
                     <a
                       href={currentGroup.icon_url}
@@ -862,7 +862,7 @@ const GroupDetailPage = () => {
                         />
 
                         {/* Dropdown Menu */}
-                        <div className="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-lg z-20 py-1">
+                        <div className="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded shadow-lg z-20 py-1">
                           {/* If user is a member/owner - show full menu */}
                           {currentGroup.role ? (
                             <>
@@ -933,7 +933,7 @@ const GroupDetailPage = () => {
 
                               {/* Owner Only Option */}
 
-                              <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+                              <div className="border-t border-gray-200 dark:border-[#2a2a2a] my-1"></div>
                             </>
                           ) : (
                             /* If user is NOT a member - show limited menu */
@@ -1012,14 +1012,14 @@ const GroupDetailPage = () => {
               </div>
 
               {/* Shout Section */}
-              <div className="bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 p-6">
+              <div className="bg-white dark:bg-black border-t border-gray-100 dark:border-gray-800 p-6">
                 <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-4">
                   Shout
                 </h3>
 
                 {/* Current Shout Display */}
                 {currentGroup?.shout_text ? (
-                  <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded border border-gray-100 dark:border-gray-700 mb-4">
+                  <div className="p-4 bg-gray-50 dark:bg-[#1a1a1a] rounded border border-gray-100 dark:border-[#2a2a2a] mb-4">
                     <div className="flex items-start gap-3">
                       {/* Avatar */}
                       <UserAvatar
@@ -1048,7 +1048,7 @@ const GroupDetailPage = () => {
                         
                         {/* Shout Image */}
                         {currentGroup.shout_image_url && (
-                          <div className="mt-2 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600">
+                          <div className="mt-2 rounded-lg overflow-hidden border border-gray-200 dark:border-[#2a2a2a]">
                             <img src={currentGroup.shout_image_url} alt="Shout image" className="max-w-full max-h-64 object-contain" />
                           </div>
                         )}
@@ -1085,11 +1085,11 @@ const GroupDetailPage = () => {
                       placeholder="Enter your shout"
                       maxLength={1000}
                       rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded bg-white dark:bg-[#242424] text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                     />
                     {shoutImagePreview && (
                       <div className="relative inline-block">
-                        <img src={shoutImagePreview} alt="Preview" className="max-h-32 rounded border border-gray-300 dark:border-gray-600" />
+                        <img src={shoutImagePreview} alt="Preview" className="max-h-32 rounded border border-gray-300 dark:border-[#2a2a2a]" />
                         <button
                           onClick={() => { setShoutImage(null); if (shoutImagePreview) URL.revokeObjectURL(shoutImagePreview); setShoutImagePreview(null); }}
                           className="absolute -top-2 -right-2 p-0.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
@@ -1146,7 +1146,7 @@ const GroupDetailPage = () => {
               <SocialLinksSection groupId={currentGroup?.id} />
 
               {/* Wall Section */}
-              <div className="bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 p-6">
+              <div className="bg-white dark:bg-black border-t border-gray-100 dark:border-gray-800 p-6">
                 <h2 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-4">
                   Wall
                 </h2>
@@ -1158,7 +1158,7 @@ const GroupDetailPage = () => {
                       onChange={(e) => setNewPost(e.target.value)}
                       placeholder="Say something..."
                       rows={4}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-[#2a2a2a] rounded bg-gray-50 dark:bg-[#242424] text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                     />
                     <div className="flex justify-end">
                       <button
@@ -1175,7 +1175,7 @@ const GroupDetailPage = () => {
                 {wallPosts.length > 0 ? (
                   <div className="space-y-6">
                     {wallPosts.map((post) => (
-                      <div key={post.id} className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                      <div key={post.id} className="bg-gray-50 dark:bg-[#1a1a1a] rounded-lg p-4 border border-gray-200 dark:border-[#2a2a2a]">
                         {/* Post Header */}
                         <div className="flex gap-3 mb-3">
                           <UserAvatar
@@ -1227,7 +1227,7 @@ const GroupDetailPage = () => {
                                   className="fixed inset-0 z-10"
                                   onClick={() => setOpenPostMenu(null)}
                                 />
-                                <div className="absolute right-0 top-full mt-1 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-lg z-20 py-1">
+                                <div className="absolute right-0 top-full mt-1 w-40 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded shadow-lg z-20 py-1">
   {(post.author_id === currentUserId || currentGroupDetails?.owner_id === currentUserId) && (
     <>
       <button
@@ -1249,7 +1249,7 @@ const GroupDetailPage = () => {
       >
         Delete Post
       </button>
-      <div className="border-t border-gray-200 dark:border-gray-700 my-1" />
+      <div className="border-t border-gray-200 dark:border-[#2a2a2a] my-1" />
     </>
   )}
   <button
@@ -1275,7 +1275,7 @@ const GroupDetailPage = () => {
                         )}
 
                         {/* Post Actions */}
-                        <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-[#2a2a2a]">
                           {(post.reply_count || 0) > 0 ? (
                             <button
                               onClick={() => handleToggleReplies(post.id)}
@@ -1328,7 +1328,7 @@ const GroupDetailPage = () => {
                                       }
                                     }}
                                     placeholder="Write a reply..."
-                                    className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-[#2a2a2a] rounded bg-white dark:bg-[#242424] text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                   />
                                   <button
                                     onClick={() => handleReplySubmit(post.id)}
@@ -1341,7 +1341,7 @@ const GroupDetailPage = () => {
 
                                 {/* Replies List */}
                                 {replies[post.id]?.length > 0 && (
-                                  <div className="space-y-3 pl-4 border-l-2 border-gray-300 dark:border-gray-600">
+                                  <div className="space-y-3 pl-4 border-l-2 border-gray-300 dark:border-[#2a2a2a]">
                                     {replies[post.id].map((reply: any) => (
                                       <div key={reply.id} className="flex gap-2">
                                         <UserAvatar
@@ -1407,7 +1407,7 @@ const GroupDetailPage = () => {
               </div>
 
               <div className="text-center py-16">
-                <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+                <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-[#1a1a1a] rounded-full flex items-center justify-center">
                   <svg className="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                   </svg>
@@ -1443,9 +1443,9 @@ const GroupDetailPage = () => {
                     <Link
                       key={alliance.id}
                       href={`/groups/${alliance.allied_group_id}`}
-                      className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+                      className="bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
                     >
-                      <div className="aspect-square bg-gray-100 dark:bg-gray-700 overflow-hidden relative">
+                      <div className="aspect-square bg-gray-100 dark:bg-[#242424] overflow-hidden relative">
                         {alliance.allied_group_icon ? (
                           <Image
                             src={alliance.allied_group_icon}
@@ -1512,7 +1512,7 @@ const GroupDetailPage = () => {
 
               {/* Create Event Form */}
               {showCreateEvent && (
-                <div className="mb-6 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-5 space-y-4">
+                <div className="mb-6 bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded-lg p-5 space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Event Title *</label>
                     <input
@@ -1520,7 +1520,7 @@ const GroupDetailPage = () => {
                       value={eventForm.title}
                       onChange={(e) => setEventForm({ ...eventForm, title: e.target.value })}
                       placeholder="Enter event title"
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#242424] text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                   <div>
@@ -1530,7 +1530,7 @@ const GroupDetailPage = () => {
                       onChange={(e) => setEventForm({ ...eventForm, description: e.target.value })}
                       placeholder="Describe your event..."
                       rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#242424] text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                     />
                   </div>
                                     <div>
@@ -1540,7 +1540,7 @@ const GroupDetailPage = () => {
                       value={eventForm.location}
                       onChange={(e) => setEventForm({ ...eventForm, location: e.target.value })}
                       placeholder="e.g. In-game, Discord, etc."
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#242424] text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
@@ -1550,7 +1550,7 @@ const GroupDetailPage = () => {
                         type="datetime-local"
                         value={eventForm.startDate}
                         onChange={(e) => setEventForm({ ...eventForm, startDate: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#242424] text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Select date and time (include AM/PM)</p>
                     </div>
@@ -1560,7 +1560,7 @@ const GroupDetailPage = () => {
                         type="datetime-local"
                         value={eventForm.endDate}
                         onChange={(e) => setEventForm({ ...eventForm, endDate: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#242424] text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Select date and time (include AM/PM)</p>
                     </div>
@@ -1595,7 +1595,7 @@ const GroupDetailPage = () => {
                     </div>
                     {eventImagePreview && (
                       <div className="mt-2">
-                        <img src={eventImagePreview} alt="Event preview" className="max-h-32 rounded-lg border border-gray-300 dark:border-gray-600" />
+                        <img src={eventImagePreview} alt="Event preview" className="max-h-32 rounded-lg border border-gray-300 dark:border-[#2a2a2a]" />
                       </div>
                     )}
                   </div>
@@ -1628,10 +1628,10 @@ const GroupDetailPage = () => {
                     return (
                       <div
                         key={event.id}
-                        className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
+                        className="bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded-lg overflow-hidden"
                       >
                         {event.image_url && (
-                          <div className="w-full h-40 bg-gray-200 dark:bg-gray-700 relative">
+                          <div className="w-full h-40 bg-gray-200 dark:bg-[#242424] relative">
                             <Image src={event.image_url} alt={event.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" />
                           </div>
                         )}
@@ -1687,7 +1687,7 @@ const GroupDetailPage = () => {
                 </div>
               ) : (
                 <div className="text-center py-16">
-                  <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-[#1a1a1a] rounded-full flex items-center justify-center">
                     <svg className="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
