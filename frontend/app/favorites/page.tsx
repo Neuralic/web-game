@@ -11,7 +11,7 @@ const FavoritesPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
+    <div className="min-h-screen bg-white dark:bg-black flex flex-col">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <Header
         searchQuery={searchQuery}
@@ -23,7 +23,7 @@ const FavoritesPage = () => {
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-8">Favorites</h1>
 
         <div className="text-center py-20">
-          <div className="w-20 h-20 mx-auto mb-6 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+          <div className="w-20 h-20 mx-auto mb-6 bg-gray-100 dark:bg-[#1a1a1a] rounded-full flex items-center justify-center">
             <Heart className="w-10 h-10 text-gray-400 dark:text-gray-500" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">
