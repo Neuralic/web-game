@@ -1168,7 +1168,7 @@ const ConfigureGroupPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
+    <div className="min-h-screen bg-white dark:bg-black flex flex-col">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <Header
@@ -1196,7 +1196,7 @@ const ConfigureGroupPage = () => {
               </p>
             </div>
             <Link href={`/groups/${groupId}`}>
-              <button className="px-4 py-2 text-sm bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+              <button className="px-4 py-2 text-sm bg-gray-200 dark:bg-[#242424] text-gray-900 dark:text-gray-100 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
                 Back to Group →
               </button>
             </Link>
@@ -1204,7 +1204,7 @@ const ConfigureGroupPage = () => {
 
           <div className="flex gap-6">
             <div className="w-64 flex-shrink-0">
-              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+              <div className="bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded-lg overflow-hidden">
                 {sections.map((section) => (
                   <button
                     key={section.name}
@@ -1226,7 +1226,7 @@ const ConfigureGroupPage = () => {
             </div>
 
             <div className="flex-1">
-              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+              <div className="bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded-lg p-6">
                 {loading ? (
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
@@ -1258,7 +1258,7 @@ const ConfigureGroupPage = () => {
                           value={groupName}
                           onChange={(e) => setGroupName(e.target.value.slice(0, 50))}
                           maxLength={50}
-                          className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-4 py-3 bg-white dark:bg-[#1a1a1a] border border-gray-300 dark:border-[#2a2a2a] rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                           placeholder="Name your group"
                         />
                         <div className="text-right text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -1274,7 +1274,7 @@ const ConfigureGroupPage = () => {
                           value={groupDescription}
                           onChange={(e) => setGroupDescription(e.target.value.slice(0, 1000))}
                           rows={6}
-                          className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                          className="w-full px-4 py-3 bg-white dark:bg-[#1a1a1a] border border-gray-300 dark:border-[#2a2a2a] rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                           placeholder="Describe your group"
                         />
                         <div className="text-right text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -1286,10 +1286,10 @@ const ConfigureGroupPage = () => {
                         <label className="block text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
                           Group Icon
                         </label>
-                        <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-8">
+                        <div className="border-2 border-dashed border-gray-300 dark:border-[#2a2a2a] rounded-lg p-8">
                           <div className="flex items-start gap-6">
                             <div className="flex-shrink-0">
-                              <div className="w-48 h-48 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden flex items-center justify-center border border-gray-200 dark:border-gray-700">
+                              <div className="w-48 h-48 bg-gray-100 dark:bg-[#1a1a1a] rounded-lg overflow-hidden flex items-center justify-center border border-gray-200 dark:border-[#2a2a2a]">
                                 {uploadingIcon ? (
                                   <Loader2 className="w-12 h-12 animate-spin text-blue-500" />
                                 ) : emblemPreview ? (
@@ -1321,7 +1321,7 @@ const ConfigureGroupPage = () => {
                                   className="hidden"
                                   disabled={uploadingIcon}
                                 />
-                                <span className="px-6 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 rounded-lg cursor-pointer inline-block text-sm font-medium">
+                                <span className="px-6 py-2 bg-gray-200 dark:bg-[#242424] hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 rounded-lg cursor-pointer inline-block text-sm font-medium">
                                   Select an image from your computer
                                 </span>
                               </label>
@@ -1337,10 +1337,10 @@ const ConfigureGroupPage = () => {
                         <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                           Group background must be one of the available dimensions: 720x228, 1440x456
                         </p>
-                        <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-8">
+                        <div className="border-2 border-dashed border-gray-300 dark:border-[#2a2a2a] rounded-lg p-8">
                           <div className="flex items-start gap-6">
                             <div className="flex-shrink-0">
-                              <div className="w-48 h-32 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden flex items-center justify-center border border-gray-200 dark:border-gray-700 relative">
+                              <div className="w-48 h-32 bg-gray-100 dark:bg-[#1a1a1a] rounded-lg overflow-hidden flex items-center justify-center border border-gray-200 dark:border-[#2a2a2a] relative">
                                 {uploadingCover ? (
                                   <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
                                 ) : coverPreview ? (
@@ -1372,7 +1372,7 @@ const ConfigureGroupPage = () => {
                                   className="hidden"
                                   disabled={uploadingCover}
                                 />
-                                <span className="px-6 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 rounded-lg cursor-pointer inline-block text-sm font-medium">
+                                <span className="px-6 py-2 bg-gray-200 dark:bg-[#242424] hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 rounded-lg cursor-pointer inline-block text-sm font-medium">
                                   Select an image from your computer
                                 </span>
                               </label>
@@ -1398,7 +1398,7 @@ const ConfigureGroupPage = () => {
                         <select
                           value={joinSetting}
                           onChange={(e) => handleJoinSettingChange(e.target.value)}
-                          className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-4 py-3 bg-white dark:bg-[#1a1a1a] border border-gray-300 dark:border-[#2a2a2a] rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
                           <option value="open">Anyone can join</option>
                           <option value="approval">Manual Approval</option>
@@ -1416,7 +1416,7 @@ const ConfigureGroupPage = () => {
                           {saving ? "Saving..." : "Save Changes"}
                         </button>
                         <Link href={`/groups/${groupId}`}>
-                          <button className="px-6 py-2.5 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg text-sm font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                          <button className="px-6 py-2.5 bg-gray-200 dark:bg-[#242424] text-gray-900 dark:text-gray-100 rounded-lg text-sm font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
                             Cancel
                           </button>
                         </Link>
@@ -1430,7 +1430,7 @@ const ConfigureGroupPage = () => {
                       Join Requirements
                     </h2>
 
-                    <div className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg p-5">
+                    <div className="bg-gray-50 dark:bg-[#242424]/50 border border-gray-200 dark:border-[#2a2a2a] rounded-lg p-5">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-2">
@@ -1447,7 +1447,7 @@ const ConfigureGroupPage = () => {
                       </div>
                     </div>
 
-                    <div className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg p-5">
+                    <div className="bg-gray-50 dark:bg-[#242424]/50 border border-gray-200 dark:border-[#2a2a2a] rounded-lg p-5">
                       <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-2">
                         Account Age
                       </h3>
@@ -1502,14 +1502,14 @@ const ConfigureGroupPage = () => {
                           value={discord}
                           onChange={(e) => setDiscord(e.target.value)}
                           placeholder="https://discord.gg/..."
-                          className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                          className="flex-1 px-4 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-gray-50 dark:bg-[#242424] text-gray-900 dark:text-gray-100"
                         />
                         <input
                           type="text"
                           value={discordTitle}
                           onChange={(e) => setDiscordTitle(e.target.value)}
                           placeholder="Title (optional)"
-                          className="w-40 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                          className="w-40 px-4 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-gray-50 dark:bg-[#242424] text-gray-900 dark:text-gray-100"
                         />
                       </div>
                     </div>
@@ -1524,14 +1524,14 @@ const ConfigureGroupPage = () => {
                           value={twitter}
                           onChange={(e) => setTwitter(e.target.value)}
                           placeholder="https://twitter.com/..."
-                          className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                          className="flex-1 px-4 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-gray-50 dark:bg-[#242424] text-gray-900 dark:text-gray-100"
                         />
                         <input
                           type="text"
                           value={twitterTitle}
                           onChange={(e) => setTwitterTitle(e.target.value)}
                           placeholder="Title (optional)"
-                          className="w-40 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                          className="w-40 px-4 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-gray-50 dark:bg-[#242424] text-gray-900 dark:text-gray-100"
                         />
                       </div>
                     </div>
@@ -1546,14 +1546,14 @@ const ConfigureGroupPage = () => {
                           value={youtube}
                           onChange={(e) => setYoutube(e.target.value)}
                           placeholder="https://youtube.com/..."
-                          className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                          className="flex-1 px-4 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-gray-50 dark:bg-[#242424] text-gray-900 dark:text-gray-100"
                         />
                         <input
                           type="text"
                           value={youtubeTitle}
                           onChange={(e) => setYoutubeTitle(e.target.value)}
                           placeholder="Title (optional)"
-                          className="w-40 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                          className="w-40 px-4 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-gray-50 dark:bg-[#242424] text-gray-900 dark:text-gray-100"
                         />
                       </div>
                     </div>
@@ -1568,14 +1568,14 @@ const ConfigureGroupPage = () => {
                           value={twitch}
                           onChange={(e) => setTwitch(e.target.value)}
                           placeholder="https://twitch.tv/..."
-                          className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                          className="flex-1 px-4 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-gray-50 dark:bg-[#242424] text-gray-900 dark:text-gray-100"
                         />
                         <input
                           type="text"
                           value={twitchTitle}
                           onChange={(e) => setTwitchTitle(e.target.value)}
                           placeholder="Title (optional)"
-                          className="w-40 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                          className="w-40 px-4 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-gray-50 dark:bg-[#242424] text-gray-900 dark:text-gray-100"
                         />
                       </div>
                     </div>
@@ -1590,14 +1590,14 @@ const ConfigureGroupPage = () => {
                           value={facebook}
                           onChange={(e) => setFacebook(e.target.value)}
                           placeholder="https://facebook.com/..."
-                          className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                          className="flex-1 px-4 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-gray-50 dark:bg-[#242424] text-gray-900 dark:text-gray-100"
                         />
                         <input
                           type="text"
                           value={facebookTitle}
                           onChange={(e) => setFacebookTitle(e.target.value)}
                           placeholder="Title (optional)"
-                          className="w-40 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                          className="w-40 px-4 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-gray-50 dark:bg-[#242424] text-gray-900 dark:text-gray-100"
                         />
                       </div>
                     </div>
@@ -1612,14 +1612,14 @@ const ConfigureGroupPage = () => {
                           value={instagram}
                           onChange={(e) => setInstagram(e.target.value)}
                           placeholder="https://instagram.com/..."
-                          className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                          className="flex-1 px-4 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-gray-50 dark:bg-[#242424] text-gray-900 dark:text-gray-100"
                         />
                         <input
                           type="text"
                           value={instagramTitle}
                           onChange={(e) => setInstagramTitle(e.target.value)}
                           placeholder="Title (optional)"
-                          className="w-40 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                          className="w-40 px-4 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-gray-50 dark:bg-[#242424] text-gray-900 dark:text-gray-100"
                         />
                       </div>
                     </div>
@@ -1634,14 +1634,14 @@ const ConfigureGroupPage = () => {
                           value={tiktok}
                           onChange={(e) => setTiktok(e.target.value)}
                           placeholder="https://tiktok.com/@..."
-                          className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                          className="flex-1 px-4 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-gray-50 dark:bg-[#242424] text-gray-900 dark:text-gray-100"
                         />
                         <input
                           type="text"
                           value={tiktokTitle}
                           onChange={(e) => setTiktokTitle(e.target.value)}
                           placeholder="Title (optional)"
-                          className="w-40 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                          className="w-40 px-4 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-gray-50 dark:bg-[#242424] text-gray-900 dark:text-gray-100"
                         />
                       </div>
                     </div>
@@ -1656,14 +1656,14 @@ const ConfigureGroupPage = () => {
                           value={website}
                           onChange={(e) => setWebsite(e.target.value)}
                           placeholder="https://yourwebsite.com"
-                          className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                          className="flex-1 px-4 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-gray-50 dark:bg-[#242424] text-gray-900 dark:text-gray-100"
                         />
                         <input
                           type="text"
                           value={websiteTitle}
                           onChange={(e) => setWebsiteTitle(e.target.value)}
                           placeholder="Title (optional)"
-                          className="w-40 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                          className="w-40 px-4 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-gray-50 dark:bg-[#242424] text-gray-900 dark:text-gray-100"
                         />
                       </div>
                     </div>
@@ -1681,7 +1681,7 @@ const ConfigureGroupPage = () => {
 
                   {activeSection === "Members" && (
                   <div className="space-y-6">
-                    <div className="flex border-b border-gray-300 dark:border-gray-600">
+                    <div className="flex border-b border-gray-300 dark:border-[#2a2a2a]">
                       <button
                         onClick={() => setMembersTab("members")}
                         className={`px-6 py-3 text-sm font-semibold transition-colors relative ${membersTab === "members"
@@ -1729,14 +1729,14 @@ const ConfigureGroupPage = () => {
                               value={memberSearch}
                               onChange={(e) => setMemberSearch(e.target.value)}
                               placeholder="Search Members"
-                              className="w-full px-4 py-2 pl-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="w-full px-4 py-2 pl-10 border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-gray-50 dark:bg-[#242424] text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
                           </div>
                           <select
                             value={memberRoleFilter}
                             onChange={(e) => setMemberRoleFilter(e.target.value)}
-                            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="px-4 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-gray-50 dark:bg-[#242424] text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                           >
                             <option value="All">All Roles</option>
                             {roles.map((role) => (
@@ -1768,7 +1768,7 @@ const ConfigureGroupPage = () => {
                               .map((member) => (
                                 <div
                                   key={member.user_id}
-                                  className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4"
+                                  className="bg-gray-50 dark:bg-[#242424] border border-gray-200 dark:border-[#2a2a2a] rounded-lg p-4"
                                 >
                                   <div className="flex items-start gap-3 mb-3">
                                     <Link href={`/profile/${member.username}`} className="flex-shrink-0">
@@ -1804,7 +1804,7 @@ const ConfigureGroupPage = () => {
                                             className="fixed inset-0 z-10"
                                             onClick={() => setOpenMemberMenu(null)}
                                           />
-                                          <div className="absolute right-0 top-full mt-1 w-32 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-lg z-20 py-1">
+                                          <div className="absolute right-0 top-full mt-1 w-32 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded shadow-lg z-20 py-1">
                                             <button
                                               onClick={async () => {
                                                 setOpenMemberMenu(null);
@@ -1849,7 +1849,7 @@ const ConfigureGroupPage = () => {
                                       </span>
                                     </div>
                                     {member.user_id === groupData?.owner_id ? (
-                                      <div className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm flex items-center justify-between">
+                                      <div className="w-full px-3 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded bg-gray-100 dark:bg-[#242424] text-gray-500 dark:text-gray-400 text-sm flex items-center justify-between">
                                         <span>{getRoleName(member.role_id)}</span>
                                         <span className="text-xs italic">Protected</span>
                                       </div>
@@ -1862,7 +1862,7 @@ const ConfigureGroupPage = () => {
                                             handleRoleChangeRequest(member.user_id, member.username, newRoleId);
                                           }
                                         }}
-                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="w-full px-3 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                       >
                                         {roles.map((role) => (
                                           <option key={role.id} value={role.id}>
@@ -1891,7 +1891,7 @@ const ConfigureGroupPage = () => {
                             {joinRequests.map((request) => (
                               <div
                                 key={request.id}
-                                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+                                className="bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded-lg p-4"
                               >
                                 <div className="flex items-center gap-4">
                                   <UserAvatar
@@ -1956,7 +1956,7 @@ const ConfigureGroupPage = () => {
                             value={bannedSearch}
                             onChange={(e) => setBannedSearch(e.target.value)}
                             placeholder="Search Banned Users"
-                            className="w-full px-4 py-2 pl-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-4 py-2 pl-10 border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-gray-50 dark:bg-[#242424] text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                           />
                           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
                         </div>
@@ -1969,7 +1969,7 @@ const ConfigureGroupPage = () => {
                             {bannedUsers
                               .filter((u: any) => !bannedSearch || u.username?.toLowerCase().includes(bannedSearch.toLowerCase()))
                               .map((banned: any) => (
-                              <div key={banned.id} className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4 flex items-center justify-between">
+                              <div key={banned.id} className="bg-gray-50 dark:bg-[#242424] border border-gray-200 dark:border-[#2a2a2a] rounded-lg p-4 flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                   <UserAvatar
                                     userId={banned.user_id}
@@ -2027,8 +2027,8 @@ const ConfigureGroupPage = () => {
                               key={role.id}
                               onClick={() => handleSelectRole(role)}
                               className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${selectedRole?.id === role.id
-                                  ? "bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600"
-                                  : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                                  ? "bg-gray-100 dark:bg-[#242424] border-gray-300 dark:border-[#2a2a2a]"
+                                  : "bg-white dark:bg-[#1a1a1a] border-gray-200 dark:border-[#2a2a2a] hover:bg-gray-50 dark:hover:bg-gray-700/50"
                                 }`}
                             >
                               <div className="font-semibold text-gray-900 dark:text-gray-100">{role.name}</div>
@@ -2054,7 +2054,7 @@ const ConfigureGroupPage = () => {
                             onChange={(e) => setRoleName(e.target.value)}
                             maxLength={100}
                             placeholder="Enter role name"
-                            className="w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-4 py-2 bg-white dark:bg-[#1a1a1a] border border-gray-300 dark:border-[#2a2a2a] rounded text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                           />
                           <div className="text-right text-xs text-gray-500 dark:text-gray-400 mt-1">{roleName.length}/100</div>
                         </div>
@@ -2067,7 +2067,7 @@ const ConfigureGroupPage = () => {
                             onChange={(e) => setRoleDescription(e.target.value)}
                             maxLength={1000}
                             placeholder="Enter role description"
-                            className="w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-gray-100 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-4 py-2 bg-white dark:bg-[#1a1a1a] border border-gray-300 dark:border-[#2a2a2a] rounded text-gray-900 dark:text-gray-100 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
                           />
                           <div className="text-right text-xs text-gray-500 dark:text-gray-400 mt-1">{roleDescription.length}/1000</div>
                         </div>
@@ -2080,15 +2080,15 @@ const ConfigureGroupPage = () => {
                             onChange={(e) => setRoleRank(parseInt(e.target.value) || 0)}
                             min="0"
                             max="255"
-                            className="w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-4 py-2 bg-white dark:bg-[#1a1a1a] border border-gray-300 dark:border-[#2a2a2a] rounded text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                           />
                         </div>
 
                         {/* Posts Section */}
-                        <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
+                        <div className="border border-gray-300 dark:border-[#2a2a2a] rounded-lg overflow-hidden">
                           <button
                             onClick={() => setPermissionSectionsCollapsed(prev => ({ ...prev, posts: !prev.posts }))}
-                            className="w-full bg-gray-50 dark:bg-gray-700/50 px-5 py-3 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                            className="w-full bg-gray-50 dark:bg-[#242424]/50 px-5 py-3 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                           >
                             <h3 className="font-bold text-gray-900 dark:text-gray-100">Posts</h3>
                             <span className="text-sm text-gray-600 dark:text-gray-400">
@@ -2096,7 +2096,7 @@ const ConfigureGroupPage = () => {
                             </span>
                           </button>
                           {!permissionSectionsCollapsed.posts && (
-                            <div className="p-5 space-y-4 bg-gray-50 dark:bg-gray-800">
+                            <div className="p-5 space-y-4 bg-gray-50 dark:bg-[#1a1a1a]">
                               <div className="flex items-center justify-between">
                                 <span className="text-sm text-gray-700 dark:text-gray-100">Post on group wall</span>
                                 <ToggleSwitch
@@ -2123,10 +2123,10 @@ const ConfigureGroupPage = () => {
                         </div>
 
                         {/* Members Section */}
-                        <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
+                        <div className="border border-gray-300 dark:border-[#2a2a2a] rounded-lg overflow-hidden">
                           <button
                             onClick={() => setPermissionSectionsCollapsed(prev => ({ ...prev, members: !prev.members }))}
-                            className="w-full bg-gray-50 dark:bg-gray-700/50 px-5 py-3 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                            className="w-full bg-gray-50 dark:bg-[#242424]/50 px-5 py-3 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                           >
                             <h3 className="font-bold text-gray-900 dark:text-gray-100">Members</h3>
                             <span className="text-sm text-gray-600 dark:text-gray-400">
@@ -2134,7 +2134,7 @@ const ConfigureGroupPage = () => {
                             </span>
                           </button>
                           {!permissionSectionsCollapsed.members && (
-                            <div className="p-5 space-y-4 bg-gray-50 dark:bg-gray-800">
+                            <div className="p-5 space-y-4 bg-gray-50 dark:bg-[#1a1a1a]">
                               <div className="flex items-center justify-between">
                                 <span className="text-sm text-gray-700 dark:text-gray-100">Manage members</span>
                                 <ToggleSwitch
@@ -2161,10 +2161,10 @@ const ConfigureGroupPage = () => {
                         </div>
 
                         {/* Administration Section */}
-                        <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
+                        <div className="border border-gray-300 dark:border-[#2a2a2a] rounded-lg overflow-hidden">
                           <button
                             onClick={() => setPermissionSectionsCollapsed(prev => ({ ...prev, moderation: !prev.moderation }))}
-                            className="w-full bg-gray-50 dark:bg-gray-700/50 px-5 py-3 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                            className="w-full bg-gray-50 dark:bg-[#242424]/50 px-5 py-3 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                           >
                             <h3 className="font-bold text-gray-900 dark:text-gray-100">Administration</h3>
                             <span className="text-sm text-gray-600 dark:text-gray-400">
@@ -2172,7 +2172,7 @@ const ConfigureGroupPage = () => {
                             </span>
                           </button>
                           {!permissionSectionsCollapsed.moderation && (
-                            <div className="p-5 space-y-4 bg-gray-50 dark:bg-gray-800">
+                            <div className="p-5 space-y-4 bg-gray-50 dark:bg-[#1a1a1a]">
                               <div className="flex items-center justify-between">
                                 <span className="text-sm text-gray-700 dark:text-gray-100">Spend group funds</span>
                                 <ToggleSwitch
@@ -2262,7 +2262,7 @@ const ConfigureGroupPage = () => {
                           onChange={(e) => setAllianceSearch(e.target.value)}
                           onKeyPress={(e) => e.key === 'Enter' && handleAllianceSearch()}
                           placeholder="Search groups to send alliance request..."
-                          className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                          className="flex-1 px-4 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-gray-50 dark:bg-[#242424] text-gray-900 dark:text-gray-100"
                         />
                         <button
                           onClick={handleAllianceSearch}
@@ -2274,7 +2274,7 @@ const ConfigureGroupPage = () => {
                       </div>
 
                       {searchResults.length > 0 && (
-                        <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-3 space-y-2 max-h-60 overflow-y-auto">
+                        <div className="border border-gray-300 dark:border-[#2a2a2a] rounded-lg p-3 space-y-2 max-h-60 overflow-y-auto">
                           {searchResults.map((group) => (
                             <div key={group.id} className="flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
                               <img src={group.icon_url || '/default-group.png'} alt={group.name} className="w-10 h-10 rounded" />
@@ -2294,7 +2294,7 @@ const ConfigureGroupPage = () => {
                       )}
                     </div>
 
-                    <div className="border-b border-gray-300 dark:border-gray-600">
+                    <div className="border-b border-gray-300 dark:border-[#2a2a2a]">
                       <div className="flex gap-4">
                         <button
                           onClick={() => setAlliancesTab("allies")}
@@ -2326,7 +2326,7 @@ const ConfigureGroupPage = () => {
                         ) : (
                           <div className="grid grid-cols-2 gap-4">
                             {alliances.map((alliance) => (
-                              <div key={alliance.id} className="flex items-center gap-3 p-3 border border-gray-300 dark:border-gray-600 rounded-lg">
+                              <div key={alliance.id} className="flex items-center gap-3 p-3 border border-gray-300 dark:border-[#2a2a2a] rounded-lg">
                                 <img src={alliance.allied_group_icon || '/default-group.png'} alt={alliance.allied_group_name} className="w-12 h-12 rounded" />
                                 <div className="flex-1">
                                   <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{alliance.allied_group_name}</h4>
@@ -2352,7 +2352,7 @@ const ConfigureGroupPage = () => {
                         ) : (
                           <div className="space-y-3">
                             {allianceRequests.map((request) => (
-                              <div key={request.id} className="flex items-center gap-3 p-3 border border-gray-300 dark:border-gray-600 rounded-lg">
+                              <div key={request.id} className="flex items-center gap-3 p-3 border border-gray-300 dark:border-[#2a2a2a] rounded-lg">
                                 <img src={request.requesting_group_icon || '/default-group.png'} alt={request.requesting_group_name} className="w-12 h-12 rounded" />
                                 <div className="flex-1">
                                   <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{request.requesting_group_name}</h4>
@@ -2386,7 +2386,7 @@ const ConfigureGroupPage = () => {
 
                   {activeSection === "Advertise Group" && (
                   <div className="space-y-6">
-                    <div className="flex border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex border-b border-gray-200 dark:border-[#2a2a2a]">
                       <button
                         onClick={() => setAdTab("create")}
                         className={`px-6 py-3 text-sm font-semibold transition-colors relative ${adTab === "create"
@@ -2432,7 +2432,7 @@ const ConfigureGroupPage = () => {
                                 }}
                                 className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${adFormat === key
                                     ? "bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900"
-                                    : "bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-600"
+                                    : "bg-white dark:bg-[#242424] border border-gray-300 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-600"
                                   }`}
                               >
                                 {label}
@@ -2448,20 +2448,20 @@ const ConfigureGroupPage = () => {
                             value={adName}
                             onChange={(e) => setAdName(e.target.value)}
                             placeholder="Enter ad name"
-                            className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-4 py-3 bg-gray-50 dark:bg-[#242424] border border-gray-300 dark:border-[#2a2a2a] rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                           />
                         </div>
 
                         <div>
                           <label className="block text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Upload an Ad</label>
-                          <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 bg-gray-50 dark:bg-gray-800">
+                          <div className="border-2 border-dashed border-gray-300 dark:border-[#2a2a2a] rounded-lg p-8 bg-gray-50 dark:bg-[#1a1a1a]">
                             {adImage ? (
                               <div className="relative inline-block w-full max-w-md h-64">
                                 <Image
                                   src={adImage}
                                   alt="Ad preview"
                                   fill
-                                  className="object-contain rounded border border-gray-300 dark:border-gray-600"
+                                  className="object-contain rounded border border-gray-300 dark:border-[#2a2a2a]"
                                   style={{
                                     maxWidth: adFormat === "banner" ? "728px" : adFormat === "skyscraper" ? "160px" : "300px",
                                     maxHeight: adFormat === "banner" ? "90px" : adFormat === "skyscraper" ? "600px" : "250px",
@@ -2481,7 +2481,7 @@ const ConfigureGroupPage = () => {
                                 </svg>
                                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Drag an image here</p>
                                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">- Or -</p>
-                                <label className="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors cursor-pointer">
+                                <label className="px-4 py-2 bg-white dark:bg-[#242424] border border-gray-300 dark:border-[#2a2a2a] rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors cursor-pointer">
                                   Select an image from your computer
                                   <input type="file" accept="image/*" onChange={handleAdImageUpload} className="hidden" />
                                 </label>
@@ -2500,7 +2500,7 @@ const ConfigureGroupPage = () => {
                               <button className="w-5 h-5 rounded-full border border-gray-400 dark:border-gray-500 flex items-center justify-center text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
                                 i
                               </button>
-                              <div className="hidden group-hover:block absolute left-0 top-full mt-2 w-64 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-lg p-3 z-10">
+                              <div className="hidden group-hover:block absolute left-0 top-full mt-2 w-64 bg-gray-900 dark:bg-[#242424] text-white text-xs rounded-lg p-3 z-10">
                                 The minimum bid price depends on your selected target audience and Ad Format.
                               </div>
                             </div>
@@ -2514,7 +2514,7 @@ const ConfigureGroupPage = () => {
                               min="0"
                               value={maxBid}
                               onChange={(e) => setMaxBid(e.target.value)}
-                              className="w-32 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700"
+                              className="w-32 border border-gray-300 dark:border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424]"
                             />
                             <span className="text-sm text-gray-600 dark:text-gray-400">AdventureBux / day</span>
                           </div>
@@ -2528,7 +2528,7 @@ const ConfigureGroupPage = () => {
                           </button>
                           <button
                             onClick={() => { setAdName(""); setAdImage(null); setAdSetName(""); setMaxBid("0.10"); }}
-                            className="px-6 py-2.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium rounded-lg transition-colors text-sm"
+                            className="px-6 py-2.5 bg-gray-200 dark:bg-[#242424] hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium rounded-lg transition-colors text-sm"
                           >
                             Cancel
                           </button>
@@ -2552,7 +2552,7 @@ const ConfigureGroupPage = () => {
                                 { label: "Clicks", value: totalClicks.toLocaleString(), sub: "Total clicks", icon: <BarChart3 className="w-5 h-5 text-purple-500" /> },
                                 { label: "CTR", value: `${ctr}%`, sub: "Click-through rate", icon: <BarChart3 className="w-5 h-5 text-orange-500" /> },
                               ].map(({ label, value, sub, icon }) => (
-                                <div key={label} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
+                                <div key={label} className="bg-gray-50 dark:bg-[#242424] rounded-lg p-4 border border-gray-200 dark:border-[#2a2a2a]">
                                   <div className="flex items-center justify-between mb-2">
                                     <span className="text-sm text-gray-600 dark:text-gray-400">{label}</span>
                                     {icon}
@@ -2565,10 +2565,10 @@ const ConfigureGroupPage = () => {
                           );
                         })()}
 
-                        <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
+                        <div className="border border-gray-300 dark:border-[#2a2a2a] rounded-lg overflow-hidden">
                           <div className="overflow-x-auto">
                             <table className="w-full">
-                              <thead className="bg-gray-100 dark:bg-gray-700">
+                              <thead className="bg-gray-100 dark:bg-[#242424]">
                                 <tr>
                                   {["Ad Name", "Format", "Status", "Impressions", "Clicks", "Spent", "Bid", "Actions"].map((h) => (
                                     <th key={h} className={`px-4 py-3 text-xs font-semibold text-gray-900 dark:text-gray-100 uppercase ${h === "Actions" ? "text-right" : "text-left"}`}>
@@ -2586,7 +2586,7 @@ const ConfigureGroupPage = () => {
                                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full capitalize ${
                                         ad.status === "running" ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400"
                                         : ad.status === "pending" ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400"
-                                        : "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-400"
+                                        : "bg-gray-100 dark:bg-[#242424] text-gray-800 dark:text-gray-400"
                                       }`}>
                                         {ad.status}
                                       </span>
