@@ -126,7 +126,7 @@ export default function CatalogItemPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+      <div className="min-h-screen bg-gray-50 dark:bg-black flex flex-col">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} setSidebarOpen={setSidebarOpen} />
         <main className="flex-1 flex items-center justify-center">
@@ -139,7 +139,7 @@ export default function CatalogItemPage() {
 
   if (error || !item) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+      <div className="min-h-screen bg-gray-50 dark:bg-black flex flex-col">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} setSidebarOpen={setSidebarOpen} />
         <main className="flex-1 flex flex-col items-center justify-center">
@@ -158,7 +158,7 @@ export default function CatalogItemPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+    <div className="min-h-screen bg-gray-50 dark:bg-black flex flex-col">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} setSidebarOpen={setSidebarOpen} />
 
@@ -175,7 +175,7 @@ export default function CatalogItemPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Left - Item Image */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-[#1a1a1a] rounded-xl overflow-hidden border border-gray-200 dark:border-[#2a2a2a]">
             {item.thumbnailUrl ? (
               <img
                 src={item.thumbnailUrl}
@@ -183,7 +183,7 @@ export default function CatalogItemPage() {
                 className="w-full aspect-square object-cover"
               />
             ) : (
-              <div className="w-full aspect-square flex items-center justify-center bg-gray-100 dark:bg-gray-700">
+              <div className="w-full aspect-square flex items-center justify-center bg-gray-100 dark:bg-[#242424]">
                 <span className="text-6xl">🎨</span>
               </div>
             )}
@@ -234,10 +234,10 @@ export default function CatalogItemPage() {
               disabled={!item.isAvailable || inInventory}
               className={`w-full py-3 rounded-xl font-bold text-sm transition-colors mb-3 ${
                 inInventory
-                  ? "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 cursor-default"
+                  ? "bg-gray-200 dark:bg-[#242424] text-gray-700 dark:text-gray-300 cursor-default"
                   : item.isAvailable
                   ? "bg-blue-600 hover:bg-blue-700 text-white"
-                  : "bg-gray-300 dark:bg-gray-700 text-gray-500 cursor-not-allowed"
+                  : "bg-gray-300 dark:bg-[#242424] text-gray-500 cursor-not-allowed"
               }`}
             >
               {inInventory ? "✔ In Inventory" : adding ? "Adding..." : item.isAvailable ? "Get Item" : "Unavailable"}
@@ -259,7 +259,7 @@ export default function CatalogItemPage() {
             )}
 
             {/* Stats */}
-            <div className="grid grid-cols-2 gap-4 mt-4 p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+            <div className="grid grid-cols-2 gap-4 mt-4 p-4 bg-white dark:bg-[#1a1a1a] rounded-xl border border-gray-200 dark:border-[#2a2a2a]">
               <div className="text-center">
                 <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{item.favoriteCount.toLocaleString()}</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Favorites</p>
@@ -278,7 +278,7 @@ export default function CatalogItemPage() {
                   {item.tags.map((tag, index) => (
                     <span
                       key={index}
-                      className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs rounded-full"
+                      className="px-3 py-1 bg-gray-100 dark:bg-[#242424] text-gray-600 dark:text-gray-300 text-xs rounded-full"
                     >
                       {tag}
                     </span>
