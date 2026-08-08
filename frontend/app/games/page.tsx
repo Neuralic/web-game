@@ -74,7 +74,7 @@ const GamesPage = () => {
     return (
       <div className="group cursor-pointer flex-shrink-0 w-[260px]">
         <Link href={`/games/${game.id}`} className="block">
-          <div className="rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700 aspect-video mb-1.5 relative">
+          <div className="rounded-lg overflow-hidden bg-gray-200 dark:bg-[#242424] aspect-video mb-1.5 relative">
             {game.thumbnailUrl ? (
               <img src={game.thumbnailUrl} alt={game.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
             ) : (
@@ -122,7 +122,7 @@ const GamesPage = () => {
   const topRated = [...games].sort((a, b) => b.favorites - a.favorites);
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
+    <div className="min-h-screen bg-white dark:bg-black flex flex-col">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} setSidebarOpen={setSidebarOpen} />
 
@@ -148,7 +148,7 @@ const GamesPage = () => {
                 <GameCard key={game.id} game={game} isSponsored={true} />
               ))}
             </div>
-            <div className="border-b border-gray-200 dark:border-gray-700 mt-6" />
+            <div className="border-b border-gray-200 dark:border-[#2a2a2a] mt-6" />
           </section>
         )}
 
@@ -158,7 +158,7 @@ const GamesPage = () => {
           </div>
         ) : games.length === 0 ? (
           <div className="text-center py-20">
-            <div className="w-20 h-20 mx-auto mb-6 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+            <div className="w-20 h-20 mx-auto mb-6 bg-gray-100 dark:bg-[#1a1a1a] rounded-full flex items-center justify-center">
               <svg className="w-10 h-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
               </svg>
