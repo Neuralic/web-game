@@ -91,7 +91,7 @@ const InventoryPage = () => {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+      <div className="min-h-screen bg-gray-50 dark:bg-black flex flex-col">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <Header
           searchQuery={searchQuery}
@@ -101,7 +101,7 @@ const InventoryPage = () => {
 
         <main className="flex-1 w-full">
           {/* Top Bar */}
-          <div className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+          <div className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-black">
             <div className="px-4 py-3">
               <div className="flex items-center justify-between gap-3 mb-3">
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -115,7 +115,7 @@ const InventoryPage = () => {
                       placeholder="Search inventory..."
                       value={inventorySearch}
                       onChange={(e) => setInventorySearch(e.target.value)}
-                      className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded pl-8 pr-3 py-1.5 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full bg-gray-100 dark:bg-[#1a1a1a] border border-gray-300 dark:border-[#2a2a2a] rounded pl-8 pr-3 py-1.5 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
                     />
                   </div>
                 </div>
@@ -130,7 +130,7 @@ const InventoryPage = () => {
                     className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
                       categoryFilter === cat
                         ? "bg-blue-600 text-white"
-                        : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
+                        : "bg-gray-200 dark:bg-[#242424] text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
                     }`}
                   >
                     {cat}
@@ -172,7 +172,7 @@ const InventoryPage = () => {
                   {items.map((item) => (
                     <Link key={item.id} href={`/catalog/${item.id}`} className="block group">
                       <div className="rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
-                        <div className="relative aspect-square bg-gray-100 dark:bg-gray-700">
+                        <div className="relative aspect-square bg-gray-100 dark:bg-[#242424]">
                           {item.thumbnailUrl ? (
                             <img
                               src={item.thumbnailUrl}
@@ -204,7 +204,7 @@ const InventoryPage = () => {
                     <button
                       onClick={() => fetchInventory(currentPage - 1)}
                       disabled={currentPage <= 1}
-                      className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 font-medium rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-4 py-2 bg-white dark:bg-[#1a1a1a] border border-gray-300 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-100 font-medium rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Previous
                     </button>
@@ -214,7 +214,7 @@ const InventoryPage = () => {
                     <button
                       onClick={() => fetchInventory(currentPage + 1)}
                       disabled={currentPage >= totalPages}
-                      className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 font-medium rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-4 py-2 bg-white dark:bg-[#1a1a1a] border border-gray-300 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-100 font-medium rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Next
                     </button>
