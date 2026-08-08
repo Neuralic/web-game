@@ -31,7 +31,7 @@ export default function NotificationToast() {
         return (
           <div
             key={toast.id}
-            className={`pointer-events-auto bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-lg shadow-2xl p-4 w-80 transition-all duration-300 ${
+            className={`pointer-events-auto bg-white/95 dark:bg-[#1a1a1a]/95 backdrop-blur-md border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-2xl p-4 w-80 transition-all duration-300 ${
               isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
             }`}
             style={{ transitionDelay: `${index * 50}ms` }}
