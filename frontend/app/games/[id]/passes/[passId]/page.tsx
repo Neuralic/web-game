@@ -85,7 +85,7 @@ const GamePassDetailPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
+    <div className="min-h-screen bg-white dark:bg-black flex flex-col">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} setSidebarOpen={setSidebarOpen} />
 
@@ -105,7 +105,7 @@ const GamePassDetailPage = () => {
             </div>
           ) : notFound || !pass ? (
             <div className="text-center py-20">
-              <div className="w-20 h-20 mx-auto mb-6 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+              <div className="w-20 h-20 mx-auto mb-6 bg-gray-100 dark:bg-[#1a1a1a] rounded-full flex items-center justify-center">
                 <Gamepad2 className="w-10 h-10 text-gray-400" />
               </div>
               <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">Game Pass Not Found</h2>
@@ -117,8 +117,8 @@ const GamePassDetailPage = () => {
               </Link>
             </div>
           ) : (
-            <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
-              <div className="w-full aspect-video bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+            <div className="border border-gray-200 dark:border-[#2a2a2a] rounded-xl overflow-hidden">
+              <div className="w-full aspect-video bg-gray-100 dark:bg-[#1a1a1a] flex items-center justify-center">
                 {pass.image_url ? (
                   <img src={pass.image_url} alt={pass.name} className="w-full h-full object-cover" />
                 ) : (
@@ -147,7 +147,7 @@ const GamePassDetailPage = () => {
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 whitespace-pre-wrap">{pass.description}</p>
                 )}
 
-                <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-5">
+                <div className="flex items-center justify-between border-t border-gray-200 dark:border-[#2a2a2a] pt-5">
                   <span className="text-xl font-bold text-gray-900 dark:text-gray-100">{pass.price} AdventureBux</span>
                   <button
                     onClick={handleBuy}
