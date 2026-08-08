@@ -27,11 +27,17 @@ const GiftAdventureBuxPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
+    <div className="min-h-screen bg-white dark:bg-black flex flex-col">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} setSidebarOpen={setSidebarOpen} />
 
-      <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-8">
+      <div className="flex-1 flex justify-center gap-4 px-4 py-8 w-full">
+        {/* Left Skyscraper Ad */}
+        <div className="hidden xl:block flex-shrink-0">
+          <UserAdBanner format="160x600" />
+        </div>
+
+        <main className="max-w-2xl w-full">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Gift AdventureBux</h1>
         <p className="text-gray-600 dark:text-gray-400 text-sm mb-8">Send AdventureBux from your balance to any user on the platform</p>
 
@@ -39,9 +45,9 @@ const GiftAdventureBuxPage = () => {
   <UserAdBanner format="728x90" />
 </div>
 
-        <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+        <div className="bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded-lg p-6">
           {/* Balance */}
-          <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200 dark:border-[#2a2a2a]">
             <span className="text-sm text-gray-600 dark:text-gray-400">Your Balance</span>
             <span className="text-xl font-bold text-gray-900 dark:text-gray-100">◈ 0</span>
           </div>
@@ -58,7 +64,7 @@ const GiftAdventureBuxPage = () => {
                     value={recipientUsername}
                     onChange={(e) => setRecipientUsername(e.target.value)}
                     placeholder="Enter username"
-                    className="w-full pl-8 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full pl-8 pr-4 py-3 border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#242424] text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
@@ -72,7 +78,7 @@ const GiftAdventureBuxPage = () => {
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="Enter amount"
                   min="1"
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#242424] text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <div className="flex flex-wrap gap-2 mt-3">
                   {presetAmounts.map((preset) => (
@@ -82,7 +88,7 @@ const GiftAdventureBuxPage = () => {
                       className={`px-3 py-1.5 text-xs font-semibold rounded-full border transition-colors ${
                         amount === String(preset)
                           ? "bg-blue-600 text-white border-blue-600"
-                          : "bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-blue-400"
+                          : "bg-white dark:bg-[#242424] text-gray-700 dark:text-gray-300 border-gray-300 dark:border-[#2a2a2a] hover:border-blue-400"
                       }`}
                     >
                       ◈ {preset}
@@ -100,7 +106,7 @@ const GiftAdventureBuxPage = () => {
                   placeholder="Add a personal message..."
                   rows={3}
                   maxLength={200}
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#242424] text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{message.length}/200</p>
               </div>
@@ -131,7 +137,7 @@ const GiftAdventureBuxPage = () => {
                 </p>
               </div>
 
-              <div className="bg-white dark:bg-gray-700 rounded-lg p-4 space-y-3 border border-gray-200 dark:border-gray-600">
+              <div className="bg-white dark:bg-[#242424] rounded-lg p-4 space-y-3 border border-gray-200 dark:border-[#2a2a2a]">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500 dark:text-gray-400">To</span>
                   <span className="font-semibold text-gray-900 dark:text-gray-100">@{recipientUsername}</span>
@@ -146,7 +152,7 @@ const GiftAdventureBuxPage = () => {
                     <span className="text-gray-900 dark:text-gray-100 text-right max-w-[200px] truncate">{message}</span>
                   </div>
                 )}
-                <div className="flex justify-between text-sm pt-3 border-t border-gray-200 dark:border-gray-600">
+                <div className="flex justify-between text-sm pt-3 border-t border-gray-200 dark:border-[#2a2a2a]">
                   <span className="text-gray-500 dark:text-gray-400">Remaining Balance</span>
                   <span className="font-semibold text-gray-900 dark:text-gray-100">◈ {Math.max(0, 0 - parseInt(amount || "0"))}</span>
                 </div>
@@ -155,7 +161,7 @@ const GiftAdventureBuxPage = () => {
               <div className="flex gap-3">
                 <button
                   onClick={() => setStep("form")}
-                  className="flex-1 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-semibold rounded-lg transition-colors"
+                  className="flex-1 py-3 bg-gray-200 dark:bg-[#242424] hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-semibold rounded-lg transition-colors"
                 >
                   Back
                 </button>
@@ -169,7 +175,13 @@ const GiftAdventureBuxPage = () => {
             </div>
           )}
         </div>
-      </main>
+        </main>
+
+        {/* Right Skyscraper Ad */}
+        <div className="hidden xl:block flex-shrink-0">
+          <UserAdBanner format="160x600" />
+        </div>
+      </div>
 
       <Footer />
     </div>
