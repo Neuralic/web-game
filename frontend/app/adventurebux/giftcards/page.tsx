@@ -25,7 +25,7 @@ const GiftCardsPage = () => {
 
   if (comingSoon) {
     return (
-      <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
+      <div className="min-h-screen bg-white dark:bg-black flex flex-col">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} setSidebarOpen={setSidebarOpen} />
 
@@ -47,7 +47,7 @@ const GiftCardsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
+    <div className="min-h-screen bg-white dark:bg-black flex flex-col">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} setSidebarOpen={setSidebarOpen} />
 
@@ -70,7 +70,7 @@ const GiftCardsPage = () => {
           {giftCards.map((card) => (
             <div
               key={card.id}
-              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden hover:shadow-lg transition-shadow"
+              className="bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded-xl overflow-hidden hover:shadow-lg transition-shadow"
             >
               {/* Card Visual */}
               <div className={`bg-gradient-to-br ${card.color} p-8 text-center`}>
@@ -96,7 +96,7 @@ const GiftCardsPage = () => {
         </div>
 
         {/* Info Section */}
-        <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+        <div className="bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded-lg p-6">
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">How Gift Cards Work</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-center">
