@@ -77,11 +77,11 @@ export default function Sidebar({
       <div className="fixed inset-0 bg-black/50 z-[60]" onClick={onClose}></div>
 
       {/* Sidebar Panel */}
-      <div className="fixed left-0 top-0 bottom-0 w-64 bg-white dark:bg-gray-900 z-[70] shadow-xl overflow-y-auto scrollbar-hide">
+      <div className="fixed left-0 top-0 bottom-0 w-64 bg-white dark:bg-black z-[70] shadow-xl overflow-y-auto scrollbar-hide">
         {!isLoggedIn ? (
           // Guest View - Show Login Prompt
           <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-            <div className="w-20 h-20 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
+            <div className="w-20 h-20 bg-gray-200 dark:bg-[#242424] rounded-full flex items-center justify-center mb-4">
               <span className="text-4xl">👤</span>
             </div>
             <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
@@ -102,7 +102,7 @@ export default function Sidebar({
               <Link
                 href="/login"
                 onClick={onClose}
-                className="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-bold py-3 px-6 rounded-lg transition-colors"
+                className="bg-gray-200 dark:bg-[#242424] hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-bold py-3 px-6 rounded-lg transition-colors"
               >
                 Log In
               </Link>
@@ -204,7 +204,7 @@ export default function Sidebar({
               <Link
                 href="/groups/create"
                 onClick={onClose}
-                className="block w-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-semibold py-2.5 text-sm rounded-lg transition-colors text-center"
+                className="block w-full bg-gray-200 dark:bg-[#242424] hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-semibold py-2.5 text-sm rounded-lg transition-colors text-center"
               >
                 Create Group
               </Link>
