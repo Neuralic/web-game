@@ -112,14 +112,19 @@ function ProfileHeadshot({ userId, username }: { userId: string; username: strin
   }
 
   return (
-    <div className="w-36 h-36 rounded-full overflow-hidden flex-shrink-0 border-2 border-gray-200 dark:border-[#2a2a2a] bg-gray-100 dark:bg-[#1a1a1a]">
+    <a
+      href={imageUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="block w-36 h-36 rounded-full overflow-hidden flex-shrink-0 border-2 border-gray-200 dark:border-[#2a2a2a] bg-gray-100 dark:bg-[#1a1a1a]"
+    >
       <img
         src={imageUrl}
         alt={username}
         className="w-full object-cover object-top"
         style={{ height: '240%', marginTop: '-15%' }}
       />
-    </div>
+    </a>
   );
 }
 
