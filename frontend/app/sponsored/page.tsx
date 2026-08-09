@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { Search, Menu, Bell, Settings as SettingsIcon } from "lucide-react";
 import Footer from "../components/Footer";
-import { ThemeToggle } from "../components/ThemeToggle";
 import Sidebar from "../components/Sidebar";
 
 const SponsoredPage = () => {
@@ -80,9 +79,6 @@ const SponsoredPage = () => {
               <Bell className="w-5 h-5 text-gray-700 dark:text-gray-300" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
-            
-            {/* Theme Toggle */}
-            <ThemeToggle />
             
             {/* Currency Display */}
             <div className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 dark:bg-[#1a1a1a] rounded-lg">
