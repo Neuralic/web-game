@@ -300,8 +300,8 @@ useEffect(() => {
             </nav>
 
             {/* Search Bar with Dropdown */}
-            <div className="hidden md:flex items-center gap-2 relative" ref={searchDropdownRef}>
-              <div className="flex items-center gap-2 bg-gray-100 dark:bg-[#1a1a1a] rounded-full px-4 py-2 w-72">
+            <div className="hidden md:flex items-center gap-2 relative flex-1 min-w-0" ref={searchDropdownRef}>
+              <div className="flex items-center gap-2 bg-gray-100 dark:bg-[#1a1a1a] rounded-full px-4 py-2 w-full max-w-[500px]">
                 <Search className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
                 <input
                   type="text"
