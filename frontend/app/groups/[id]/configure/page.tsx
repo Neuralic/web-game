@@ -2511,7 +2511,8 @@ const ConfigureGroupPage = () => {
                           <div className="flex items-center gap-3">
                             <input
                               type="number"
-                              min="0"
+                              min="0.10"
+                              step="0.10"
                               value={maxBid}
                               onChange={(e) => setMaxBid(e.target.value)}
                               className="w-32 border border-gray-300 dark:border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424]"
