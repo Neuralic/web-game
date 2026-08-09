@@ -261,7 +261,7 @@ useEffect(() => {
               href={isLoggedIn ? "/home" : "/signup"}
               className="flex-shrink-0"
             >
-              <img src="/logo.png" alt="AdventureBlox" className="w-9 h-9 rounded-lg object-cover" />
+              <Image src="/logo.png" width={36} height={36} alt="AdventureBlox logo" priority className="rounded-lg object-cover" />
             </Link>
 
             {/* Navigation Links */}
