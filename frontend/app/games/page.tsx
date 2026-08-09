@@ -98,7 +98,7 @@ const GamesPage = () => {
     );
   };
 
-  const GameRow = ({ title, icon, games }: { title: string; icon: string; games: Game[] }) => {
+  const GameRow = ({ title, icon, games, seeAllHref }: { title: string; icon: string; games: Game[]; seeAllHref: string }) => {
     if (games.length === 0) return null;
     return (
       <section className="mb-8">
@@ -106,7 +106,7 @@ const GamesPage = () => {
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
             <span>{icon}</span>{title}
           </h2>
-          <button className="text-sm text-blue-600 dark:text-blue-400 hover:underline font-medium">See All</button>
+          <Link href={seeAllHref} className="text-sm text-blue-600 dark:text-blue-400 hover:underline font-medium">See All</Link>
         </div>
         <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
           {games.map((game) => (
@@ -120,6 +120,7 @@ const GamesPage = () => {
   const popularGames = [...games].sort((a, b) => b.visits - a.visits);
   const newGames = [...games].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   const topRated = [...games].sort((a, b) => b.favorites - a.favorites);
+  const topPlayingNow = [...games].sort(() => Math.random() - 0.5).slice(0, 10);
 
   return (
     <div className="min-h-screen bg-white dark:bg-black flex flex-col">
@@ -168,10 +169,10 @@ const GamesPage = () => {
           </div>
         ) : (
           <>
-            <GameRow title="Popular Games" icon="🔥" games={popularGames} />
-            <GameRow title="New & Trending" icon="🆕" games={newGames} />
-            <GameRow title="Top Rated" icon="⭐" games={topRated} />
-            <GameRow title="All Games" icon="🎮" games={games} />
+            <GameRow title="Popular" icon="🔥" games={popularGames} seeAllHref="/games?filter=popular" />
+            <GameRow title="Up-and-Coming" icon="🆕" games={newGames} seeAllHref="/games?filter=upcoming" />
+            <GameRow title="Top Rated" icon="⭐" games={topRated} seeAllHref="/games?filter=toprated" />
+            <GameRow title="Top Playing Now" icon="🎮" games={topPlayingNow} seeAllHref="/games?filter=playing" />
           </>
         )}
         </div>
