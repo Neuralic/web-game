@@ -583,6 +583,7 @@ export const groupsApi = {
     iconUrl: string;
     coverPhotoUrl?: string;
     joinSetting?: string;
+    category?: string;
   }): Promise<ApiResponse<{ group: unknown }>> => {
     const token = storage.getAccessToken();
     if (!token) {
