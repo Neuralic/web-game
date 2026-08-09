@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Search, Menu, Bell, Settings as SettingsIcon, UserPlus, Check, Users, Gamepad2 } from "lucide-react";
-import { ThemeToggle } from "./ThemeToggle";
 import VerifiedBadge from "./VerifiedBadge";
 import { logout, isAuthenticated } from "@/lib/auth";
 import { usersApi, searchApi, friendsApi } from "@/lib/api";
@@ -498,9 +497,6 @@ useEffect(() => {
 
           {/* Right Section - Dynamic based on auth state */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            {/* Theme Toggle - Always visible */}
-            <ThemeToggle />
-
             {!isLoggedIn ? (
               // NOT LOGGED IN - Show Sign Up / Log In buttons
               <>
