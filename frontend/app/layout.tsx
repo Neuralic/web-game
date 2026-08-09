@@ -3,7 +3,7 @@ import "./globals.css";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { RealtimeProvider } from "@/contexts/RealtimeContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
-import GlobalChatWidget from "./components/GlobalChatWidget";
+import GlobalChatWidget from "./components/GlobalChatWidgetLoader";
 import NotificationToast from "./components/NotificationToast";
 
 export const metadata: Metadata = {
