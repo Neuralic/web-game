@@ -19,7 +19,6 @@ import Sidebar from "../../../components/Sidebar";
 import Header from "../../../components/Header";
 import UserAvatar from "../../../components/UserAvatar";
 
-import { ThemeToggle } from "../../../components/ThemeToggle";
 import { groupsApi, uploadApi, storage } from "@/lib/api";
 import ConfirmModal from "@/components/modals/ConfirmModal";
 import SuccessModal from "@/components/modals/SuccessModal";
