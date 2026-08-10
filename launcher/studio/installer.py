@@ -43,18 +43,22 @@ def get_base_dir() -> str:
 
 
 def find_roblox_studio() -> Optional[str]:
-    """Find RobloxStudio.exe under the default per-user install location.
-    The version subfolder name changes with every Roblox update, so it
-    can't be hardcoded — glob for it instead."""
+    """Find the Roblox Studio executable under the default per-user install
+    location. The version subfolder name changes with every Roblox update,
+    so it can't be hardcoded — glob for it instead.
+
+    Checks RobloxStudioBeta.exe first (the executable name Roblox actually
+    ships today), then falls back to the older RobloxStudio.exe name."""
     local_appdata = os.environ.get("LOCALAPPDATA")
     if not local_appdata:
         return None
 
-    pattern = os.path.join(local_appdata, "Roblox", "Versions", "*", "RobloxStudio.exe")
-    matches = glob.glob(pattern)
-    if matches:
-        matches.sort(key=os.path.getmtime, reverse=True)
-        return matches[0]
+    for exe_name in ("RobloxStudioBeta.exe", "RobloxStudio.exe"):
+        pattern = os.path.join(local_appdata, "Roblox", "Versions", "*", exe_name)
+        matches = glob.glob(pattern)
+        if matches:
+            matches.sort(key=os.path.getmtime, reverse=True)
+            return matches[0]
     return None
 
 
