@@ -1417,6 +1417,45 @@ deleteGroupWallPost: async (
     });
   },
 
+  // Get group store items
+  getGroupStoreItems: async (id: string): Promise<ApiResponse<{ items: unknown[] }>> => {
+    return apiCall(`/groups/${id}/store`, { method: "GET" });
+  },
+
+  // Create group store item
+  createGroupStoreItem: async (
+    id: string,
+    data: { name: string; description?: string; price: number; imageUrl?: string; itemType?: string; stock?: number },
+  ): Promise<ApiResponse<{ item: unknown }>> => {
+    const token = storage.getAccessToken();
+    if (!token) return { success: false, error: "No authentication token found" };
+    return apiCall(`/groups/${id}/store`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Delete group store item
+  deleteGroupStoreItem: async (id: string, itemId: string): Promise<ApiResponse> => {
+    const token = storage.getAccessToken();
+    if (!token) return { success: false, error: "No authentication token found" };
+    return apiCall(`/groups/${id}/store/${itemId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+
+  // Buy a group store item
+  buyGroupStoreItem: async (id: string, itemId: string): Promise<ApiResponse<{ balance: number }>> => {
+    const token = storage.getAccessToken();
+    if (!token) return { success: false, error: "No authentication token found" };
+    return apiCall(`/groups/${id}/store/${itemId}/buy`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+
   // Delete group event
   deleteGroupEvent: async (id: string, eventId: string): Promise<ApiResponse> => {
     const token = storage.getAccessToken();
