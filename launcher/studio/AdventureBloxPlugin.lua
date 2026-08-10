@@ -1,0 +1,6 @@
+-- AdventureBlox Studio Plugin v1
+-- Placeholder — replace with actual plugin code from Google Drive zip.
+--
+-- This file is copied as-is into the user's Roblox Studio Plugins folder
+-- by installer.py. Swap it out for the real plugin source before
+-- distributing AdventureBloxStudioSetup.exe to anyone.
