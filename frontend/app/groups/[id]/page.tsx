@@ -143,6 +143,23 @@ const GroupDetailPage = () => {
   const [eventImagePreview, setEventImagePreview] = useState<string | null>(null);
   const [eventError, setEventError] = useState<string | null>(null);
 
+  // Store state
+  const [storeItems, setStoreItems] = useState<any[]>([]);
+  const [loadingStoreItems, setLoadingStoreItems] = useState(true);
+  const [canManageGroupStore, setCanManageGroupStore] = useState(false);
+  const [showAddStoreItemForm, setShowAddStoreItemForm] = useState(false);
+  const [storeItemName, setStoreItemName] = useState("");
+  const [storeItemDescription, setStoreItemDescription] = useState("");
+  const [storeItemPrice, setStoreItemPrice] = useState("0");
+  const [storeItemType, setStoreItemType] = useState("shirt");
+  const [storeItemImage, setStoreItemImage] = useState<File | null>(null);
+  const [storeItemImagePreview, setStoreItemImagePreview] = useState<string | null>(null);
+  const [uploadingStoreItemImage, setUploadingStoreItemImage] = useState(false);
+  const [creatingStoreItem, setCreatingStoreItem] = useState(false);
+  const [storeError, setStoreError] = useState<string | null>(null);
+  const [buyingItemId, setBuyingItemId] = useState<string | null>(null);
+  const [buyMessage, setBuyMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
   // Fetch user's groups for sidebar + primary group
   useEffect(() => {
     const fetchUserGroups = async () => {
@@ -309,6 +326,142 @@ const GroupDetailPage = () => {
   const currentGroup = currentGroupDetails
     ? { ...currentGroupDetails, role: currentGroupDetails.role || membershipMatch?.role }
     : membershipMatch;
+
+  // Fetch store items
+  useEffect(() => {
+    const fetchStoreItems = async () => {
+      if (!groupId) return;
+      setLoadingStoreItems(true);
+      try {
+        const response = await groupsApi.getGroupStoreItems(groupId);
+        if (response.success && response.data) {
+          setStoreItems((response.data.items as any[]) || []);
+        }
+      } catch (error) {
+        console.error("Error fetching store items:", error);
+      } finally {
+        setLoadingStoreItems(false);
+      }
+    };
+
+    fetchStoreItems();
+  }, [groupId]);
+
+  // Determine whether the current user can manage this group's store —
+  // Owner always can; otherwise look up their role's canManageStore flag.
+  useEffect(() => {
+    const checkStorePermission = async () => {
+      if (!groupId || !currentGroup?.role) {
+        setCanManageGroupStore(false);
+        return;
+      }
+      if (currentGroup.role === "Owner") {
+        setCanManageGroupStore(true);
+        return;
+      }
+      try {
+        const response = await groupsApi.getGroupRoles(groupId);
+        if (response.success && response.data) {
+          const roles = (response.data as any).roles || [];
+          const myRole = roles.find((r: any) => r.name === currentGroup.role);
+          setCanManageGroupStore(!!myRole?.can_manage_store);
+        }
+      } catch (error) {
+        console.error("Error checking store permission:", error);
+      }
+    };
+
+    checkStorePermission();
+  }, [groupId, currentGroup?.role]);
+
+  const handleStoreItemImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image must be under 5MB");
+      return;
+    }
+    setStoreItemImage(file);
+    if (storeItemImagePreview) URL.revokeObjectURL(storeItemImagePreview);
+    setStoreItemImagePreview(URL.createObjectURL(file));
+  };
+
+  const handleCreateStoreItem = async () => {
+    const groupUuid = currentGroupDetails?.id;
+    if (!groupUuid || !storeItemName.trim()) return;
+
+    setCreatingStoreItem(true);
+    setStoreError(null);
+    try {
+      let imageUrl: string | undefined;
+      if (storeItemImage) {
+        setUploadingStoreItemImage(true);
+        try {
+          const uploadResponse = await uploadApi.uploadImage(storeItemImage, 'group-store-item');
+          if (uploadResponse.success && uploadResponse.data) {
+            imageUrl = (uploadResponse.data as { url: string }).url;
+          }
+        } catch (uploadError) {
+          console.error("Image upload failed, continuing without image:", uploadError);
+        }
+        setUploadingStoreItemImage(false);
+      }
+
+      const response = await groupsApi.createGroupStoreItem(groupUuid, {
+        name: storeItemName.trim(),
+        description: storeItemDescription.trim() || undefined,
+        price: parseInt(storeItemPrice) || 0,
+        imageUrl,
+        itemType: storeItemType,
+      });
+
+      if (response.success && response.data) {
+        setStoreItems([(response.data as any).item, ...storeItems]);
+        setShowAddStoreItemForm(false);
+        setStoreItemName("");
+        setStoreItemDescription("");
+        setStoreItemPrice("0");
+        setStoreItemType("shirt");
+        setStoreItemImage(null);
+        if (storeItemImagePreview) URL.revokeObjectURL(storeItemImagePreview);
+        setStoreItemImagePreview(null);
+      } else {
+        setStoreError((response as any).message || "Failed to create store item");
+      }
+    } catch (error) {
+      console.error("Error creating store item:", error);
+      setStoreError("Failed to create store item");
+    } finally {
+      setCreatingStoreItem(false);
+    }
+  };
+
+  const handleBuyStoreItem = async (itemId: string) => {
+    const groupUuid = currentGroupDetails?.id;
+    if (!groupUuid) return;
+
+    setBuyingItemId(itemId);
+    setBuyMessage(null);
+    try {
+      const response = await groupsApi.buyGroupStoreItem(groupUuid, itemId);
+      if (response.success) {
+        setBuyMessage({ type: "success", text: (response as any).message || "Purchase successful!" });
+        // Refresh items in case stock changed
+        const refreshed = await groupsApi.getGroupStoreItems(groupUuid);
+        if (refreshed.success && refreshed.data) {
+          setStoreItems((refreshed.data.items as any[]) || []);
+        }
+      } else {
+        setBuyMessage({ type: "error", text: (response as any).message || "Purchase failed" });
+      }
+    } catch (error) {
+      console.error("Error buying store item:", error);
+      setBuyMessage({ type: "error", text: "Purchase failed. Please try again." });
+    } finally {
+      setBuyingItemId(null);
+      setTimeout(() => setBuyMessage(null), 4000);
+    }
+  };
 
   // Fetch wall posts
   useEffect(() => {
@@ -1412,21 +1565,168 @@ const GroupDetailPage = () => {
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                   Store
                 </h2>
+                {canManageGroupStore && (
+                  <button
+                    onClick={() => { setShowAddStoreItemForm(!showAddStoreItemForm); setStoreError(null); }}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors"
+                  >
+                    {showAddStoreItemForm ? "Cancel" : "Add Item"}
+                  </button>
+                )}
               </div>
 
-              <div className="text-center py-16">
-                <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-[#1a1a1a] rounded-full flex items-center justify-center">
-                  <svg className="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                  </svg>
+              {buyMessage && (
+                <div
+                  className={`mb-4 p-3 rounded-lg text-sm font-medium ${
+                    buyMessage.type === "success"
+                      ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+                      : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
+                  }`}
+                >
+                  {buyMessage.text}
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                  No Store Items
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 max-w-md mx-auto">
-                  This group doesn&apos;t have any store items yet. Check back later!
-                </p>
-              </div>
+              )}
+
+              {/* Add Item Form */}
+              {showAddStoreItemForm && (
+                <div className="mb-6 bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded-lg p-5 space-y-4">
+                  {storeError && (
+                    <p className="text-sm text-red-500">{storeError}</p>
+                  )}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Item Name *</label>
+                    <input
+                      type="text"
+                      value={storeItemName}
+                      onChange={(e) => setStoreItemName(e.target.value)}
+                      placeholder="Enter item name"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#242424] text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                    <textarea
+                      value={storeItemDescription}
+                      onChange={(e) => setStoreItemDescription(e.target.value)}
+                      placeholder="Describe this item..."
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#242424] text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Price (AdventureBux)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={storeItemPrice}
+                        onChange={(e) => setStoreItemPrice(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#242424] text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Item Type</label>
+                      <select
+                        value={storeItemType}
+                        onChange={(e) => setStoreItemType(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#242424] text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="shirt">Shirt</option>
+                        <option value="pants">Pants</option>
+                        <option value="hat">Hat</option>
+                        <option value="gear">Gear</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Item Image</label>
+                    <div className="flex items-center gap-3">
+                      <label className="px-4 py-2 bg-gray-200 dark:bg-[#242424] hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 text-sm font-medium rounded-lg cursor-pointer transition-colors">
+                        {storeItemImage ? "Change Image" : "Upload Image"}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleStoreItemImageSelect}
+                          className="hidden"
+                        />
+                      </label>
+                      {storeItemImage && (
+                        <button
+                          onClick={() => { setStoreItemImage(null); if (storeItemImagePreview) URL.revokeObjectURL(storeItemImagePreview); setStoreItemImagePreview(null); }}
+                          className="text-xs text-red-500 hover:underline"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                    {storeItemImagePreview && (
+                      <div className="mt-2">
+                        <img src={storeItemImagePreview} alt="Item preview" className="max-h-32 rounded-lg border border-gray-300 dark:border-gray-600" />
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={handleCreateStoreItem}
+                    disabled={!storeItemName.trim() || creatingStoreItem || uploadingStoreItemImage}
+                    className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {uploadingStoreItemImage ? "Uploading image..." : creatingStoreItem ? "Creating..." : "Create Item"}
+                  </button>
+                </div>
+              )}
+
+              {/* Items Grid */}
+              {loadingStoreItems ? (
+                <div className="flex justify-center py-16">
+                  <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+                </div>
+              ) : storeItems.length === 0 ? (
+                <div className="text-center py-16">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-[#1a1a1a] rounded-full flex items-center justify-center">
+                    <svg className="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                    No Store Items
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+                    This group doesn&apos;t have any store items yet. Check back later!
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {storeItems.map((item) => (
+                    <div key={item.id} className="border border-gray-200 dark:border-[#2a2a2a] rounded-lg p-4 flex flex-col">
+                      <div className="w-full aspect-square bg-gray-100 dark:bg-[#1a1a1a] rounded-lg overflow-hidden flex items-center justify-center mb-3">
+                        {item.image_url ? (
+                          <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-3xl">🎽</span>
+                        )}
+                      </div>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{item.name}</p>
+                      {item.description && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex-1 line-clamp-2">{item.description}</p>
+                      )}
+                      {item.stock !== -1 && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{item.stock} left</p>
+                      )}
+                      <div className="flex items-center justify-between mt-3">
+                        <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{item.price} AdventureBux</span>
+                        <button
+                          onClick={() => handleBuyStoreItem(item.id)}
+                          disabled={buyingItemId === item.id || (item.stock !== -1 && item.stock <= 0)}
+                          className="px-4 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {buyingItemId === item.id ? "Buying..." : (item.stock !== -1 && item.stock <= 0) ? "Sold Out" : "Buy"}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
