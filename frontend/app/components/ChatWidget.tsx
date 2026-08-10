@@ -57,6 +57,7 @@ export default function ChatWidget() {
   const [isChatListOpen, setIsChatListOpen] = useState(false);
   const [openChats, setOpenChats] = useState<ChatWindow[]>([]);
   const [messageInputs, setMessageInputs] = useState<{ [key: string]: string }>({});
+  const [messageErrors, setMessageErrors] = useState<{ [key: string]: string }>({});
   const [friends, setFriends] = useState<Friend[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -298,6 +299,7 @@ export default function ChatWidget() {
   const handleSendMessage = async (chatId: string) => {
     const message = messageInputs[chatId];
     if (message && message.trim()) {
+      setMessageErrors(prev => ({ ...prev, [chatId]: "" }));
       const response = await sendChatMessage(chatId, message.trim());
       if (response.success && response.message) {
         // Add message to chat
@@ -310,18 +312,23 @@ export default function ChatWidget() {
           }
           return chat;
         }));
-        
+
         // Clear input
         setMessageInputs({ ...messageInputs, [chatId]: "" });
-        
+
         // Update conversations
         loadConversations();
+      } else {
+        setMessageErrors(prev => ({ ...prev, [chatId]: response.error || "Failed to send message" }));
       }
     }
   };
 
   const handleInputChange = (chatId: string, value: string) => {
     setMessageInputs({ ...messageInputs, [chatId]: value });
+    if (messageErrors[chatId]) {
+      setMessageErrors(prev => ({ ...prev, [chatId]: "" }));
+    }
 
     const userId = currentUserIdRef.current;
     if (!userId) return;
@@ -548,6 +555,9 @@ export default function ChatWidget() {
 
           {/* Message Input */}
           <div className="p-3 border-t border-gray-200 dark:border-[#2a2a2a]">
+            {messageErrors[chat.id] && (
+              <p className="text-xs text-red-500 mb-1.5">{messageErrors[chat.id]}</p>
+            )}
             <div className="flex items-center gap-2">
               <input
                 type="text"
