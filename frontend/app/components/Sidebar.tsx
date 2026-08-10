@@ -12,6 +12,7 @@ import {
   TrendingUp,
   Gift,
   Star,
+  Download,
 } from "lucide-react";
 import VerifiedBadge from "./VerifiedBadge";
 import { usersApi } from "@/lib/api";
@@ -196,6 +197,15 @@ export default function Sidebar({
               >
                 <Users className="w-4 h-4" />
                 <span className="font-medium text-sm">Groups</span>
+              </Link>
+
+              <Link
+                href="/download"
+                className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                onClick={onClose}
+              >
+                <Download className="w-4 h-4" />
+                <span className="font-medium text-sm">Downloads</span>
               </Link>
             </nav>
 
