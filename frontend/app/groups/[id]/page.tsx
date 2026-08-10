@@ -97,6 +97,7 @@ const GroupDetailPage = () => {
   >([]);
   const [loadingWallPosts, setLoadingWallPosts] = useState(true);
   const [postingWall, setPostingWall] = useState(false);
+  const [wallPostError, setWallPostError] = useState<string | null>(null);
   const [postImage, setPostImage] = useState<File | null>(null);
   const [postImagePreview, setPostImagePreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -353,6 +354,7 @@ const GroupDetailPage = () => {
     if (!groupId || (!newPost.trim() && !postImage)) return;
 
     setPostingWall(true);
+    setWallPostError(null);
     try {
       let imageUrl: string | undefined;
 
@@ -382,10 +384,12 @@ const GroupDetailPage = () => {
         ]);
         setNewPost("");
         handleRemovePostImage();
+      } else {
+        setWallPostError((response as any).message || (response as any).error || "Failed to post. Please try again.");
       }
     } catch (error) {
       console.error("Error posting to wall:", error);
-      alert("Failed to post. Please try again.");
+      setWallPostError("Failed to post. Please try again.");
     } finally {
       setPostingWall(false);
       setUploadingImage(false);
@@ -1161,6 +1165,9 @@ const GroupDetailPage = () => {
                       rows={4}
                       className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-[#2a2a2a] rounded bg-gray-50 dark:bg-[#242424] text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                     />
+                    {wallPostError && (
+                      <p className="text-sm text-red-500">{wallPostError}</p>
+                    )}
                     <div className="flex justify-end">
                       <button
                         onClick={handlePostSubmit}
