@@ -160,6 +160,25 @@ const GroupDetailPage = () => {
   const [buyingItemId, setBuyingItemId] = useState<string | null>(null);
   const [buyMessage, setBuyMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
+  // Application center state
+  const [applicationForm, setApplicationForm] = useState<any>(null);
+  const [loadingApplicationForm, setLoadingApplicationForm] = useState(true);
+  const [canManageGroupMembers, setCanManageGroupMembers] = useState(false);
+  const [applicationAnswers, setApplicationAnswers] = useState<string[]>([]);
+  const [submittingApplication, setSubmittingApplication] = useState(false);
+  const [applicationSubmitError, setApplicationSubmitError] = useState<string | null>(null);
+  const [applicationSubmitted, setApplicationSubmitted] = useState(false);
+  const [pendingApplications, setPendingApplications] = useState<any[]>([]);
+  const [loadingPendingApplications, setLoadingPendingApplications] = useState(false);
+  const [reviewingApplicationId, setReviewingApplicationId] = useState<string | null>(null);
+  const [showApplicationSetup, setShowApplicationSetup] = useState(false);
+  const [setupQuestions, setSetupQuestions] = useState<string[]>([""]);
+  const [setupAutoRankId, setSetupAutoRankId] = useState("");
+  const [setupIsOpen, setSetupIsOpen] = useState(true);
+  const [savingApplicationForm, setSavingApplicationForm] = useState(false);
+  const [applicationSetupError, setApplicationSetupError] = useState<string | null>(null);
+  const [groupRolesForSetup, setGroupRolesForSetup] = useState<any[]>([]);
+
   // Fetch user's groups for sidebar + primary group
   useEffect(() => {
     const fetchUserGroups = async () => {
@@ -463,6 +482,194 @@ const GroupDetailPage = () => {
     }
   };
 
+  // Fetch the group's application form
+  useEffect(() => {
+    const fetchApplicationForm = async () => {
+      if (!groupId) return;
+      setLoadingApplicationForm(true);
+      try {
+        const response = await groupsApi.getApplicationForm(groupId);
+        if (response.success && response.data) {
+          const form = (response.data as any).form;
+          setApplicationForm(form);
+          if (form?.questions) {
+            setApplicationAnswers(new Array(form.questions.length).fill(""));
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching application form:", error);
+      } finally {
+        setLoadingApplicationForm(false);
+      }
+    };
+
+    fetchApplicationForm();
+  }, [groupId]);
+
+  // Determine whether the current user can manage members (and therefore
+  // review applications) — same Owner-or-role-flag pattern as the store.
+  useEffect(() => {
+    const checkMembersPermission = async () => {
+      if (!groupId || !currentGroup?.role) {
+        setCanManageGroupMembers(false);
+        return;
+      }
+      if (currentGroup.role === "Owner") {
+        setCanManageGroupMembers(true);
+        return;
+      }
+      try {
+        const response = await groupsApi.getGroupRoles(groupId);
+        if (response.success && response.data) {
+          const roles = (response.data as any).roles || [];
+          const myRole = roles.find((r: any) => r.name === currentGroup.role);
+          setCanManageGroupMembers(!!myRole?.can_manage_members);
+        }
+      } catch (error) {
+        console.error("Error checking members permission:", error);
+      }
+    };
+
+    checkMembersPermission();
+  }, [groupId, currentGroup?.role]);
+
+  // Fetch the pending-applications review queue once we know the viewer can manage members
+  useEffect(() => {
+    const fetchPendingApplications = async () => {
+      if (!groupId || !canManageGroupMembers) return;
+      setLoadingPendingApplications(true);
+      try {
+        const response = await groupsApi.getApplicationReviews(groupId);
+        if (response.success && response.data) {
+          setPendingApplications((response.data as any).applications || []);
+        }
+      } catch (error) {
+        console.error("Error fetching pending applications:", error);
+      } finally {
+        setLoadingPendingApplications(false);
+      }
+    };
+
+    fetchPendingApplications();
+  }, [groupId, canManageGroupMembers]);
+
+  // Fetch group roles for the owner's "Setup Form" auto-rank selector, and
+  // pre-fill the setup fields from the existing form once it's loaded.
+  useEffect(() => {
+    const fetchRolesForSetup = async () => {
+      if (!groupId || currentGroup?.role !== "Owner") return;
+      try {
+        const response = await groupsApi.getGroupRoles(groupId);
+        if (response.success && response.data) {
+          setGroupRolesForSetup((response.data as any).roles || []);
+        }
+      } catch (error) {
+        console.error("Error fetching roles for application setup:", error);
+      }
+    };
+
+    fetchRolesForSetup();
+  }, [groupId, currentGroup?.role]);
+
+  useEffect(() => {
+    if (!applicationForm) return;
+    const questions = (applicationForm.questions || []).map((q: any) => (typeof q === "string" ? q : q.question || ""));
+    setSetupQuestions(questions.length > 0 ? questions : [""]);
+    setSetupAutoRankId(applicationForm.auto_rank_id || "");
+    setSetupIsOpen(applicationForm.is_open !== false);
+  }, [applicationForm]);
+
+  const handleAnswerChange = (index: number, value: string) => {
+    setApplicationAnswers((prev) => {
+      const next = [...prev];
+      next[index] = value;
+      return next;
+    });
+  };
+
+  const handleSubmitApplication = async () => {
+    const groupUuid = currentGroupDetails?.id;
+    if (!groupUuid) return;
+
+    setSubmittingApplication(true);
+    setApplicationSubmitError(null);
+    try {
+      const response = await groupsApi.submitApplication(groupUuid, applicationAnswers);
+      if (response.success) {
+        setApplicationSubmitted(true);
+      } else {
+        setApplicationSubmitError((response as any).message || "Failed to submit application");
+      }
+    } catch (error) {
+      console.error("Error submitting application:", error);
+      setApplicationSubmitError("Failed to submit application");
+    } finally {
+      setSubmittingApplication(false);
+    }
+  };
+
+  const handleReviewApplication = async (applicationId: string, status: "accepted" | "denied") => {
+    const groupUuid = currentGroupDetails?.id;
+    if (!groupUuid) return;
+
+    setReviewingApplicationId(applicationId);
+    try {
+      const response = await groupsApi.reviewApplication(groupUuid, applicationId, status);
+      if (response.success) {
+        setPendingApplications((prev) => prev.filter((a) => a.id !== applicationId));
+      } else {
+        alert((response as any).message || `Failed to ${status === "accepted" ? "accept" : "deny"} application`);
+      }
+    } catch (error) {
+      console.error("Error reviewing application:", error);
+      alert("Failed to review application. Please try again.");
+    } finally {
+      setReviewingApplicationId(null);
+    }
+  };
+
+  const handleSetupQuestionChange = (index: number, value: string) => {
+    setSetupQuestions((prev) => {
+      const next = [...prev];
+      next[index] = value;
+      return next;
+    });
+  };
+
+  const handleAddSetupQuestion = () => setSetupQuestions((prev) => [...prev, ""]);
+
+  const handleRemoveSetupQuestion = (index: number) => {
+    setSetupQuestions((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSaveApplicationForm = async () => {
+    const groupUuid = currentGroupDetails?.id;
+    if (!groupUuid) return;
+
+    const cleanedQuestions = setupQuestions.map((q) => q.trim()).filter((q) => q.length > 0);
+
+    setSavingApplicationForm(true);
+    setApplicationSetupError(null);
+    try {
+      const response = await groupsApi.upsertApplicationForm(groupUuid, {
+        questions: cleanedQuestions.map((question) => ({ question })),
+        autoRankId: setupAutoRankId || undefined,
+        isOpen: setupIsOpen,
+      });
+      if (response.success && response.data) {
+        setApplicationForm((response.data as any).form);
+        setShowApplicationSetup(false);
+      } else {
+        setApplicationSetupError((response as any).message || "Failed to save application form");
+      }
+    } catch (error) {
+      console.error("Error saving application form:", error);
+      setApplicationSetupError("Failed to save application form");
+    } finally {
+      setSavingApplicationForm(false);
+    }
+  };
+
   // Fetch wall posts
   useEffect(() => {
     const fetchWallPosts = async () => {
@@ -755,7 +962,7 @@ const GroupDetailPage = () => {
     }
   };
 
-  const tabs = ["About", "Store", "Alliances", "Events"];
+  const tabs = ["About", "Store", "Alliances", "Events", "Applications"];
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black">
@@ -2006,6 +2213,202 @@ const GroupDetailPage = () => {
                   <p className="text-sm text-gray-600 dark:text-gray-400 max-w-md mx-auto">
                     This group doesn&apos;t have any upcoming events. Check back later or ask the group owner to create one.
                   </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === "Applications" && (
+            <div className="p-6 space-y-8">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  Applications
+                </h2>
+                {currentGroup?.role === "Owner" && (
+                  <button
+                    onClick={() => { setShowApplicationSetup(!showApplicationSetup); setApplicationSetupError(null); }}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors"
+                  >
+                    {showApplicationSetup ? "Cancel" : "Setup Form"}
+                  </button>
+                )}
+              </div>
+
+              {/* Owner: Setup Form */}
+              {currentGroup?.role === "Owner" && showApplicationSetup && (
+                <div className="bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded-lg p-5 space-y-4">
+                  {applicationSetupError && (
+                    <p className="text-sm text-red-500">{applicationSetupError}</p>
+                  )}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Questions</label>
+                    <div className="space-y-2">
+                      {setupQuestions.map((q, i) => (
+                        <div key={i} className="flex gap-2">
+                          <input
+                            type="text"
+                            value={q}
+                            onChange={(e) => handleSetupQuestionChange(i, e.target.value)}
+                            placeholder={`Question ${i + 1}`}
+                            className="flex-1 px-3 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#242424] text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          {setupQuestions.length > 1 && (
+                            <button
+                              onClick={() => handleRemoveSetupQuestion(i)}
+                              className="px-3 text-red-500 hover:underline text-sm"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      onClick={handleAddSetupQuestion}
+                      className="mt-2 text-sm text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                    >
+                      + Add Question
+                    </button>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Auto-Rank on Accept</label>
+                    <select
+                      value={setupAutoRankId}
+                      onChange={(e) => setSetupAutoRankId(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#242424] text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Default (lowest rank)</option>
+                      {groupRolesForSetup.filter((r: any) => r.name !== "Owner").map((r: any) => (
+                        <option key={r.id} value={r.id}>{r.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={setupIsOpen}
+                      onChange={(e) => setSetupIsOpen(e.target.checked)}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Applications open</span>
+                  </label>
+
+                  <button
+                    onClick={handleSaveApplicationForm}
+                    disabled={savingApplicationForm}
+                    className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {savingApplicationForm ? "Saving..." : "Save Form"}
+                  </button>
+                </div>
+              )}
+
+              {/* Manager/Owner: Review Queue */}
+              {canManageGroupMembers && (
+                <div>
+                  <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-3">
+                    Pending Applications
+                  </h3>
+                  {loadingPendingApplications ? (
+                    <div className="flex justify-center py-8">
+                      <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+                    </div>
+                  ) : pendingApplications.length === 0 ? (
+                    <p className="text-sm text-gray-500 dark:text-gray-400 py-4">No pending applications.</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {pendingApplications.map((app) => (
+                        <div key={app.id} className="border border-gray-200 dark:border-[#2a2a2a] rounded-lg p-4">
+                          <div className="flex items-center gap-2 mb-3">
+                            <UserAvatar userId={app.applicant_id} username={app.applicant_display_name || app.applicant_username} size={32} />
+                            <a
+                              href={`/profile/${app.applicant_username}`}
+                              className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                            >
+                              {app.applicant_display_name || app.applicant_username}
+                            </a>
+                          </div>
+                          <div className="space-y-2 mb-4">
+                            {(applicationForm?.questions || []).map((q: any, i: number) => (
+                              <div key={i}>
+                                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                                  {typeof q === "string" ? q : q.question}
+                                </p>
+                                <p className="text-sm text-gray-900 dark:text-gray-100">{app.answers?.[i] || "—"}</p>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleReviewApplication(app.id, "accepted")}
+                              disabled={reviewingApplicationId === app.id}
+                              className="px-4 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              Accept
+                            </button>
+                            <button
+                              onClick={() => handleReviewApplication(app.id, "denied")}
+                              disabled={reviewingApplicationId === app.id}
+                              className="px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              Deny
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Non-member: Fill out application */}
+              {!currentGroup?.role && (
+                <div>
+                  {loadingApplicationForm ? (
+                    <div className="flex justify-center py-8">
+                      <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+                    </div>
+                  ) : applicationSubmitted ? (
+                    <p className="text-sm text-green-600 dark:text-green-400 py-4">
+                      Your application has been submitted. The group owners will review it soon.
+                    </p>
+                  ) : !applicationForm ? (
+                    <p className="text-sm text-gray-500 dark:text-gray-400 py-4">
+                      This group doesn&apos;t have an application form set up yet.
+                    </p>
+                  ) : !applicationForm.is_open ? (
+                    <p className="text-sm text-gray-500 dark:text-gray-400 py-4">
+                      Applications are currently closed for this group.
+                    </p>
+                  ) : (
+                    <div className="border border-gray-200 dark:border-[#2a2a2a] rounded-lg p-5 space-y-4">
+                      {applicationSubmitError && (
+                        <p className="text-sm text-red-500">{applicationSubmitError}</p>
+                      )}
+                      {(applicationForm.questions || []).map((q: any, i: number) => (
+                        <div key={i}>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            {typeof q === "string" ? q : q.question}
+                          </label>
+                          <textarea
+                            value={applicationAnswers[i] || ""}
+                            onChange={(e) => handleAnswerChange(i, e.target.value)}
+                            rows={2}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#242424] text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                          />
+                        </div>
+                      ))}
+                      <button
+                        onClick={handleSubmitApplication}
+                        disabled={submittingApplication}
+                        className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {submittingApplication ? "Submitting..." : "Submit Application"}
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
