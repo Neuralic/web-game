@@ -1456,6 +1456,57 @@ deleteGroupWallPost: async (
     });
   },
 
+  // Get group application form
+  getApplicationForm: async (id: string): Promise<ApiResponse<{ form: unknown }>> => {
+    return apiCall(`/groups/${id}/application`, { method: "GET" });
+  },
+
+  // Create/update group application form
+  upsertApplicationForm: async (
+    id: string,
+    data: { questions: unknown[]; autoRankId?: string; isOpen?: boolean },
+  ): Promise<ApiResponse<{ form: unknown }>> => {
+    const token = storage.getAccessToken();
+    if (!token) return { success: false, error: "No authentication token found" };
+    return apiCall(`/groups/${id}/application`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Submit a group application
+  submitApplication: async (id: string, answers: unknown[]): Promise<ApiResponse<{ application: unknown }>> => {
+    const token = storage.getAccessToken();
+    if (!token) return { success: false, error: "No authentication token found" };
+    return apiCall(`/groups/${id}/application/submit`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ answers }),
+    });
+  },
+
+  // Get pending applications for review
+  getApplicationReviews: async (id: string): Promise<ApiResponse<{ applications: unknown[] }>> => {
+    const token = storage.getAccessToken();
+    if (!token) return { success: false, error: "No authentication token found" };
+    return apiCall(`/groups/${id}/application/reviews`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+
+  // Accept or deny an application
+  reviewApplication: async (id: string, applicationId: string, status: "accepted" | "denied"): Promise<ApiResponse> => {
+    const token = storage.getAccessToken();
+    if (!token) return { success: false, error: "No authentication token found" };
+    return apiCall(`/groups/${id}/application/${applicationId}`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ status }),
+    });
+  },
+
   // Delete group event
   deleteGroupEvent: async (id: string, eventId: string): Promise<ApiResponse> => {
     const token = storage.getAccessToken();
