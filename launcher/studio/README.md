@@ -14,10 +14,12 @@ it in by hand.
 
 1. Shows a dark, branded window ("AdventureBlox Studio Setup") with an
    Install button.
-2. On click, searches `%LOCALAPPDATA%\Roblox\Versions\*\RobloxStudio.exe`
-   for a local Roblox Studio install (the version folder name changes
-   with every Roblox update, so it can't be hardcoded). If it's not
-   found, shows an error and lets you retry after installing Studio.
+2. On click, searches `%LOCALAPPDATA%\Roblox\Versions\*\` for a local
+   Roblox Studio install — checking for `RobloxStudioBeta.exe` first,
+   then falling back to `RobloxStudio.exe` (the version folder name
+   changes with every Roblox update, so it can't be hardcoded). If
+   neither is found, shows an error and lets you retry after installing
+   Studio.
 3. Shows a short progress bar, then copies `AdventureBloxPlugin.lua` into
    `%LOCALAPPDATA%\Roblox\Plugins\` (creating that folder if it doesn't
    exist yet).
@@ -30,6 +32,22 @@ it in by hand.
 at the top of the file. Replace it with the real plugin source before
 building anything you intend to hand to another person. Shipping the
 placeholder would install a file that does nothing.
+
+### Both files must ship together
+
+`AdventureBloxPlugin.lua` is **not** embedded inside the compiled `.exe`,
+so the installer only works if both files are sitting in the same folder
+when someone runs it:
+
+- `AdventureBloxStudioSetup.exe`
+- `AdventureBloxPlugin.lua`
+
+If only the `.exe` is shared, the installer will run but fail with
+"Couldn't find AdventureBloxPlugin.lua next to the installer."
+
+The easiest way to hand this to someone is to zip both files together
+into one archive (e.g. `AdventureBloxStudioSetup.zip`) so there's a single
+download and no risk of the two files getting separated.
 
 ## Requirements
 
