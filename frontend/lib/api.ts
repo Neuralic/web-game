@@ -2162,6 +2162,7 @@ export const adsApi = {
     bidPerDay: number;
     groupId?: string;
     gameId?: string;
+    profileId?: string;
   }): Promise<ApiResponse<unknown>> => {
     const token = storage.getAccessToken();
     return apiCall('/ads', {
