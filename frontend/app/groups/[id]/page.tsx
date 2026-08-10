@@ -92,6 +92,7 @@ const GroupDetailPage = () => {
       author_username: string;
       author_display_name?: string;
       author_is_verified: boolean;
+      author_role?: string;
     }>
   >([]);
   const [loadingWallPosts, setLoadingWallPosts] = useState(true);
@@ -1175,7 +1176,7 @@ const GroupDetailPage = () => {
                 {wallPosts.length > 0 ? (
                   <div className="space-y-6">
                     {wallPosts.map((post) => (
-                      <div key={post.id} className="bg-gray-50 dark:bg-[#1a1a1a] rounded-lg p-4 border border-gray-200 dark:border-[#2a2a2a]">
+                      <div key={post.id} className="bg-gray-50 dark:bg-[#1a1a1a] rounded-lg p-3 border border-gray-200 dark:border-[#2a2a2a]">
                         {/* Post Header */}
                         <div className="flex gap-3 mb-3">
                           <UserAvatar
@@ -1196,7 +1197,7 @@ const GroupDetailPage = () => {
                               )}
                             </div>
                             <p className="text-xs text-gray-500 dark:text-gray-400">
-                              {new Date(post.created_at).toLocaleDateString("en-US", {
+                              {post.author_role || "Member"} | {new Date(post.created_at).toLocaleDateString("en-US", {
                                 month: "short",
                                 day: "numeric",
                                 year: "numeric",
@@ -1269,13 +1270,13 @@ const GroupDetailPage = () => {
 
                         {/* Post Content */}
                         {post.content && (
-                          <p className="text-sm text-gray-900 dark:text-gray-100 mb-3 whitespace-pre-wrap break-words">
+                          <p className="text-base text-gray-900 dark:text-gray-100 mb-3 whitespace-pre-wrap break-words">
                             {post.content}
                           </p>
                         )}
 
                         {/* Post Actions */}
-                        <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-[#2a2a2a]">
+                        <div className="flex items-center justify-between">
                           {(post.reply_count || 0) > 0 ? (
                             <button
                               onClick={() => handleToggleReplies(post.id)}
