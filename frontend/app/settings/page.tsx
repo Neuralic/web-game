@@ -39,6 +39,7 @@ const SettingsPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("account-info");
   const [user, setUser] = useState<UserData | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [robloxUsername, setRobloxUsername] = useState("");
@@ -104,6 +105,7 @@ const [adImageUrl, setAdImageUrl] = useState("");
 const [adBid, setAdBid] = useState("0.10");
 const [adGroupId, setAdGroupId] = useState("");
 const [adGameId, setAdGameId] = useState("");
+const [adProfileId, setAdProfileId] = useState("");
 const [myAds, setMyAds] = useState<any[]>([]);
 const [submittingAd, setSubmittingAd] = useState(false);
 const [adTab, setAdTab] = useState<"create" | "manage">("create");
@@ -114,6 +116,17 @@ const [myGames, setMyGames] = useState<any[]>([]);
   const [isEditingEmail, setIsEditingEmail] = useState(false);
   const [newEmail, setNewEmail] = useState("");
   const [savingEmail, setSavingEmail] = useState(false);
+
+  useEffect(() => {
+    const token = storage.getAccessToken();
+    if (!token) return;
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      setCurrentUserId(payload.userId || null);
+    } catch {
+      // not logged in
+    }
+  }, []);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -1034,7 +1047,7 @@ if (groupsResponse.success && groupsResponse.data) {
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{ad.name}</p>
                               <p className="text-xs text-gray-500 dark:text-gray-400">
-                                {ad.format} · {ad.game_title ? `Game: ${ad.game_title}` : ad.group_name ? `Group: ${ad.group_name}` : "No group/game"}
+                                {ad.format} · {ad.game_title ? `Game: ${ad.game_title}` : ad.group_name ? `Group: ${ad.group_name}` : ad.profileUsername ? `Profile: ${ad.profileUsername}` : "No group/game/profile"}
                               </p>
                               <div className="flex items-center gap-3 mt-1">
                                 <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
@@ -1171,6 +1184,19 @@ if (groupsResponse.success && groupsResponse.data) {
     ))}
   </select>
 </div>
+
+{/* Profile selector */}
+<div className="mb-6">
+  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Advertise Profile (Optional)</label>
+  <select
+    value={adProfileId}
+    onChange={(e) => setAdProfileId(e.target.value)}
+    className="w-full border border-gray-300 dark:border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424]"
+  >
+    <option value="">None</option>
+    <option value="own">My Profile</option>
+  </select>
+</div>
                 {/* Bidding */}
                 <div className="mb-6">
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Bidding</h3>
@@ -1195,10 +1221,11 @@ if (groupsResponse.success && groupsResponse.data) {
         bidPerDay: parseFloat(adBid) || 0.10,
         groupId: adGroupId || undefined,
         gameId: adGameId || undefined,
+        profileId: adProfileId === "own" ? currentUserId || undefined : undefined,
       });
       if (response.success) {
         setSuccessMessage("Ad submitted for review!");
-        setAdName(""); setAdImageUrl(""); setAdBid("0.10"); setAdGroupId(""); setAdGameId("");
+        setAdName(""); setAdImageUrl(""); setAdBid("0.10"); setAdGroupId(""); setAdGameId(""); setAdProfileId("");
         setTimeout(() => setSuccessMessage(""), 3000);
         // Refresh my ads
         const adsResponse = await adsApi.getMyAds();
