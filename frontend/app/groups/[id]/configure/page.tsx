@@ -91,6 +91,13 @@ const ConfigureGroupPage = () => {
     "none" | "1day" | "3days" | "7days" | "30days" | "90days"
   >("none");
 
+  // API Key state
+  const [groupApiKey, setGroupApiKey] = useState<string | null>(null);
+  const [loadingApiKey, setLoadingApiKey] = useState(true);
+  const [regeneratingApiKey, setRegeneratingApiKey] = useState(false);
+  const [apiKeyCopied, setApiKeyCopied] = useState(false);
+  const [apiKeyError, setApiKeyError] = useState<string | null>(null);
+
   // Social Links states
   const [discord, setDiscord] = useState("");
   const [twitter, setTwitter] = useState("");
@@ -1100,6 +1107,57 @@ const ConfigureGroupPage = () => {
     fetchAds();
   }, [activeSection, groupUuid]);
 
+  useEffect(() => {
+    const fetchApiKey = async () => {
+      if (activeSection !== "Settings" || !groupUuid) return;
+      setLoadingApiKey(true);
+      try {
+        const response = await groupsApi.getApiKey(groupUuid);
+        if (response.success && response.data) {
+          setGroupApiKey((response.data as any).apiKey || null);
+        }
+      } catch (error) {
+        console.error("Error fetching API key:", error);
+      } finally {
+        setLoadingApiKey(false);
+      }
+    };
+    fetchApiKey();
+  }, [activeSection, groupUuid]);
+
+  const handleGenerateOrRegenerateApiKey = async () => {
+    if (!groupUuid) return;
+    if (groupApiKey && !confirm("Regenerating will invalidate the current API key. Any scripts using the old key will stop working. Continue?")) {
+      return;
+    }
+    setRegeneratingApiKey(true);
+    setApiKeyError(null);
+    try {
+      const response = await groupsApi.generateApiKey(groupUuid);
+      if (response.success && response.data) {
+        setGroupApiKey((response.data as any).apiKey);
+      } else {
+        setApiKeyError((response as any).message || "Failed to generate API key");
+      }
+    } catch (error) {
+      console.error("Error generating API key:", error);
+      setApiKeyError("Failed to generate API key");
+    } finally {
+      setRegeneratingApiKey(false);
+    }
+  };
+
+  const handleCopyApiKey = async () => {
+    if (!groupApiKey) return;
+    try {
+      await navigator.clipboard.writeText(groupApiKey);
+      setApiKeyCopied(true);
+      setTimeout(() => setApiKeyCopied(false), 2000);
+    } catch (error) {
+      console.error("Error copying API key:", error);
+    }
+  };
+
   const handleCreateAd = async () => {
     if (!groupUuid || !adName || !adImage) return;
     setCreatingAd(true);
@@ -1483,6 +1541,51 @@ const ConfigureGroupPage = () => {
                     >
                       {saving ? "Saving..." : "Save Settings"}
                     </button>
+
+                    <div className="bg-gray-50 dark:bg-[#242424]/50 border border-gray-200 dark:border-[#2a2a2a] rounded-lg p-5">
+                      <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                        API Key
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                        Used by external tools (like a Roblox Studio script) to rank members into this
+                        group&apos;s auto-rank role after they pass an application. Keep this key private —
+                        anyone with it can rank members in this group.
+                      </p>
+
+                      {apiKeyError && (
+                        <p className="text-sm text-red-500 mb-3">{apiKeyError}</p>
+                      )}
+
+                      {loadingApiKey ? (
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Loading...</p>
+                      ) : (
+                        <div className="flex flex-col sm:flex-row gap-3">
+                          <div className="flex-1 flex items-center gap-2">
+                            <input
+                              type="text"
+                              readOnly
+                              value={groupApiKey || "No API key generated yet"}
+                              className="flex-1 px-3 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-gray-100 text-sm font-mono"
+                            />
+                            {groupApiKey && (
+                              <button
+                                onClick={handleCopyApiKey}
+                                className="px-3 py-2 bg-gray-200 dark:bg-[#242424] hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
+                              >
+                                {apiKeyCopied ? "Copied!" : "Copy"}
+                              </button>
+                            )}
+                          </div>
+                          <button
+                            onClick={handleGenerateOrRegenerateApiKey}
+                            disabled={regeneratingApiKey}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                          >
+                            {regeneratingApiKey ? "Working..." : groupApiKey ? "Regenerate" : "Generate Key"}
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
 {activeSection === "Social Links" && (
