@@ -1507,6 +1507,26 @@ deleteGroupWallPost: async (
     });
   },
 
+  // Get the group's API key (owner only)
+  getApiKey: async (id: string): Promise<ApiResponse<{ apiKey: string | null }>> => {
+    const token = storage.getAccessToken();
+    if (!token) return { success: false, error: "No authentication token found" };
+    return apiCall(`/groups/${id}/api-key`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+
+  // Generate (or regenerate) the group's API key (owner only)
+  generateApiKey: async (id: string): Promise<ApiResponse<{ apiKey: string }>> => {
+    const token = storage.getAccessToken();
+    if (!token) return { success: false, error: "No authentication token found" };
+    return apiCall(`/groups/${id}/api-key`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+
   // Delete group event
   deleteGroupEvent: async (id: string, eventId: string): Promise<ApiResponse> => {
     const token = storage.getAccessToken();
