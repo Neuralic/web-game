@@ -17,6 +17,7 @@ import ReportModal from "@/components/modals/ReportModal";
 import SuccessModal from "@/components/modals/SuccessModal";
 import { groupsApi, uploadApi, storage } from "@/lib/api";
 import UserAvatar from "../../components/UserAvatar";
+import VoiceChat from "../../components/VoiceChat";
 
 interface Group {
   id: string;
@@ -2335,6 +2336,8 @@ const GroupDetailPage = () => {
         autoClose={true}
         autoCloseDelay={2000}
       />
+
+      {groupId && <VoiceChat groupId={groupId} />}
     </div>
   );
 };
