@@ -2305,3 +2305,80 @@ export const adsApi = {
     return apiCall(`/ads/${id}/click`, { method: 'POST' });
   },
 };
+
+export interface VoiceParticipant {
+  user_id: string;
+  username: string;
+  display_name?: string;
+  avatar_url?: string;
+  joined_at: string;
+}
+
+export interface VoiceSignal {
+  id: string;
+  from_user_id: string;
+  signal_type: "offer" | "answer" | "ice-candidate";
+  payload: any;
+  created_at: string;
+}
+
+export const voiceApi = {
+  createRoom: async (groupId: string): Promise<ApiResponse<{ roomId: string; participants: VoiceParticipant[] }>> => {
+    const token = storage.getAccessToken();
+    if (!token) return { success: false, error: "No authentication token found" };
+    return apiCall(`/voice/rooms`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ groupId }),
+    });
+  },
+
+  getActiveRoom: async (groupId: string): Promise<ApiResponse<{ room: { id: string } | null; participants: VoiceParticipant[] }>> => {
+    const token = storage.getAccessToken();
+    if (!token) return { success: false, error: "No authentication token found" };
+    return apiCall(`/voice/rooms/${groupId}`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+
+  joinRoom: async (roomId: string): Promise<ApiResponse<{ participants: VoiceParticipant[] }>> => {
+    const token = storage.getAccessToken();
+    if (!token) return { success: false, error: "No authentication token found" };
+    return apiCall(`/voice/rooms/${roomId}/join`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+
+  leaveRoom: async (roomId: string): Promise<ApiResponse> => {
+    const token = storage.getAccessToken();
+    if (!token) return { success: false, error: "No authentication token found" };
+    return apiCall(`/voice/rooms/${roomId}/leave`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+
+  sendSignal: async (
+    roomId: string,
+    data: { toUserId: string; signalType: "offer" | "answer" | "ice-candidate"; payload: any },
+  ): Promise<ApiResponse> => {
+    const token = storage.getAccessToken();
+    if (!token) return { success: false, error: "No authentication token found" };
+    return apiCall(`/voice/rooms/${roomId}/signal`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(data),
+    });
+  },
+
+  getSignals: async (roomId: string): Promise<ApiResponse<{ signals: VoiceSignal[] }>> => {
+    const token = storage.getAccessToken();
+    if (!token) return { success: false, error: "No authentication token found" };
+    return apiCall(`/voice/rooms/${roomId}/signals`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+};
