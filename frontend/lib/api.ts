@@ -846,6 +846,37 @@ export const groupsApi = {
     });
   },
 
+  // Ban a member from the group
+  banMember: async (id: string, userId: string, reason?: string): Promise<ApiResponse> => {
+    const token = storage.getAccessToken();
+    if (!token) return { success: false, error: "No authentication token found" };
+    return apiCall(`/groups/${id}/members/${userId}/ban`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ reason }),
+    });
+  },
+
+  // Unban a member from the group
+  unbanMember: async (id: string, userId: string): Promise<ApiResponse> => {
+    const token = storage.getAccessToken();
+    if (!token) return { success: false, error: "No authentication token found" };
+    return apiCall(`/groups/${id}/bans/${userId}/unban`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+
+  // Get banned users for a group
+  getGroupBans: async (id: string): Promise<ApiResponse<{ bans: unknown[] }>> => {
+    const token = storage.getAccessToken();
+    if (!token) return { success: false, error: "No authentication token found" };
+    return apiCall(`/groups/${id}/bans`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+
   // Update member role
   updateMemberRole: async (
     id: string,
