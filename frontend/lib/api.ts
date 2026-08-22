@@ -1539,6 +1539,40 @@ deleteGroupWallPost: async (
       headers: { Authorization: `Bearer ${token}` },
     });
   },
+
+  // Get the group's current AdventureBux balance (owner only)
+  getGroupBalance: async (id: string): Promise<ApiResponse<{ groupBalance: number }>> => {
+    const token = storage.getAccessToken();
+    if (!token) return { success: false, error: "No authentication token found" };
+    return apiCall(`/groups/${id}/balance`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+
+  // Get recent payout history for a group (owner only)
+  getGroupPayouts: async (id: string): Promise<ApiResponse<{ payouts: unknown[] }>> => {
+    const token = storage.getAccessToken();
+    if (!token) return { success: false, error: "No authentication token found" };
+    return apiCall(`/groups/${id}/payouts`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+
+  // Send a payout from the group's balance to a member (owner only)
+  createGroupPayout: async (
+    id: string,
+    data: { userId: string; amount: number; reason?: string },
+  ): Promise<ApiResponse<{ groupBalance: number }>> => {
+    const token = storage.getAccessToken();
+    if (!token) return { success: false, error: "No authentication token found" };
+    return apiCall(`/groups/${id}/payout`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(data),
+    });
+  },
 };
 
 // Upload API
