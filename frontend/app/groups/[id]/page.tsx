@@ -2337,7 +2337,7 @@ const GroupDetailPage = () => {
         autoCloseDelay={2000}
       />
 
-      {groupId && <VoiceChat groupId={groupId} />}
+      {/* {groupId && <VoiceChat groupId={groupId} />} */}
     </div>
   );
 };
