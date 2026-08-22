@@ -2447,3 +2447,76 @@ export const voiceApi = {
     });
   },
 };
+
+// DevForum API
+export const forumApi = {
+  // Get all forum categories with thread counts and latest activity
+  getCategories: async (): Promise<ApiResponse<{ categories: unknown[] }>> => {
+    return apiCall("/forum/categories", { method: "GET" });
+  },
+
+  // Get threads in a category (paginated)
+  getCategoryThreads: async (
+    slug: string,
+    params?: { page?: number; limit?: number },
+  ): Promise<ApiResponse<{ category: unknown; threads: unknown[]; pagination: unknown }>> => {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append("page", params.page.toString());
+    if (params?.limit) queryParams.append("limit", params.limit.toString());
+    const query = queryParams.toString();
+    return apiCall(`/forum/categories/${slug}/threads${query ? `?${query}` : ""}`, {
+      method: "GET",
+    });
+  },
+
+  // Get a single thread with its replies
+  getThread: async (id: string): Promise<ApiResponse<{ thread: unknown; replies: unknown[] }>> => {
+    return apiCall(`/forum/threads/${id}`, { method: "GET" });
+  },
+
+  // Create a new thread
+  createThread: async (data: {
+    categoryId: string;
+    title: string;
+    content: string;
+  }): Promise<ApiResponse<{ thread: unknown }>> => {
+    const token = storage.getAccessToken();
+    if (!token) return { success: false, error: "No authentication token found" };
+    return apiCall("/forum/threads", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Add a reply to a thread
+  createReply: async (threadId: string, content: string): Promise<ApiResponse<{ reply: unknown }>> => {
+    const token = storage.getAccessToken();
+    if (!token) return { success: false, error: "No authentication token found" };
+    return apiCall(`/forum/threads/${threadId}/replies`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ content }),
+    });
+  },
+
+  // Delete a thread (author or admin only)
+  deleteThread: async (id: string): Promise<ApiResponse> => {
+    const token = storage.getAccessToken();
+    if (!token) return { success: false, error: "No authentication token found" };
+    return apiCall(`/forum/threads/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+
+  // Delete a reply (author or admin only)
+  deleteReply: async (id: string): Promise<ApiResponse> => {
+    const token = storage.getAccessToken();
+    if (!token) return { success: false, error: "No authentication token found" };
+    return apiCall(`/forum/replies/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+};
