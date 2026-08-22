@@ -527,7 +527,7 @@ useEffect(() => {
                       {userIsVerified && <VerifiedBadge size="sm" />}
                     </span>
                   )}
-                  <UserAvatar userId={user?.id || ""} username={displayName} size={36} headshot />
+                  <UserAvatar userId={user?.id || ""} username={displayName} size={40} headshot />
                 </Link>
 
                 {/* Notifications */}
@@ -536,9 +536,9 @@ useEffect(() => {
                     onClick={() => setNotificationOpen(!notificationOpen)}
                     className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg relative transition-colors"
                   >
-                    <Bell className="w-7 h-7 text-gray-700 dark:text-gray-300" />
+                    <Bell className="w-9 h-9 text-gray-700 dark:text-gray-300" />
                     {unreadCount > 0 && (
-                      <span className="absolute top-1 right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center px-1">
+                      <span className="absolute top-1 right-1 min-w-[20px] h-[20px] bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center px-1">
                         {unreadCount > 9 ? '9+' : unreadCount}
                       </span>
                     )}
@@ -556,15 +556,15 @@ useEffect(() => {
                       <Image
                         src="/icons/currency_black.png"
                         alt="Currency"
-                        width={36}
-                        height={36}
+                        width={40}
+                        height={40}
                         className="block dark:hidden"
                       />
                       <Image
                         src="/icons/currency_white.png"
                         alt="Currency"
-                        width={36}
-                        height={36}
+                        width={40}
+                        height={40}
                         className="hidden dark:block"
                       />
                     </div>
