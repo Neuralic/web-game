@@ -98,6 +98,8 @@ const AvatarPage = () => {
   const [items, setItems] = useState<CatalogItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [equippedItems, setEquippedItems] = useState<Set<string>>(new Set());
+  const [ownedItemIds, setOwnedItemIds] = useState<Set<string>>(new Set());
+  const [ownedItemsLoaded, setOwnedItemsLoaded] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [avatarState, setAvatarState] = useState<AvatarState | null>(null);
@@ -230,6 +232,34 @@ const AvatarPage = () => {
   useEffect(() => {
     fetchAvatarState();
   }, [fetchAvatarState]);
+
+  // Fetch the user's full owned-item set once on load, so the catalog grid can be
+  // filtered down to only items the user actually owns (paginate until exhausted,
+  // capped so a runaway inventory can't loop forever).
+  const fetchOwnedItems = useCallback(async () => {
+    try {
+      const owned = new Set<string>();
+      let page = 1;
+      let totalPages = 1;
+      do {
+        const response = await catalogApi.getUserInventory({ page, limit: 100 });
+        if (!response.success || !response.data) break;
+        const invData = response.data as { items: { id: string }[]; pagination: { totalPages: number } };
+        invData.items.forEach((i) => owned.add(i.id));
+        totalPages = invData.pagination.totalPages;
+        page++;
+      } while (page <= totalPages && page <= 20);
+      setOwnedItemIds(owned);
+    } catch (err) {
+      console.error("Failed to fetch owned items:", err);
+    } finally {
+      setOwnedItemsLoaded(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchOwnedItems();
+  }, [fetchOwnedItems]);
 
   // Keep a ref in sync with bodyType so callbacks with stale closures (e.g. the
   // memoized fetchAvatarState below) can still read the current value.
@@ -418,6 +448,7 @@ const AvatarPage = () => {
   }, []);
 
   const isFemale = userGender === "female";
+  const ownedItems = items.filter((item) => ownedItemIds.has(item.id));
 
   // Determine what to show in avatar preview
   // If the body type slider has been moved, prefer the custom render even when
@@ -689,19 +720,29 @@ const AvatarPage = () => {
 
               {isTabsSticky && <div className="h-24"></div>}
 
-              {loading ? (
+              {loading || !ownedItemsLoaded ? (
                 <div className="flex items-center justify-center py-20">
                   <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
                 </div>
-              ) : items.length === 0 ? (
+              ) : ownedItemIds.size === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 gap-3">
+                  <p className="text-gray-500 dark:text-gray-400 text-sm">You don&apos;t own any catalog items yet.</p>
+                  <Link
+                    href="/catalog"
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded transition-colors"
+                  >
+                    Visit Catalog
+                  </Link>
+                </div>
+              ) : ownedItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20">
-                  <p className="text-gray-500 dark:text-gray-400 text-sm">No items available for this category.</p>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm">No owned items in this category.</p>
                   <Link href="/catalog" className="mt-3 text-blue-600 dark:text-blue-400 text-sm hover:underline">Browse Catalog</Link>
                 </div>
               ) : (
                 <>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mt-6">
-                    {items.map((item) => (
+                    {ownedItems.map((item) => (
                       <div
                         key={item.id}
                         onClick={() => toggleEquip(item)}
