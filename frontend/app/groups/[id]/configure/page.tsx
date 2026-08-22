@@ -120,6 +120,7 @@ const ConfigureGroupPage = () => {
   // Members states
   const [membersTab, setMembersTab] = useState<"members" | "requests" | "banned">("members");
   const [bannedUsers, setBannedUsers] = useState<any[]>([]);
+  const [loadingBannedUsers, setLoadingBannedUsers] = useState(false);
   const [bannedSearch, setBannedSearch] = useState("");
   const [memberSearch, setMemberSearch] = useState("");
   const [memberRoleFilter, setMemberRoleFilter] = useState("All");
@@ -370,6 +371,22 @@ const ConfigureGroupPage = () => {
     }
   };
 
+  const fetchBannedUsers = async () => {
+    if (!groupUuid) return;
+
+    setLoadingBannedUsers(true);
+    try {
+      const response = await groupsApi.getGroupBans(groupUuid);
+      if (response.success && response.data) {
+        setBannedUsers((response.data.bans as any[]) || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch banned users:", error);
+    } finally {
+      setLoadingBannedUsers(false);
+    }
+  };
+
   // Fetch roles when Roles section is active (refresh roles list)
   useEffect(() => {
     const fetchRoles = async () => {
@@ -390,6 +407,7 @@ const ConfigureGroupPage = () => {
     if (activeSection === "Members") {
       fetchMembers();
       fetchJoinRequests();
+      fetchBannedUsers();
     } else if (activeSection === "Roles") {
       fetchRoles();
     } else if (activeSection === "Payouts") {
@@ -2013,9 +2031,23 @@ const ConfigureGroupPage = () => {
                                               Kick
                                             </button>
                                             <button
-                                              onClick={() => {
+                                              onClick={async () => {
                                                 setOpenMemberMenu(null);
-                                                alert("Ban functionality coming soon");
+                                                if (confirm(`Ban ${member.username} from the group? They will not be able to rejoin unless unbanned.`)) {
+                                                  const response = await groupsApi.banMember(
+                                                    groupUuid || groupId,
+                                                    member.user_id
+                                                  );
+                                                  if (response.success) {
+                                                    setMembers(members.filter((m) => m.user_id !== member.user_id));
+                                                    fetchBannedUsers();
+                                                    setSuccessMessage({ title: "Success", message: "Member banned successfully" });
+                                                    setShowSuccessModal(true);
+                                                  } else {
+                                                    setSuccessMessage({ title: "Error", message: response.error || response.message || "Failed to ban member" });
+                                                    setShowSuccessModal(true);
+                                                  }
+                                                }
                                               }}
                                               className="w-full px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                                             >
@@ -2145,7 +2177,11 @@ const ConfigureGroupPage = () => {
                           />
                           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
                         </div>
-                        {bannedUsers.length === 0 ? (
+                        {loadingBannedUsers ? (
+                          <div className="flex items-center justify-center py-12">
+                            <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+                          </div>
+                        ) : bannedUsers.length === 0 ? (
                           <div className="text-center py-12">
                             <p className="text-gray-600 dark:text-gray-400">No users are banned from this group</p>
                           </div>
@@ -2171,9 +2207,12 @@ const ConfigureGroupPage = () => {
                                   onClick={async () => {
                                     if (!confirm(`Unban ${banned.username}?`)) return;
                                     try {
-                                      const response = await groupsApi.removeMember(groupUuid || groupId, banned.user_id);
+                                      const response = await groupsApi.unbanMember(groupUuid || groupId, banned.user_id);
                                       if (response.success) {
                                         setBannedUsers(bannedUsers.filter((b: any) => b.id !== banned.id));
+                                      } else {
+                                        setSuccessMessage({ title: "Error", message: response.error || response.message || "Failed to unban member" });
+                                        setShowSuccessModal(true);
                                       }
                                     } catch (err) { console.error(err); }
                                   }}
