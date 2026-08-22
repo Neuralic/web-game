@@ -453,7 +453,7 @@ const AvatarPage = () => {
           <div className="flex gap-6">
             {/* Left - Avatar Preview */}
             <div className="w-[300px] flex-shrink-0 sticky top-24 self-start">
-              <div className="bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-lg aspect-[3/4] flex items-end justify-center p-6 relative overflow-hidden">
+              <div className="bg-[#1a1a1a] rounded-lg aspect-[3/4] flex items-end justify-center p-6 relative overflow-hidden">
                 {avatarLoading ? (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
