@@ -22,7 +22,6 @@ const CreateGroupPage = () => {
   const [coverPhotoPreview, setCoverPhotoPreview] = useState<string | null>(
     null,
   );
-  const [category, setCategory] = useState("");
   const [joinSetting, setJoinSetting] = useState("open");
   const [creating, setCreating] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -108,7 +107,6 @@ const CreateGroupPage = () => {
         iconUrl: iconUrl,
         coverPhotoUrl: coverPhotoUrl,
         joinSetting: joinSetting,
-        category: category || undefined,
       });
 
       if (response.success && response.data) {
@@ -183,25 +181,6 @@ const CreateGroupPage = () => {
             <div className="text-right text-sm text-gray-600 dark:text-gray-400 mt-1">
               {description.length} / 1000
             </div>
-          </div>
-
-          {/* Category */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Category</label>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full px-4 py-3 bg-white dark:bg-[#1a1a1a] border border-gray-300 dark:border-[#2a2a2a] rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Select a category...</option>
-              <option value="Hotels">Hotels</option>
-              <option value="Cafes">Cafes</option>
-              <option value="Restaurants">Restaurants</option>
-              <option value="Airlines">Airlines</option>
-              <option value="Studios">Studios</option>
-              <option value="Roleplay">Roleplay</option>
-              <option value="Fan Clubs">Fan Clubs</option>
-            </select>
           </div>
 
           {/* Group Icon */}
