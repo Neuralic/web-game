@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import UserAvatar from "./UserAvatar";
-import { MessageSquare, X, Settings, Minimize2, Send } from "lucide-react";
+import { MessageSquare, X, Send } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { messagesApi, friendsApi } from "@/lib/api";
 import { sendChatMessage, subscribeToMessages, unsubscribeFromMessages, markMessagesAsRead, subscribeToTyping, unsubscribeFromTyping, broadcastTyping } from "@/lib/realtime";
@@ -54,7 +54,7 @@ export default function ChatWidget() {
   const hiddenPaths = ['/messages', '/login', '/signup', '/continue'];
   const isHidden = hiddenPaths.some(p => pathname === p || pathname?.startsWith(p + '/'));
 
-  const [isChatListOpen, setIsChatListOpen] = useState(false);
+  const [activePanel, setActivePanel] = useState<'chat' | 'party' | null>(null);
   const [openChats, setOpenChats] = useState<ChatWindow[]>([]);
   const [messageInputs, setMessageInputs] = useState<{ [key: string]: string }>({});
   const [messageErrors, setMessageErrors] = useState<{ [key: string]: string }>({});
@@ -95,7 +95,7 @@ export default function ChatWidget() {
         setOpenChats(prev => [...prev, newChat]);
         loadMessages(userId);
       }
-      setIsChatListOpen(false);
+      setActivePanel(null);
     };
 
     return () => {
@@ -272,7 +272,7 @@ export default function ChatWidget() {
     // Clear unread badge immediately
     setConversations(prev => prev.map(c => c.id === conv.id ? { ...c, unread_count: 0 } : c));
     markMessagesAsRead(conv.id);
-    setIsChatListOpen(false);
+    setActivePanel(null);
   };
 
   const openChatWindowFromFriend = (friend: Friend) => {
@@ -288,7 +288,7 @@ export default function ChatWidget() {
       setOpenChats([...openChats, newChat]);
       loadMessages(friend.id);
     }
-    setIsChatListOpen(false);
+    setActivePanel(null);
   };
 
   const closeChatWindow = (chatId: string) => {
@@ -362,38 +362,38 @@ export default function ChatWidget() {
     return presence?.presenceStatus || 'offline';
   };
 
+  const totalUnread = conversations.reduce((sum, c) => sum + (c.unread_count || 0), 0);
+  const CHAT_WINDOW_WIDTH = 256; // w-64
+  const GAP = 16;
+  const PANEL_COLUMN = 16 + CHAT_WINDOW_WIDTH + GAP; // right-4 + panel width + gap
+
   return (
     <>
-      {/* Chat List Window */}
-      {isChatListOpen && (
-        <div className="fixed bottom-0 right-4 w-80 h-96 bg-white dark:bg-[#1a1a1a] rounded-t-lg shadow-2xl border border-gray-200 dark:border-[#2a2a2a] flex flex-col z-50">
+      {/* Chat List Panel */}
+      {activePanel === 'chat' && (
+        <div className="fixed bottom-11 right-4 w-64 max-h-96 bg-[#1a1a1a] rounded-t-lg shadow-2xl border border-[#2a2a2a] flex flex-col z-50">
           {/* Header */}
-          <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-[#2a2a2a]">
-            <h3 className="font-bold text-gray-900 dark:text-gray-100">Chat</h3>
-            <div className="flex items-center gap-1">
-              <button className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors">
-                <Settings className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-              </button>
-              <button 
-                onClick={() => setIsChatListOpen(false)}
-                className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
-              >
-                <Minimize2 className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-              </button>
-            </div>
+          <div className="flex items-center justify-between px-3 py-2.5 bg-[#1a1a1a] border-b border-[#2a2a2a] rounded-t-lg">
+            <h3 className="font-bold text-white text-sm">Chat</h3>
+            <button
+              onClick={() => setActivePanel(null)}
+              className="p-1 hover:bg-[#2a2a2a] rounded transition-colors"
+            >
+              <X className="w-4 h-4 text-gray-400" />
+            </button>
           </div>
 
           {/* Search */}
-          <div className="p-3 border-b border-gray-200 dark:border-[#2a2a2a]">
+          <div className="p-2.5 border-b border-[#2a2a2a]">
             <div className="relative">
               <input
                 type="text"
                 placeholder="Search friends and conversations"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-gray-100 dark:bg-[#242424] border border-gray-300 dark:border-[#2a2a2a] rounded px-3 py-2 pl-8 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded px-3 py-1.5 pl-8 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
-              <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd"/>
               </svg>
             </div>
@@ -401,112 +401,121 @@ export default function ChatWidget() {
 
           {/* Unified Contacts List */}
           <div className="flex-1 overflow-y-auto">
-          {filteredContacts.length > 0 ? (
-            filteredContacts.map((contact) => {
-              const isConversation = contact.type === 'conversation';
-              return (
-                <button
-                  key={contact.id}
-                  onClick={() => isConversation ? openChatWindow(contact) : openChatWindowFromFriend(contact)}
-                  className="w-full flex items-center gap-3 p-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-[#2a2a2a]"
-                >
-                  <div className="relative flex-shrink-0">
-                    <UserAvatar userId={contact.id} username={contact.display_name || contact.username} size={40} headshot />
-                    {getPresenceStatus(contact.id) !== 'offline' && (
-                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-800"></div>
-                    )}
-                    {isConversation && (contact.unread_count || 0) > 0 && (
-                      <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
-                        {contact.unread_count}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 text-left min-w-0">
-                    <div className="flex items-center justify-between">
-                      <p className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">
-                        {contact.display_name || contact.username}
-                      </p>
-                      {isConversation && contact.last_message_time && (
-                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-2 flex-shrink-0">
-                          {formatTime(contact.last_message_time)}
-                        </span>
+            {filteredContacts.length > 0 ? (
+              filteredContacts.map((contact) => {
+                const isConversation = contact.type === 'conversation';
+                return (
+                  <button
+                    key={contact.id}
+                    onClick={() => isConversation ? openChatWindow(contact) : openChatWindowFromFriend(contact)}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-[#242424] transition-colors border-b border-[#2a2a2a] last:border-b-0"
+                  >
+                    <div className="relative flex-shrink-0">
+                      <UserAvatar userId={contact.id} username={contact.display_name || contact.username} size={36} headshot />
+                      {getPresenceStatus(contact.id) !== 'offline' && (
+                        <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-[#1a1a1a]"></div>
+                      )}
+                      {isConversation && (contact.unread_count || 0) > 0 && (
+                        <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                          {contact.unread_count}
+                        </div>
                       )}
                     </div>
-                    {isConversation && contact.last_message ? (
-                      <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
-                        {contact.last_message}
-                      </p>
-                    ) : (
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {getPresenceStatus(contact.id) === 'online' ? 'Online' : getPresenceStatus(contact.id) === 'in-game' ? 'Playing' : 'Offline'}
-                      </p>
-                    )}
-                  </div>
-                </button>
-              );
-            })
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-              <MessageSquare className="w-12 h-12 text-gray-400 dark:text-gray-600 mb-3" />
-              <p className="text-sm text-gray-600 dark:text-gray-400">No contacts yet</p>
-              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Start chatting with your friends!</p>
-            </div>
-          )}
+                    <div className="flex-1 text-left min-w-0">
+                      <div className="flex items-center justify-between">
+                        <p className="font-semibold text-sm text-white truncate">
+                          {contact.display_name || contact.username}
+                        </p>
+                        {isConversation && contact.last_message_time && (
+                          <span className="text-[10px] text-gray-500 ml-2 flex-shrink-0">
+                            {formatTime(contact.last_message_time)}
+                          </span>
+                        )}
+                      </div>
+                      {isConversation && contact.last_message ? (
+                        <p className="text-xs text-gray-400 truncate">
+                          {contact.last_message}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-gray-500">
+                          {getPresenceStatus(contact.id) === 'online' ? 'Online' : getPresenceStatus(contact.id) === 'in-game' ? 'Playing' : 'Offline'}
+                        </p>
+                      )}
+                    </div>
+                  </button>
+                );
+              })
+            ) : (
+              <div className="flex flex-col items-center justify-center p-6 text-center">
+                <MessageSquare className="w-10 h-10 text-gray-600 mb-3" />
+                <p className="text-sm text-gray-400">No contacts yet</p>
+                <p className="text-xs text-gray-500 mt-1">Start chatting with your friends!</p>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
       )}
 
-      {/* Individual Chat Windows */}
+      {/* Party Panel */}
+      {activePanel === 'party' && (
+        <div className="fixed bottom-11 right-4 w-64 max-h-96 bg-[#1a1a1a] rounded-t-lg shadow-2xl border border-[#2a2a2a] flex flex-col z-50">
+          <div className="flex items-center justify-between px-3 py-2.5 bg-[#1a1a1a] border-b border-[#2a2a2a] rounded-t-lg">
+            <h3 className="font-bold text-white text-sm">Party</h3>
+            <button
+              onClick={() => setActivePanel(null)}
+              className="p-1 hover:bg-[#2a2a2a] rounded transition-colors"
+            >
+              <X className="w-4 h-4 text-gray-400" />
+            </button>
+          </div>
+          <div className="flex flex-col items-center justify-center p-8 text-center">
+            <span className="text-3xl mb-3">🎮</span>
+            <p className="text-sm text-gray-400">Party feature coming soon</p>
+          </div>
+        </div>
+      )}
+
+      {/* Individual Chat Windows — stack left starting past the panel column */}
       {openChats.map((chat, index) => (
         <div
           key={chat.id}
-          className="fixed bottom-0 w-80 h-96 bg-white dark:bg-[#1a1a1a] rounded-t-lg shadow-2xl border border-gray-200 dark:border-[#2a2a2a] flex flex-col z-50"
-          style={{ right: `${(index + 1) * 336 + 16}px` }}
+          className="fixed bottom-11 w-64 h-96 bg-[#1a1a1a] rounded-t-lg shadow-2xl border border-[#2a2a2a] flex flex-col z-50"
+          style={{ right: `${PANEL_COLUMN + index * (CHAT_WINDOW_WIDTH + GAP)}px` }}
         >
           {/* Chat Header */}
-          <div className="flex items-center gap-3 p-3 border-b border-gray-200 dark:border-[#2a2a2a]">
-            <UserAvatar userId={chat.id} username={chat.displayName || chat.name} size={32} headshot />
-            <div className="flex-1 min-w-0">
-              <h3 className="font-bold text-sm text-gray-900 dark:text-gray-100 truncate">
-                {chat.name}
-              </h3>
-              <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
-                {chat.username}
-              </p>
-            </div>
-            <div className="flex items-center gap-1">
-              <button className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors">
-                <Settings className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-              </button>
-              <button 
-                onClick={() => closeChatWindow(chat.id)}
-                className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
-              >
-                <X className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-              </button>
-            </div>
+          <div className="flex items-center gap-2.5 px-3 py-2 bg-[#1a1a1a] border-b border-[#2a2a2a] rounded-t-lg">
+            <UserAvatar userId={chat.id} username={chat.displayName || chat.name} size={28} headshot />
+            <h3 className="flex-1 font-bold text-sm text-white truncate">
+              {chat.name}
+            </h3>
+            <button
+              onClick={() => closeChatWindow(chat.id)}
+              className="p-1 hover:bg-[#2a2a2a] rounded transition-colors"
+            >
+              <X className="w-4 h-4 text-gray-400" />
+            </button>
           </div>
 
           {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          <div className="flex-1 overflow-y-auto p-3 space-y-2.5 bg-[#0a0a0a]">
             {chat.isLoadingMessages ? (
-              <div className="text-center py-8 text-gray-500 dark:text-gray-400 text-sm">
+              <div className="text-center py-8 text-gray-500 text-sm">
                 Loading messages...
               </div>
             ) : chat.messages.length === 0 ? (
               <div className="text-center py-8">
-                <UserAvatar userId={chat.id} username={chat.displayName || chat.name} size={80} headshot />
-                <h4 className="font-bold text-gray-900 dark:text-gray-100 mb-1">
+                <UserAvatar userId={chat.id} username={chat.displayName || chat.name} size={72} headshot />
+                <h4 className="font-bold text-white mb-1 mt-2">
                   {chat.name}
                 </h4>
-                <p className="text-xs text-gray-600 dark:text-gray-400 mb-4">
+                <p className="text-xs text-gray-500 mb-4">
                   {chat.username}
                 </p>
-                <div className="bg-gray-100 dark:bg-[#242424] rounded-lg p-4 max-w-xs mx-auto">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-3 max-w-[200px] mx-auto">
+                  <p className="text-sm font-semibold text-white mb-1.5">
                     Start a conversation with {chat.name}
                   </p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                  <p className="text-xs text-gray-500">
                     Send a message to begin chatting!
                   </p>
                 </div>
@@ -524,13 +533,13 @@ export default function ChatWidget() {
                         className={`max-w-[70%] rounded-lg px-3 py-2 ${
                           isCurrentUser
                             ? 'bg-blue-600 text-white'
-                            : 'bg-gray-200 dark:bg-[#242424] text-gray-900 dark:text-gray-100'
+                            : 'bg-[#2a2a2a] text-white'
                         }`}
                       >
                         <p className="text-sm break-words">{msg.content}</p>
                         <p
                           className={`text-xs mt-1 ${
-                            isCurrentUser ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'
+                            isCurrentUser ? 'text-blue-100' : 'text-gray-400'
                           }`}
                         >
                           {formatTime(msg.created_at)}
@@ -541,7 +550,7 @@ export default function ChatWidget() {
                 })}
                 {typingUsers[chat.id] && (
                   <div className="flex justify-start">
-                    <div className="bg-gray-200 dark:bg-[#242424] rounded-2xl rounded-bl-md px-3 py-2.5 flex items-center gap-1">
+                    <div className="bg-[#2a2a2a] rounded-2xl rounded-bl-md px-3 py-2.5 flex items-center gap-1">
                       <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                       <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                       <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
@@ -554,7 +563,7 @@ export default function ChatWidget() {
           </div>
 
           {/* Message Input */}
-          <div className="p-3 border-t border-gray-200 dark:border-[#2a2a2a]">
+          <div className="p-2.5 bg-[#1a1a1a] border-t border-[#2a2a2a]">
             {messageErrors[chat.id] && (
               <p className="text-xs text-red-500 mb-1.5">{messageErrors[chat.id]}</p>
             )}
@@ -565,7 +574,7 @@ export default function ChatWidget() {
                 value={messageInputs[chat.id] || ""}
                 onChange={(e) => handleInputChange(chat.id, e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSendMessage(chat.id)}
-                className="flex-1 bg-gray-100 dark:bg-[#242424] border border-gray-300 dark:border-[#2a2a2a] rounded px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="flex-1 bg-[#0a0a0a] border border-[#2a2a2a] rounded px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
               <button
                 onClick={() => handleSendMessage(chat.id)}
@@ -578,21 +587,32 @@ export default function ChatWidget() {
         </div>
       ))}
 
-      {/* Chat Toggle Button — hidden on /messages and auth pages */}
+      {/* Tab Bar — hidden on /messages and auth pages */}
       {!isHidden && (
-        <div className="fixed bottom-4 right-4 z-40">
+        <div className="fixed bottom-0 right-4 z-40 flex bg-[#0a0a0a] border border-[#2a2a2a] border-b-0 rounded-t-lg overflow-hidden">
           <button
-            onClick={() => setIsChatListOpen(!isChatListOpen)}
-            className="relative w-12 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-colors"
+            onClick={() => setActivePanel(activePanel === 'chat' ? null : 'chat')}
+            className={`relative flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold transition-colors ${
+              activePanel === 'chat' ? 'bg-[#1a1a1a] text-white' : 'text-gray-400 hover:bg-[#141414]'
+            }`}
           >
-            <MessageSquare className="w-6 h-6" />
-            {conversations.reduce((sum, c) => sum + (c.unread_count || 0), 0) > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center px-1">
-                {conversations.reduce((sum, c) => sum + (c.unread_count || 0), 0) > 9
-                  ? '9+'
-                  : conversations.reduce((sum, c) => sum + (c.unread_count || 0), 0)}
+            <span>💬</span>
+            Chat
+            {totalUnread > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-[16px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                {totalUnread > 9 ? '9+' : totalUnread}
               </span>
             )}
+          </button>
+          <div className="w-px bg-[#2a2a2a]" />
+          <button
+            onClick={() => setActivePanel(activePanel === 'party' ? null : 'party')}
+            className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold transition-colors ${
+              activePanel === 'party' ? 'bg-[#1a1a1a] text-white' : 'text-gray-400 hover:bg-[#141414]'
+            }`}
+          >
+            <span>🎮</span>
+            Party
           </button>
         </div>
       )}
