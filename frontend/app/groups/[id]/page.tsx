@@ -1621,6 +1621,44 @@ const GroupDetailPage = () => {
       <div className="border-t border-gray-200 dark:border-[#2a2a2a] my-1" />
     </>
   )}
+  {canManageGroupMembers && post.author_id !== currentUserId && (
+    <>
+      <button
+        onClick={async () => {
+          setOpenPostMenu(null);
+          if (!confirm(`Kick ${post.author_display_name || post.author_username} from the group?`)) return;
+          try {
+            const groupUuid = currentGroupDetails?.id;
+            if (!groupUuid) return;
+            await groupsApi.removeMember(groupUuid, post.author_id);
+          } catch (error) {
+            console.error("Error kicking user:", error);
+          }
+        }}
+        className="w-full px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+      >
+        Kick User
+      </button>
+      <button
+        onClick={async () => {
+          setOpenPostMenu(null);
+          if (!confirm(`Ban ${post.author_display_name || post.author_username} from the group?`)) return;
+          const reason = prompt("Reason for ban (optional):") || undefined;
+          try {
+            const groupUuid = currentGroupDetails?.id;
+            if (!groupUuid) return;
+            await groupsApi.banMember(groupUuid, post.author_id, reason);
+          } catch (error) {
+            console.error("Error banning user:", error);
+          }
+        }}
+        className="w-full px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+      >
+        Ban User
+      </button>
+      <div className="border-t border-gray-200 dark:border-[#2a2a2a] my-1" />
+    </>
+  )}
   <button
     onClick={() => {
       setShowReportModal(true);
