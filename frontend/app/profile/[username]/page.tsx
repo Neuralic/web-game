@@ -1146,7 +1146,7 @@ const ProfilePage = () => {
                   <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Currently Wearing</h2>
                   <div className="flex gap-6">
                     <div className="flex-shrink-0">
-                      <div className="relative bg-gradient-to-b from-gray-100 to-white dark:from-gray-800 dark:to-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4 w-80 overflow-hidden" style={{ minHeight: 260 }}>
+                      <div className="relative bg-[#1a1a1a] rounded-lg border border-gray-200 dark:border-gray-800 p-4 w-80 overflow-hidden" style={{ minHeight: 260 }}>
                         {avatarLoading ? (
                           <div className="flex items-center justify-center h-48 mt-6">
                             <div className="w-6 h-6 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
