@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import Image from "next/image";
+import { useState, useEffect } from "react";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import Footer from "../../components/Footer";
 import UserAdBanner from "../../components/UserAdBanner";
+import { usersApi, storage } from "@/lib/api";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
 const GiftAdventureBuxPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -13,16 +15,55 @@ const GiftAdventureBuxPage = () => {
   const [recipientUsername, setRecipientUsername] = useState("");
   const [amount, setAmount] = useState("");
   const [message, setMessage] = useState("");
-  const [step, setStep] = useState<"form" | "confirm">("form");
+  const [step, setStep] = useState<"form" | "confirm" | "success">("form");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [balance, setBalance] = useState<number>(0);
 
   const presetAmounts = [10, 25, 50, 100, 250, 500, 1000];
 
-  const handleSendGift = () => {
+  useEffect(() => {
+    const token = storage.getAccessToken();
+    if (!token) return;
+    fetch(`${API_BASE}/users/profile`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success && data.data?.user?.balance != null) {
+          setBalance(data.data.user.balance);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleSendGift = async () => {
     if (!recipientUsername.trim() || !amount || parseInt(amount) <= 0) return;
-    alert(`Gift of ◈${amount} to ${recipientUsername} - Coming soon!`);
+    setError(null);
+    setSending(true);
+    try {
+      const response = await usersApi.giftAdventureBux({
+        recipientUsername: recipientUsername.trim(),
+        amount: parseInt(amount, 10),
+      });
+      if (response.success) {
+        if (response.data?.balance != null) setBalance(response.data.balance);
+        setStep("success");
+      } else {
+        setError(response.message || response.error || "Failed to send gift");
+        setStep("confirm");
+      }
+    } catch {
+      setError("Network error. Please try again.");
+      setStep("confirm");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleReset = () => {
     setRecipientUsername("");
     setAmount("");
     setMessage("");
+    setError(null);
     setStep("form");
   };
 
@@ -49,10 +90,27 @@ const GiftAdventureBuxPage = () => {
           {/* Balance */}
           <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200 dark:border-[#2a2a2a]">
             <span className="text-sm text-gray-600 dark:text-gray-400">Your Balance</span>
-            <span className="text-xl font-bold text-gray-900 dark:text-gray-100">◈ 0</span>
+            <span className="text-xl font-bold text-gray-900 dark:text-gray-100">◈ {balance.toLocaleString()}</span>
           </div>
 
-          {step === "form" ? (
+          {step === "success" ? (
+            <div className="text-center py-8 space-y-4">
+              <div className="w-16 h-16 mx-auto bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                <span className="text-3xl">✓</span>
+              </div>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Gift Sent!</h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                ◈ {amount} was sent to @{recipientUsername}
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">New balance: ◈ {balance.toLocaleString()}</p>
+              <button
+                onClick={handleReset}
+                className="mt-4 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
+              >
+                Send Another Gift
+              </button>
+            </div>
+          ) : step === "form" ? (
             <div className="space-y-6">
               {/* Recipient */}
               <div>
@@ -154,22 +212,27 @@ const GiftAdventureBuxPage = () => {
                 )}
                 <div className="flex justify-between text-sm pt-3 border-t border-gray-200 dark:border-[#2a2a2a]">
                   <span className="text-gray-500 dark:text-gray-400">Remaining Balance</span>
-                  <span className="font-semibold text-gray-900 dark:text-gray-100">◈ {Math.max(0, 0 - parseInt(amount || "0"))}</span>
+                  <span className="font-semibold text-gray-900 dark:text-gray-100">◈ {Math.max(0, balance - parseInt(amount || "0")).toLocaleString()}</span>
                 </div>
               </div>
 
+              {error && (
+                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+              )}
+
               <div className="flex gap-3">
                 <button
-                  onClick={() => setStep("form")}
+                  onClick={() => { setError(null); setStep("form"); }}
                   className="flex-1 py-3 bg-gray-200 dark:bg-[#242424] hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-semibold rounded-lg transition-colors"
                 >
                   Back
                 </button>
                 <button
                   onClick={handleSendGift}
-                  className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors"
+                  disabled={sending}
+                  className="flex-1 py-3 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors"
                 >
-                  Send Gift
+                  {sending ? "Sending..." : "Send Gift"}
                 </button>
               </div>
             </div>
