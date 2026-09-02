@@ -1591,6 +1591,19 @@ deleteGroupWallPost: async (
     });
   },
 
+  // Gift AdventureBux from the current user to another user by username
+  giftAdventureBux: async (
+    data: { recipientUsername: string; amount: number },
+  ): Promise<ApiResponse<{ balance: number }>> => {
+    const token = storage.getAccessToken();
+    if (!token) return { success: false, error: "No authentication token found" };
+    return apiCall("/users/gift", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(data),
+    });
+  },
+
   // Send a payout from the group's balance to a member (owner only)
   createGroupPayout: async (
     id: string,
