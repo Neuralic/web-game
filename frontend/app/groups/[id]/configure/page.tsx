@@ -214,7 +214,6 @@ const ConfigureGroupPage = () => {
   const [loadingPayoutHistory, setLoadingPayoutHistory] = useState(false);
   const [payoutMemberId, setPayoutMemberId] = useState("");
   const [payoutAmount, setPayoutAmount] = useState("");
-  const [payoutReason, setPayoutReason] = useState("");
   const [sendingPayout, setSendingPayout] = useState(false);
   const [payoutError, setPayoutError] = useState<string | null>(null);
 
@@ -462,14 +461,12 @@ const ConfigureGroupPage = () => {
       const response = await groupsApi.createGroupPayout(groupUuid, {
         userId: payoutMemberId,
         amount: parsedAmount,
-        reason: payoutReason.trim() || undefined,
       });
       if (response.success) {
         setSuccessMessage({ title: "Payout Sent", message: "The payout was sent successfully." });
         setShowSuccessModal(true);
         setPayoutMemberId("");
         setPayoutAmount("");
-        setPayoutReason("");
         fetchGroupBalance();
         fetchPayoutHistory();
       } else {
@@ -2882,17 +2879,6 @@ const ConfigureGroupPage = () => {
                               value={payoutAmount}
                               onChange={(e) => setPayoutAmount(e.target.value)}
                               placeholder="Enter amount"
-                              className="w-full px-4 py-3 bg-gray-50 dark:bg-[#242424] border border-gray-300 dark:border-[#2a2a2a] rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Reason (optional)</label>
-                            <input
-                              type="text"
-                              value={payoutReason}
-                              onChange={(e) => setPayoutReason(e.target.value)}
-                              placeholder="e.g. Event prize, contribution reward"
                               className="w-full px-4 py-3 bg-gray-50 dark:bg-[#242424] border border-gray-300 dark:border-[#2a2a2a] rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                           </div>
