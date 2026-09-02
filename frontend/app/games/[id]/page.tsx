@@ -847,21 +847,23 @@ const GameDetailPage = () => {
               </h2>
 
               <div className="mb-4">
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2">
                   <textarea
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
                     placeholder="Say something..."
-                    rows={2}
-                    className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-[#2a2a2a] rounded bg-gray-50 dark:bg-[#242424] text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    rows={3}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-[#2a2a2a] rounded bg-gray-50 dark:bg-[#242424] text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                   />
-                  <button
-                    onClick={handlePostComment}
-                    disabled={!newComment.trim() || postingComment}
-                    className="px-4 py-2 h-fit bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {postingComment ? "Posting..." : "Post"}
-                  </button>
+                  <div className="flex justify-end">
+                    <button
+                      onClick={handlePostComment}
+                      disabled={!newComment.trim() || postingComment}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {postingComment ? "Posting..." : "Post"}
+                    </button>
+                  </div>
                 </div>
               </div>
 
