@@ -58,6 +58,7 @@ export default function Header({
     username?: string;
     display_name?: string;
     is_verified?: boolean;
+    balance?: number;
   } | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showSwitchAccountsModal, setShowSwitchAccountsModal] = useState(false);
@@ -569,7 +570,7 @@ useEffect(() => {
                       />
                     </div>
                     <span className="text-gray-900 dark:text-gray-100 font-semibold text-sm">
-                      0
+                      {user?.balance?.toLocaleString() ?? 0}
                     </span>
                   </div>
 
@@ -589,14 +590,12 @@ useEffect(() => {
                       Redeem Codes
                     </Link>
                     */}
-                    {/* Gift tab hidden from navigation
                     <Link
                       href="/adventurebux/gift"
                       className="block px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium"
                     >
                       Gift AdventureBux
                     </Link>
-                    */}
                     <Link
                       href="/adventurebux/giftcards"
                       className="block px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium"
