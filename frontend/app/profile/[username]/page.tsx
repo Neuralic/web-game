@@ -25,6 +25,7 @@ import { usersApi, friendsApi, groupsApi, storage } from "@/lib/api";
 import { openChatWithUser } from "@/app/components/ChatWidget";
 import { useParams, useRouter } from "next/navigation";
 import { useUserPresence } from "@/hooks/useUserPresence";
+import { useRealtime } from "@/contexts/RealtimeContext";
 import { supabase } from "@/lib/supabase";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
@@ -202,6 +203,7 @@ const ProfilePage = () => {
   const [postingWallReply, setPostingWallReply] = useState<Record<string, boolean>>({});
 
   const realtimePresence = useUserPresence(profileUser?.id);
+  const { presenceMap } = useRealtime();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -367,7 +369,6 @@ const ProfilePage = () => {
             id: friend.id,
             name: friend.display_name || friend.username,
             username: friend.username,
-            status: "offline",
           }));
           setFriends(realFriends);
         }
@@ -1191,9 +1192,12 @@ const ProfilePage = () => {
                       <Link key={connection.id} href={`/profile/${connection.username}`} className="flex flex-col items-center cursor-pointer group">
                         <div className="relative">
                           <UserAvatar userId={connection.id} username={connection.name} size={80} headshot />
-                          {connection.status && connection.status !== "offline" && (
-                            <div className={`absolute w-4 h-4 rounded-full border-2 border-white dark:border-gray-900 ${connection.status === "online-game" ? "bg-green-500" : connection.status === "online" ? "bg-blue-500" : connection.status === "studio" ? "bg-orange-500" : "bg-gray-400"}`} style={{ bottom: "-2px", right: "-2px" }} />
-                          )}
+                          {(() => {
+                            const ps = presenceMap.get(connection.id)?.presenceStatus;
+                            if (!ps || ps === 'offline') return null;
+                            const cls = ps === 'in-game' ? 'bg-green-500' : ps === 'online' ? 'bg-blue-500' : 'bg-gray-400';
+                            return <div className={`absolute w-4 h-4 rounded-full border-2 border-white dark:border-gray-900 ${cls}`} style={{ bottom: "-2px", right: "-2px" }} />;
+                          })()}
                         </div>
                         <p className="mt-2 text-xs text-gray-900 dark:text-gray-100">{connection.name}</p>
                       </Link>
