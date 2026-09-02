@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight, ChevronDown, Loader2 } from "lucide-react";
 import { groupsApi } from "@/lib/api";
 import UserAvatar from "../UserAvatar";
+import { useUserPresence } from "@/hooks/useUserPresence";
 interface Member {
   id: string;
   user_id: string;
@@ -23,6 +24,26 @@ interface Role {
 
 interface MembersSectionProps {
   groupId?: string;
+}
+
+function MemberCard({ member }: { member: Member }) {
+  const presence = useUserPresence(member.user_id);
+  const ps = presence.presenceStatus;
+  const dotClass = ps === 'in-game' ? 'bg-green-500' : ps === 'online' ? 'bg-blue-500' : null;
+
+  return (
+    <a href={`/profile/${member.username}`} className="group flex flex-col items-center">
+      <div className="relative">
+        <UserAvatar userId={member.user_id} username={member.display_name || member.username} size={110} headshot />
+        {dotClass && (
+          <div className={`absolute w-4 h-4 rounded-full border-2 border-white dark:border-gray-900 ${dotClass}`} style={{ bottom: "-2px", right: "-2px" }} />
+        )}
+      </div>
+      <p className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-1 truncate w-[110px] text-center">
+        {member.display_name || member.username}
+      </p>
+    </a>
+  );
 }
 
 export default function MembersSection({ groupId }: MembersSectionProps) {
@@ -104,12 +125,7 @@ export default function MembersSection({ groupId }: MembersSectionProps) {
       <div className="flex flex-wrap gap-3">
         {filteredMembers.length > 0 ? (
           filteredMembers.map((member) => (
-            <a key={member.id} href={`/profile/${member.username}`} className="group flex flex-col items-center">
-              <UserAvatar userId={member.user_id} username={member.display_name || member.username} size={110} headshot />
-              <p className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-1 truncate w-[110px] text-center">
-                {member.display_name || member.username}
-              </p>
-            </a>
+            <MemberCard key={member.id} member={member} />
           ))
         ) : (
           <p className="text-sm text-gray-500 dark:text-gray-400 py-4">No members found with this role.</p>
