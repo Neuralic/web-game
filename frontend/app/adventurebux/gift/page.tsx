@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import Footer from "../../components/Footer";
-import UserAdBanner from "../../components/UserAdBanner";
 import { usersApi, storage } from "@/lib/api";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
@@ -73,18 +72,9 @@ const GiftAdventureBuxPage = () => {
       <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} setSidebarOpen={setSidebarOpen} />
 
       <div className="flex-1 flex justify-center gap-4 px-4 py-8 w-full">
-        {/* Left Skyscraper Ad */}
-        <div className="hidden xl:block flex-shrink-0">
-          <UserAdBanner format="160x600" />
-        </div>
-
         <main className="max-w-2xl w-full">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Gift AdventureBux</h1>
         <p className="text-gray-600 dark:text-gray-400 text-sm mb-8">Send AdventureBux from your balance to any user on the platform</p>
-
-<div className="flex justify-center mb-6">
-  <UserAdBanner format="728x90" />
-</div>
 
         <div className="bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded-lg p-6">
           {/* Balance */}
@@ -239,11 +229,6 @@ const GiftAdventureBuxPage = () => {
           )}
         </div>
         </main>
-
-        {/* Right Skyscraper Ad */}
-        <div className="hidden xl:block flex-shrink-0">
-          <UserAdBanner format="160x600" />
-        </div>
       </div>
 
       <Footer />
