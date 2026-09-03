@@ -66,11 +66,6 @@ const AdventureBuxPage = () => {
       answer:
         "No, AdventureBux do not expire. Once purchased, they remain in your account until you spend them.",
     },
-    {
-      question: "How to redeem your gift card?",
-      answer:
-        "To redeem a gift card, go to the Gift Cards page, enter your code, and click Redeem. The AdventureBux will be added to your account immediately.",
-    },
   ];
 
   const toggleFaq = (index: number) => {
