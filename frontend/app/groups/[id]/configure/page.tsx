@@ -150,7 +150,7 @@ const ConfigureGroupPage = () => {
   const [isCreatingRole, setIsCreatingRole] = useState(false);
   const [roleName, setRoleName] = useState("");
   const [roleDescription, setRoleDescription] = useState("");
-  const [roleRank, setRoleRank] = useState(0);
+  const [roleRank, setRoleRank] = useState<number | "">("");
   const [permissionSectionsCollapsed, setPermissionSectionsCollapsed] = useState({
     posts: true,
     members: true,
@@ -1048,7 +1048,7 @@ const ConfigureGroupPage = () => {
     setSelectedRole(null);
     setRoleName("");
     setRoleDescription("");
-    setRoleRank(0);
+    setRoleRank("");
     setRolePermissions({
       postWall: true,
       deleteWallPosts: false,
@@ -1071,7 +1071,7 @@ const ConfigureGroupPage = () => {
     setIsCreatingRole(false);
     setRoleName(role.name || "");
     setRoleDescription(role.description || "");
-    setRoleRank(role.rank || 0);
+    setRoleRank(role.rank ?? "");
     setRolePermissions({
       postWall: role.can_post_on_wall !== false,
       deleteWallPosts: role.can_delete_wall_posts || false,
@@ -1097,7 +1097,7 @@ const ConfigureGroupPage = () => {
       const roleData = {
         name: roleName,
         description: roleDescription,
-        rank: roleRank,
+        rank: roleRank === "" ? 0 : roleRank,
         canPostOnWall: rolePermissions.postWall,
         canDeleteWallPosts: rolePermissions.deleteWallPosts,
         canPostShout: rolePermissions.postShout,
@@ -2197,7 +2197,7 @@ const ConfigureGroupPage = () => {
                           <input
                             type="number"
                             value={roleRank}
-                            onChange={(e) => setRoleRank(parseInt(e.target.value) || 0)}
+                            onChange={(e) => setRoleRank(e.target.value === "" ? "" : parseInt(e.target.value))}
                             min="0"
                             max="255"
                             className="w-full px-4 py-2 bg-white dark:bg-[#1a1a1a] border border-gray-300 dark:border-[#2a2a2a] rounded text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
