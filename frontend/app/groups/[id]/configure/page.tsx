@@ -230,6 +230,7 @@ const ConfigureGroupPage = () => {
       { name: "Roles", hasNew: false },
       { name: "Alliances", hasNew: false },
       { name: "Payouts", hasNew: false },
+      { name: "Group Payouts", hasNew: false },
       { name: "Advertise Group", hasNew: false },
     ],
     [],
@@ -320,6 +321,12 @@ const ConfigureGroupPage = () => {
           const allianceRequestsResponse = await groupsApi.getAllianceRequests(uuid);
           if (allianceRequestsResponse.success && allianceRequestsResponse.data) {
             setAllianceRequests((allianceRequestsResponse.data.requests as any[]) || []);
+          }
+
+          // Fetch group balance for header display
+          const balanceResponse = await groupsApi.getGroupBalance(uuid);
+          if (balanceResponse.success && balanceResponse.data) {
+            setGroupBalance(balanceResponse.data.groupBalance);
           }
         }
       } catch (error) {
@@ -1290,7 +1297,7 @@ const ConfigureGroupPage = () => {
                 >
                   {groupData?.owner_display_name || groupData?.owner_username || "Loading..."}
                 </a>
-                {" · Group Funds: ◈ 0"}
+                {groupBalance !== null ? ` · Group Funds: ◈ ${groupBalance.toLocaleString()}` : " · Group Funds: ◈ ..."}
               </p>
             </div>
             <Link href={`/groups/${groupId}`}>
@@ -2797,39 +2804,6 @@ const ConfigureGroupPage = () => {
                         </div>
                       </div>
 
-                      <div>
-                        <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-3">Recent Payout History</h3>
-                        {loadingPayoutHistory ? (
-                          <div className="flex items-center justify-center py-8">
-                            <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
-                          </div>
-                        ) : payoutHistory.length === 0 ? (
-                          <p className="text-sm text-gray-500 dark:text-gray-400">No payouts sent yet.</p>
-                        ) : (
-                          <div className="overflow-x-auto">
-                            <table className="w-full">
-                              <thead>
-                                <tr className="border-b border-gray-200 dark:border-[#2a2a2a]">
-                                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Member</th>
-                                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Amount</th>
-                                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Reason</th>
-                                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Date</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {payoutHistory.map((payout) => (
-                                  <tr key={payout.id} className="border-b border-gray-100 dark:border-[#2a2a2a] last:border-b-0">
-                                    <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{payout.display_name || payout.username || "Unknown"}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">◈ {Number(payout.amount).toLocaleString()}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{payout.reason || "—"}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{new Date(payout.created_at).toLocaleDateString()}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        )}
-                      </div>
                     </div>
                   )}
                   </>
