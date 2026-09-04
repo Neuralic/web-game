@@ -470,6 +470,19 @@ connectRoblox: async (robloxUsername: string): Promise<ApiResponse<unknown>> => 
     });
   },
 
+  // Gift AdventureBux from the current user to another user by username
+  giftAdventureBux: async (
+    data: { recipientUsername: string; amount: number },
+  ): Promise<ApiResponse<{ balance: number }>> => {
+    const token = storage.getAccessToken();
+    if (!token) return { success: false, error: "No authentication token found" };
+    return apiCall("/users/gift", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(data),
+    });
+  },
+
 };
 
 // Accounts API
@@ -573,18 +586,6 @@ export const accountsApi = {
     });
   },
 
-  // Gift AdventureBux from the current user to another user by username
-  giftAdventureBux: async (
-    data: { recipientUsername: string; amount: number },
-  ): Promise<ApiResponse<{ balance: number }>> => {
-    const token = storage.getAccessToken();
-    if (!token) return { success: false, error: "No authentication token found" };
-    return apiCall("/users/gift", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-      body: JSON.stringify(data),
-    });
-  },
 };
 
 // Groups API
