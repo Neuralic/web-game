@@ -221,6 +221,7 @@ const ConfigureGroupPage = () => {
   const [adImage, setAdImage] = useState<string | null>(null);
   const [maxBid, setMaxBid] = useState("0.10");
   const [adSetName, setAdSetName] = useState("");
+  const [adDuration, setAdDuration] = useState("24");
 
   // Audit Logs states
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
@@ -1258,6 +1259,7 @@ const ConfigureGroupPage = () => {
         imageUrl,
         adSetName: adSetName || undefined,
         maxBid: parseFloat(maxBid) || 0.10,
+        duration: parseInt(adDuration),
       });
       if (response.success && response.data) {
         setExistingAds([response.data.ad as any, ...existingAds]);
@@ -2678,6 +2680,27 @@ const ConfigureGroupPage = () => {
                               className="w-32 border border-gray-300 dark:border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424]"
                             />
                             <span className="text-sm text-gray-600 dark:text-gray-400">AdventureBux / day</span>
+                          </div>
+
+                          {/* Duration */}
+                          <div className="mt-6">
+                            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">Duration</h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">How long do you want your ad to run?</p>
+                            <div className="flex gap-2">
+                              {[{ label: "24 Hours", value: "24" }, { label: "48 Hours", value: "48" }, { label: "72 Hours", value: "72" }].map(({ label, value }) => (
+                                <button
+                                  key={value}
+                                  onClick={() => setAdDuration(value)}
+                                  className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                                    adDuration === value
+                                      ? "bg-blue-600 border-blue-600 text-white"
+                                      : "border-gray-300 dark:border-[#2a2a2a] text-gray-700 dark:text-gray-300 hover:border-blue-400"
+                                  }`}
+                                >
+                                  {label}
+                                </button>
+                              ))}
+                            </div>
                           </div>
                         <div className="flex gap-3 pt-4">
                           <button
