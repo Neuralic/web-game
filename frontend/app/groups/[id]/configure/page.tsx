@@ -1865,9 +1865,10 @@ const ConfigureGroupPage = () => {
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {members
                               .filter((member) => {
-                                const matchesSearch = member.username
-                                  ?.toLowerCase()
-                                  .includes(memberSearch.toLowerCase());
+                                const q = memberSearch.toLowerCase();
+                                const matchesSearch =
+                                  member.username?.toLowerCase().includes(q) ||
+                                  member.display_name?.toLowerCase().includes(q);
                                 const matchesRole = memberRoleFilter === "All" || member.role_id === memberRoleFilter;
                                 return matchesSearch && matchesRole;
                               })
