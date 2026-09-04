@@ -1440,7 +1440,7 @@ deleteGroupWallPost: async (
   // Create group ad
   createGroupAd: async (
     id: string,
-    data: { name: string; format: string; imageUrl: string; adSetName?: string; maxBid?: number },
+    data: { name: string; format: string; imageUrl: string; adSetName?: string; maxBid?: number; duration?: number },
   ): Promise<ApiResponse<{ ad: unknown }>> => {
     const token = storage.getAccessToken();
     if (!token) return { success: false, error: "No authentication token found" };
@@ -2359,6 +2359,7 @@ export const adsApi = {
     format: string;
     imageUrl: string;
     bidPerDay: number;
+    duration?: number;
     groupId?: string;
     gameId?: string;
     profileId?: string;
