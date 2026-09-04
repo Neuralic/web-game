@@ -103,6 +103,7 @@ const [adName, setAdName] = useState("");
 const [adFormat, setAdFormat] = useState("728x90");
 const [adImageUrl, setAdImageUrl] = useState("");
 const [adBid, setAdBid] = useState("0.10");
+const [adDuration, setAdDuration] = useState("24");
 const [adGroupId, setAdGroupId] = useState("");
 const [adGameId, setAdGameId] = useState("");
 const [adProfileId, setAdProfileId] = useState("");
@@ -1207,6 +1208,27 @@ if (groupsResponse.success && groupsResponse.data) {
                   </div>
                 </div>
 
+                {/* Duration */}
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Duration</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">How long do you want your ad to run?</p>
+                  <div className="flex gap-2">
+                    {[{ label: "24 Hours", value: "24" }, { label: "48 Hours", value: "48" }, { label: "72 Hours", value: "72" }].map(({ label, value }) => (
+                      <button
+                        key={value}
+                        onClick={() => setAdDuration(value)}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                          adDuration === value
+                            ? "bg-blue-600 border-blue-600 text-white"
+                            : "border-gray-300 dark:border-[#2a2a2a] text-gray-700 dark:text-gray-300 hover:border-blue-400"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <button
   onClick={async () => {
     if (!adName.trim()) { setErrorMessage("Ad name is required"); return; }
@@ -1219,6 +1241,7 @@ if (groupsResponse.success && groupsResponse.data) {
         format: adFormat,
         imageUrl: adImageUrl,
         bidPerDay: parseFloat(adBid) || 0.10,
+        duration: parseInt(adDuration),
         groupId: adGroupId || undefined,
         gameId: adGameId || undefined,
         profileId: adProfileId === "own" ? currentUserId || undefined : undefined,
