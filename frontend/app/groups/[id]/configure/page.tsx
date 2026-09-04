@@ -2184,7 +2184,11 @@ const ConfigureGroupPage = () => {
                             No custom roles yet. Fill the form to create one.
                           </div>
                         ) : (
-                          roles.map((role) => (
+                          [...roles].sort((a, b) => {
+                            if (a.name === 'Owner') return 1;
+                            if (b.name === 'Owner') return -1;
+                            return a.rank - b.rank;
+                          }).map((role) => (
                             <button
                               key={role.id}
                               onClick={() => handleSelectRole(role)}
