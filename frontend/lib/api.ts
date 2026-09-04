@@ -572,6 +572,19 @@ export const accountsApi = {
       },
     });
   },
+
+  // Gift AdventureBux from the current user to another user by username
+  giftAdventureBux: async (
+    data: { recipientUsername: string; amount: number },
+  ): Promise<ApiResponse<{ balance: number }>> => {
+    const token = storage.getAccessToken();
+    if (!token) return { success: false, error: "No authentication token found" };
+    return apiCall("/users/gift", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(data),
+    });
+  },
 };
 
 // Groups API
@@ -1598,19 +1611,6 @@ deleteGroupWallPost: async (
     return apiCall(`/groups/${id}/payouts`, {
       method: "GET",
       headers: { Authorization: `Bearer ${token}` },
-    });
-  },
-
-  // Gift AdventureBux from the current user to another user by username
-  giftAdventureBux: async (
-    data: { recipientUsername: string; amount: number },
-  ): Promise<ApiResponse<{ balance: number }>> => {
-    const token = storage.getAccessToken();
-    if (!token) return { success: false, error: "No authentication token found" };
-    return apiCall("/users/gift", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-      body: JSON.stringify(data),
     });
   },
 
