@@ -877,6 +877,16 @@ export const groupsApi = {
     });
   },
 
+  // Get audit logs for a group (owner only)
+  getGroupAuditLogs: async (id: string, offset = 0): Promise<ApiResponse<{ logs: unknown[]; total: number }>> => {
+    const token = storage.getAccessToken();
+    if (!token) return { success: false, error: "No authentication token found" };
+    return apiCall(`/groups/${id}/audit-logs?offset=${offset}`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+
   // Update member role
   updateMemberRole: async (
     id: string,
