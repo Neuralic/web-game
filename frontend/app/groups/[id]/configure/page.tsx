@@ -184,6 +184,7 @@ const ConfigureGroupPage = () => {
       "Alliances",
       "Payouts",
       "Advertise Group",
+      "Audit Logs",
     ];
     return section && sections.includes(section) ? section : "Information";
   };
@@ -221,6 +222,12 @@ const ConfigureGroupPage = () => {
   const [maxBid, setMaxBid] = useState("0.10");
   const [adSetName, setAdSetName] = useState("");
 
+  // Audit Logs states
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [loadingAuditLogs, setLoadingAuditLogs] = useState(false);
+  const [auditLogsOffset, setAuditLogsOffset] = useState(0);
+  const [auditLogsTotal, setAuditLogsTotal] = useState(0);
+
   const sections = useMemo(
     () => [
       { name: "Information", hasNew: false },
@@ -232,6 +239,7 @@ const ConfigureGroupPage = () => {
       { name: "Payouts", hasNew: false },
       { name: "Group Payouts", hasNew: false },
       { name: "Advertise Group", hasNew: false },
+      { name: "Audit Logs", hasNew: false },
     ],
     [],
   );
@@ -414,6 +422,8 @@ const ConfigureGroupPage = () => {
       fetchMembers();
       fetchGroupBalance();
       fetchPayoutHistory();
+    } else if (activeSection === "Audit Logs") {
+      fetchAuditLogs(0);
     }
   }, [groupUuid, activeSection]);
 
@@ -429,6 +439,28 @@ const ConfigureGroupPage = () => {
       console.error("Failed to fetch group balance:", error);
     } finally {
       setLoadingBalance(false);
+    }
+  };
+
+  const fetchAuditLogs = async (offset: number) => {
+    if (!groupUuid) return;
+    setLoadingAuditLogs(true);
+    try {
+      const response = await groupsApi.getGroupAuditLogs(groupUuid, offset);
+      if (response.success && response.data) {
+        const logs = (response.data.logs as any[]) || [];
+        if (offset === 0) {
+          setAuditLogs(logs);
+        } else {
+          setAuditLogs((prev) => [...prev, ...logs]);
+        }
+        setAuditLogsTotal(response.data.total ?? 0);
+        setAuditLogsOffset(offset);
+      }
+    } catch (error) {
+      console.error("Failed to fetch audit logs:", error);
+    } finally {
+      setLoadingAuditLogs(false);
     }
   };
 
@@ -2805,6 +2837,91 @@ const ConfigureGroupPage = () => {
                         </div>
                       </div>
 
+                    </div>
+                  )}
+
+                  {activeSection === "Audit Logs" && (
+                    <div className="space-y-4">
+                      <div>
+                        <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">Audit Logs</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">A record of administrative actions taken in this group.</p>
+                      </div>
+
+                      {loadingAuditLogs && auditLogs.length === 0 ? (
+                        <div className="flex justify-center py-8">
+                          <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+                        </div>
+                      ) : auditLogs.length === 0 ? (
+                        <div className="text-center py-8 text-sm text-gray-500 dark:text-gray-400">No audit log entries yet.</div>
+                      ) : (
+                        <div className="space-y-2">
+                          {auditLogs.map((log: any) => {
+                            const actionColors: Record<string, string> = {
+                              ban: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+                              unban: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+                              kick: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+                              payout: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+                              role_create: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+                              role_update: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
+                              role_delete: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400",
+                            };
+                            const actionLabels: Record<string, string> = {
+                              ban: "Ban",
+                              unban: "Unban",
+                              kick: "Kick",
+                              payout: "Payout",
+                              role_create: "Role Created",
+                              role_update: "Role Updated",
+                              role_delete: "Role Deleted",
+                            };
+                            const colorClass = actionColors[log.action] ?? "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400";
+                            const label = actionLabels[log.action] ?? log.action;
+                            const details = log.details ?? {};
+                            const date = new Date(log.createdAt);
+                            const dateStr = date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+                            const timeStr = date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+
+                            let detailText = "";
+                            if (log.action === "ban" && details.bannedUserId) detailText = `User ID: ${details.bannedUserId}${details.reason ? ` · ${details.reason}` : ""}`;
+                            else if (log.action === "unban" && details.unbannedUserId) detailText = `User ID: ${details.unbannedUserId}`;
+                            else if (log.action === "kick" && details.kickedUserId) detailText = `User ID: ${details.kickedUserId}`;
+                            else if (log.action === "payout" && details.amount != null) detailText = `◈ ${details.amount} to User ID: ${details.recipientUserId}`;
+                            else if (log.action === "role_create" && details.roleName) detailText = details.roleName;
+                            else if (log.action === "role_update") detailText = `Role ID: ${details.roleId}`;
+                            else if (log.action === "role_delete") detailText = `Role ID: ${details.roleId}`;
+
+                            return (
+                              <div key={log.id} className="flex items-start gap-3 bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded-lg p-3">
+                                <UserAvatar userId={log.actorId} username={log.actor_username || "unknown"} size={32} headshot />
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{log.actor_username || "Unknown"}</span>
+                                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${colorClass}`}>{label}</span>
+                                  </div>
+                                  {detailText && <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{detailText}</p>}
+                                </div>
+                                <div className="text-right flex-shrink-0">
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">{dateStr}</p>
+                                  <p className="text-xs text-gray-400 dark:text-gray-500">{timeStr}</p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {auditLogs.length < auditLogsTotal && (
+                        <div className="flex justify-center pt-2">
+                          <button
+                            onClick={() => fetchAuditLogs(auditLogsOffset + 50)}
+                            disabled={loadingAuditLogs}
+                            className="px-4 py-2 text-sm font-medium bg-gray-100 dark:bg-[#242424] hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
+                          >
+                            {loadingAuditLogs && <Loader2 className="w-4 h-4 animate-spin" />}
+                            Load More
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
                   </>
