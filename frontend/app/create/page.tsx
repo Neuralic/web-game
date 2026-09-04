@@ -31,7 +31,6 @@ export default function CreatePage() {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [createMethod, setCreateMethod] = useState<"manual" | "roblox">("roblox");
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
@@ -118,29 +117,12 @@ export default function CreatePage() {
     setErrorMsg("");
 
     try {
-      let res;
-      if (createMethod === "roblox") {
-        if (!form.universeId.trim()) { setErrorMsg("Universe ID is required"); setSubmitting(false); return; }
-        res = await fetch(`${API_BASE}/games/publish-by-place-id`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ universeId: form.universeId.trim(), genre: form.genre, maxPlayers: parseInt(form.maxPlayers) }),
-        });
-      } else {
-        if (!form.title.trim()) { setErrorMsg("Title is required"); setSubmitting(false); return; }
-        res = await fetch(`${API_BASE}/games/publish`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: form.title.trim(),
-            description: form.description.trim(),
-            thumbnailUrl: form.thumbnailUrl.trim() || undefined,
-            genre: form.genre,
-            maxPlayers: parseInt(form.maxPlayers),
-            groupId: form.groupId || undefined,
-          }),
-        });
-      }
+      if (!form.universeId.trim()) { setErrorMsg("Universe ID is required"); setSubmitting(false); return; }
+      const res = await fetch(`${API_BASE}/games/publish-by-place-id`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ universeId: form.universeId.trim(), genre: form.genre, maxPlayers: parseInt(form.maxPlayers), groupId: form.groupId || undefined }),
+      });
 
       const data = await res.json();
       if (data.success) {
@@ -329,109 +311,39 @@ export default function CreatePage() {
                 </button>
               </div>
 
-              {/* Method toggle */}
-              <div className="flex gap-2 mb-6">
-                <button
-                  onClick={() => setCreateMethod("roblox")}
-                  className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-colors ${createMethod === "roblox" ? "bg-blue-600 text-white" : "bg-gray-100 dark:bg-[#242424] text-gray-700 dark:text-gray-300"}`}
-                >
-                  Import from Roblox
-                </button>
-                <button
-                  onClick={() => setCreateMethod("manual")}
-                  className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-colors ${createMethod === "manual" ? "bg-blue-600 text-white" : "bg-gray-100 dark:bg-[#242424] text-gray-700 dark:text-gray-300"}`}
-                >
-                  Manual
-                </button>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Roblox Universe ID</label>
+                  <input
+                    type="text"
+                    value={form.universeId}
+                    onChange={(e) => setForm({ ...form, universeId: e.target.value })}
+                    placeholder="e.g. 1818"
+                    className="w-full border border-gray-300 dark:border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424]"
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Find this in Roblox Studio under Game Settings</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Genre</label>
+                  <select value={form.genre} onChange={(e) => setForm({ ...form, genre: e.target.value })} className="w-full border border-gray-300 dark:border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424]">
+                    {genres.map(g => <option key={g}>{g}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Publish to Group (optional)</label>
+                  <select
+                    value={form.groupId}
+                    onChange={(e) => setForm({ ...form, groupId: e.target.value })}
+                    disabled={loadingGroups}
+                    className="w-full border border-gray-300 dark:border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424] disabled:opacity-50"
+                  >
+                    <option value="">None (publish to profile)</option>
+                    {groups.map((group) => (
+                      <option key={group.id} value={group.id}>{group.name}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
-
-              {createMethod === "roblox" ? (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Roblox Universe ID</label>
-                    <input
-                      type="text"
-                      value={form.universeId}
-                      onChange={(e) => setForm({ ...form, universeId: e.target.value })}
-                      placeholder="e.g. 1818"
-                      className="w-full border border-gray-300 dark:border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424]"
-                    />
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Find this in Roblox Studio under Game Settings</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Genre</label>
-                    <select value={form.genre} onChange={(e) => setForm({ ...form, genre: e.target.value })} className="w-full border border-gray-300 dark:border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424]">
-                      {genres.map(g => <option key={g}>{g}</option>)}
-                    </select>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Title *</label>
-                    <input
-                      type="text"
-                      value={form.title}
-                      onChange={(e) => setForm({ ...form, title: e.target.value })}
-                      placeholder="Game title"
-                      className="w-full border border-gray-300 dark:border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Description</label>
-                    <textarea
-                      value={form.description}
-                      onChange={(e) => setForm({ ...form, description: e.target.value })}
-                      placeholder="Describe your game..."
-                      rows={3}
-                      className="w-full border border-gray-300 dark:border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424] resize-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Thumbnail URL</label>
-                    <input
-                      type="text"
-                      value={form.thumbnailUrl}
-                      onChange={(e) => setForm({ ...form, thumbnailUrl: e.target.value })}
-                      placeholder="https://..."
-                      className="w-full border border-gray-300 dark:border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Publish to Group (optional)</label>
-                    <select
-                      value={form.groupId}
-                      onChange={(e) => setForm({ ...form, groupId: e.target.value })}
-                      disabled={loadingGroups}
-                      className="w-full border border-gray-300 dark:border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424] disabled:opacity-50"
-                    >
-                      <option value="">None (publish to profile)</option>
-                      {groups.map((group) => (
-                        <option key={group.id} value={group.id}>{group.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex gap-3">
-                    <div className="flex-1">
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Genre</label>
-                      <select value={form.genre} onChange={(e) => setForm({ ...form, genre: e.target.value })} className="w-full border border-gray-300 dark:border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424]">
-                        {genres.map(g => <option key={g}>{g}</option>)}
-                      </select>
-                    </div>
-                    <div className="w-28">
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Max Players</label>
-                      <input
-                        type="number"
-                        value={form.maxPlayers}
-                        onChange={(e) => setForm({ ...form, maxPlayers: e.target.value })}
-                        min="1"
-                        max="100"
-                        className="w-full border border-gray-300 dark:border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424]"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {errorMsg && (
                 <p className="mt-3 text-sm text-red-600 dark:text-red-400">{errorMsg}</p>
