@@ -182,7 +182,6 @@ const ConfigureGroupPage = () => {
       "Members",
       "Roles",
       "Alliances",
-      "Payouts",
       "Advertise Group",
       "Audit Logs",
     ];
@@ -209,6 +208,7 @@ const ConfigureGroupPage = () => {
   const [loadingPayoutHistory, setLoadingPayoutHistory] = useState(false);
   const [payoutMemberId, setPayoutMemberId] = useState("");
   const [payoutAmount, setPayoutAmount] = useState("");
+  const [payoutSearch, setPayoutSearch] = useState("");
   const [sendingPayout, setSendingPayout] = useState(false);
   const [payoutError, setPayoutError] = useState<string | null>(null);
 
@@ -228,6 +228,8 @@ const ConfigureGroupPage = () => {
   const [loadingAuditLogs, setLoadingAuditLogs] = useState(false);
   const [auditLogsOffset, setAuditLogsOffset] = useState(0);
   const [auditLogsTotal, setAuditLogsTotal] = useState(0);
+  const [auditSearch, setAuditSearch] = useState("");
+  const [auditFilter, setAuditFilter] = useState("All");
 
   const sections = useMemo(
     () => [
@@ -237,7 +239,6 @@ const ConfigureGroupPage = () => {
       { name: "Members", hasNew: false },
       { name: "Roles", hasNew: false },
       { name: "Alliances", hasNew: false },
-      { name: "Payouts", hasNew: false },
       { name: "Group Payouts", hasNew: false },
       { name: "Advertise Group", hasNew: false },
       { name: "Audit Logs", hasNew: false },
@@ -419,7 +420,7 @@ const ConfigureGroupPage = () => {
       fetchBannedUsers();
     } else if (activeSection === "Roles") {
       fetchRoles();
-    } else if (activeSection === "Payouts") {
+    } else if (activeSection === "Group Payouts") {
       fetchMembers();
       fetchGroupBalance();
       fetchPayoutHistory();
@@ -2802,7 +2803,7 @@ const ConfigureGroupPage = () => {
                   </div>
                 )}
 
-                  {activeSection === "Payouts" && (
+                  {activeSection === "Group Payouts" && (
                     <div className="space-y-8">
                       <div>
                         <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-3">Group Balance</h3>
@@ -2822,17 +2823,31 @@ const ConfigureGroupPage = () => {
                         <div className="space-y-4 max-w-md">
                           <div>
                             <label className="block text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Member</label>
+                            <input
+                              type="text"
+                              value={payoutSearch}
+                              onChange={(e) => setPayoutSearch(e.target.value)}
+                              placeholder="Search by username or display name..."
+                              className="w-full px-4 py-2 mb-2 bg-gray-50 dark:bg-[#242424] border border-gray-300 dark:border-[#2a2a2a] rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                            />
                             <select
                               value={payoutMemberId}
                               onChange={(e) => setPayoutMemberId(e.target.value)}
                               className="w-full px-4 py-3 bg-gray-50 dark:bg-[#242424] border border-gray-300 dark:border-[#2a2a2a] rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
                               <option value="">Select a member</option>
-                              {members.map((member) => (
-                                <option key={member.user_id} value={member.user_id}>
-                                  {member.display_name || member.username}
-                                </option>
-                              ))}
+                              {members
+                                .filter((member) => {
+                                  const q = payoutSearch.toLowerCase();
+                                  return !q ||
+                                    (member.username || "").toLowerCase().includes(q) ||
+                                    (member.display_name || "").toLowerCase().includes(q);
+                                })
+                                .map((member) => (
+                                  <option key={member.user_id} value={member.user_id}>
+                                    {member.display_name || member.username}
+                                  </option>
+                                ))}
                             </select>
                           </div>
 
@@ -2868,77 +2883,99 @@ const ConfigureGroupPage = () => {
                   )}
 
                   {activeSection === "Audit Logs" && (
-                    <div className="space-y-4">
-                      <div>
-                        <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">Audit Logs</h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">A record of administrative actions taken in this group.</p>
+                    <div>
+                      {/* Header row */}
+                      <div className="flex items-center gap-3 mb-4">
+                        <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex-shrink-0">Audit Log</h3>
+                        <input
+                          type="text"
+                          value={auditSearch}
+                          onChange={(e) => setAuditSearch(e.target.value)}
+                          placeholder="Search users..."
+                          className="flex-1 px-3 py-1.5 text-sm border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#242424] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <select
+                          value={auditFilter}
+                          onChange={(e) => setAuditFilter(e.target.value)}
+                          className="px-3 py-1.5 text-sm border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#242424] text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="All">All</option>
+                          <option value="ban">Ban</option>
+                          <option value="unban">Unban</option>
+                          <option value="kick">Kick</option>
+                          <option value="payout">Payout</option>
+                          <option value="role_create">Role Created</option>
+                          <option value="role_update">Role Updated</option>
+                          <option value="role_delete">Role Deleted</option>
+                        </select>
                       </div>
 
-                      {loadingAuditLogs && auditLogs.length === 0 ? (
-                        <div className="flex justify-center py-8">
-                          <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+                      {/* Table */}
+                      <div className="border border-gray-200 dark:border-[#2a2a2a] rounded-lg overflow-hidden">
+                        {/* Column headers */}
+                        <div className="grid grid-cols-[140px_1fr_2fr] bg-gray-50 dark:bg-[#111] border-b border-gray-200 dark:border-[#2a2a2a] px-4 py-2">
+                          <span className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider">Date</span>
+                          <span className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider">User</span>
+                          <span className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider">Description</span>
                         </div>
-                      ) : auditLogs.length === 0 ? (
-                        <div className="text-center py-8 text-sm text-gray-500 dark:text-gray-400">No audit log entries yet.</div>
-                      ) : (
-                        <div className="space-y-2">
-                          {auditLogs.map((log: any) => {
-                            const actionColors: Record<string, string> = {
-                              ban: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-                              unban: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-                              kick: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
-                              payout: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-                              role_create: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
-                              role_update: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
-                              role_delete: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400",
-                            };
-                            const actionLabels: Record<string, string> = {
-                              ban: "Ban",
-                              unban: "Unban",
-                              kick: "Kick",
-                              payout: "Payout",
-                              role_create: "Role Created",
-                              role_update: "Role Updated",
-                              role_delete: "Role Deleted",
-                            };
-                            const colorClass = actionColors[log.action] ?? "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400";
-                            const label = actionLabels[log.action] ?? log.action;
-                            const details = log.details ?? {};
-                            const date = new Date(log.createdAt);
-                            const dateStr = date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-                            const timeStr = date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 
-                            let detailText = "";
-                            if (log.action === "ban" && details.bannedUserId) detailText = `User ID: ${details.bannedUserId}${details.reason ? ` · ${details.reason}` : ""}`;
-                            else if (log.action === "unban" && details.unbannedUserId) detailText = `User ID: ${details.unbannedUserId}`;
-                            else if (log.action === "kick" && details.kickedUserId) detailText = `User ID: ${details.kickedUserId}`;
-                            else if (log.action === "payout" && details.amount != null) detailText = `◈ ${details.amount} to User ID: ${details.recipientUserId}`;
-                            else if (log.action === "role_create" && details.roleName) detailText = details.roleName;
-                            else if (log.action === "role_update") detailText = `Role ID: ${details.roleId}`;
-                            else if (log.action === "role_delete") detailText = `Role ID: ${details.roleId}`;
+                        {loadingAuditLogs && auditLogs.length === 0 ? (
+                          <div className="flex justify-center py-10">
+                            <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+                          </div>
+                        ) : (() => {
+                          const filtered = auditLogs.filter((log: any) => {
+                            const matchesFilter = auditFilter === "All" || log.action === auditFilter;
+                            const matchesSearch = !auditSearch.trim() || (log.actor_username || "").toLowerCase().includes(auditSearch.toLowerCase());
+                            return matchesFilter && matchesSearch;
+                          });
 
+                          if (filtered.length === 0) {
                             return (
-                              <div key={log.id} className="flex items-start gap-3 bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded-lg p-3">
-                                <UserAvatar userId={log.actorId} username={log.actor_username || "unknown"} size={32} headshot />
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{log.actor_username || "Unknown"}</span>
-                                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${colorClass}`}>{label}</span>
-                                  </div>
-                                  {detailText && <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{detailText}</p>}
-                                </div>
-                                <div className="text-right flex-shrink-0">
-                                  <p className="text-xs text-gray-500 dark:text-gray-400">{dateStr}</p>
-                                  <p className="text-xs text-gray-400 dark:text-gray-500">{timeStr}</p>
-                                </div>
+                              <div className="text-center py-10 text-sm text-gray-500 dark:text-gray-400">
+                                {auditLogs.length === 0 ? "No audit log entries yet." : "No entries match your search."}
                               </div>
                             );
-                          })}
-                        </div>
-                      )}
+                          }
+
+                          return (
+                            <div className="divide-y divide-gray-200 dark:divide-[#2a2a2a]">
+                              {filtered.map((log: any) => {
+                                const details = log.details ?? {};
+                                const actor = log.actor_username || "Unknown";
+                                const date = new Date(log.createdAt);
+                                const dateStr = date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+                                const timeStr = date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+
+                                let description = "";
+                                const target = details.bannedUserId || details.unbannedUserId || details.kickedUserId || details.recipientUserId || null;
+                                if (log.action === "ban") description = `Banned ${target || "a user"}${details.reason ? ` (${details.reason})` : ""}`;
+                                else if (log.action === "unban") description = `Unbanned ${target || "a user"}`;
+                                else if (log.action === "kick") description = `Kicked ${target || "a user"}`;
+                                else if (log.action === "payout") description = `Sent payout of ◈ ${details.amount ?? "?"} to ${target || "a user"}`;
+                                else if (log.action === "role_create") description = `Created role "${details.roleName || details.roleId || "unknown"}"`;
+                                else if (log.action === "role_update") description = `Updated role "${details.roleId || "unknown"}"`;
+                                else if (log.action === "role_delete") description = `Deleted role "${details.roleId || "unknown"}"`;
+                                else description = log.action;
+
+                                return (
+                                  <div key={log.id} className="grid grid-cols-[140px_1fr_2fr] px-4 py-3 hover:bg-gray-50 dark:hover:bg-[#111] transition-colors items-center">
+                                    <div>
+                                      <p className="text-xs text-gray-700 dark:text-gray-300">{dateStr}</p>
+                                      <p className="text-xs text-gray-400 dark:text-gray-500">{timeStr}</p>
+                                    </div>
+                                    <span className="text-sm text-gray-900 dark:text-gray-100 truncate">{actor}</span>
+                                    <span className="text-sm text-gray-600 dark:text-gray-400 truncate">{description}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })()}
+                      </div>
 
                       {auditLogs.length < auditLogsTotal && (
-                        <div className="flex justify-center pt-2">
+                        <div className="flex justify-center pt-3">
                           <button
                             onClick={() => fetchAuditLogs(auditLogsOffset + 50)}
                             disabled={loadingAuditLogs}
