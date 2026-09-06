@@ -371,7 +371,7 @@ export default function ChatWidget() {
     <>
       {/* Unified Chat/Party Panel */}
       {activePanel !== null && (
-        <div className="fixed bottom-11 right-4 w-80 max-h-[500px] bg-[#1a1a1a] rounded-t-lg shadow-2xl border border-[#2a2a2a] flex flex-col z-50">
+        <div className="fixed bottom-11 right-4 w-80 max-h-[600px] bg-[#1a1a1a] rounded-t-lg shadow-2xl border border-[#2a2a2a] flex flex-col z-50">
           {/* Header with tabs */}
           <div className="flex items-center px-3 py-2.5 bg-[#1a1a1a] border-b border-[#2a2a2a] rounded-t-lg gap-3">
             <button
@@ -594,7 +594,7 @@ export default function ChatWidget() {
         <div className="fixed bottom-0 right-4 z-40 flex bg-[#0a0a0a] border border-[#2a2a2a] border-b-0 rounded-t-lg overflow-hidden">
           <button
             onClick={() => setActivePanel(activePanel !== null ? null : 'chat')}
-            className={`relative flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold transition-colors ${
+            className={`relative flex items-center gap-2 px-6 py-3 text-base font-semibold transition-colors ${
               activePanel !== null ? 'bg-[#1a1a1a] text-white' : 'text-gray-400 hover:bg-[#141414]'
             }`}
           >
