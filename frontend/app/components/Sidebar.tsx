@@ -209,14 +209,21 @@ export default function Sidebar({
               </Link>
             </nav>
 
-            {/* Create Community Button */}
-            <div className="px-4 py-3">
+            {/* Create / Merge Group buttons */}
+            <div className="px-4 py-3 flex flex-col gap-2">
               <Link
                 href="/groups/create"
                 onClick={onClose}
                 className="block w-full bg-gray-200 dark:bg-[#242424] hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-semibold py-2.5 text-sm rounded-lg transition-colors text-center"
               >
                 Create Group
+              </Link>
+              <Link
+                href="/groups/merge"
+                onClick={onClose}
+                className="block w-full bg-gray-100 dark:bg-[#1a1a1a] hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold py-2.5 text-sm rounded-lg transition-colors text-center border border-gray-200 dark:border-[#2a2a2a]"
+              >
+                Merge Roblox Group
               </Link>
             </div>
 
