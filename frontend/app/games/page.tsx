@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
@@ -99,7 +99,13 @@ const GamesPage = () => {
   };
 
   const GameRow = ({ title, icon, games, seeAllHref }: { title: string; icon: string; games: Game[]; seeAllHref: string }) => {
+    const scrollRef = useRef<HTMLDivElement>(null);
     if (games.length === 0) return null;
+
+    const scrollRight = () => {
+      scrollRef.current?.scrollBy({ left: 600, behavior: "smooth" });
+    };
+
     return (
       <section className="mb-8">
         <div className="flex items-center justify-between mb-3">
@@ -108,10 +114,19 @@ const GamesPage = () => {
           </h2>
           <Link href={seeAllHref} className="text-sm text-blue-600 dark:text-blue-400 hover:underline font-medium">See All</Link>
         </div>
-        <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-          {games.map((game) => (
-            <GameCard key={game.id} game={game} isSponsored={game.is_sponsored} />
-          ))}
+        <div className="relative flex items-center">
+          <div ref={scrollRef} className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide flex-1">
+            {games.map((game) => (
+              <GameCard key={game.id} game={game} isSponsored={game.is_sponsored} />
+            ))}
+          </div>
+          <button
+            onClick={scrollRight}
+            className="flex-shrink-0 ml-2 w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 dark:bg-[#242424] hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors"
+            aria-label="Scroll right"
+          >
+            →
+          </button>
         </div>
       </section>
     );
