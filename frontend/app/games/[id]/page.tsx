@@ -394,8 +394,10 @@ const GameDetailPage = () => {
   const creatorName = game?.creator_display_name || game?.creator_username || "Unknown Creator";
   const canPlay = !!game?.placeId;
 
+  const INT4_MAX = 2147483647;
   const likeCount = game?.likes || 0;
-  const favoriteCount = game?.favorites || 0;
+  const favoriteCount = (game?.favorites ?? 0) >= INT4_MAX ? 0 : (game?.favorites || 0);
+  const visitCount = (game?.visits ?? 0) >= INT4_MAX ? 0 : (game?.visits || 0);
 
   const handleLike = async () => {
     if (!game) return;
@@ -654,7 +656,7 @@ const GameDetailPage = () => {
             {/* Stats row — small inline stats below the tabs */}
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mb-6 text-sm text-gray-600 dark:text-gray-400">
               <span className="flex items-center gap-1.5">
-                <Eye className="w-4 h-4" /> {game.visits?.toLocaleString() || 0} visits
+                <Eye className="w-4 h-4" /> {visitCount.toLocaleString()} visits
               </span>
               <span className="flex items-center gap-1.5">
                 <Heart className="w-4 h-4" /> {favoriteCount.toLocaleString()} favorites
@@ -692,25 +694,6 @@ const GameDetailPage = () => {
                   </div>
                 )}
 
-                {/* Created By */}
-                <div className="mt-6 max-w-sm">
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Created By</h3>
-                  <Link
-                    href={game.creator_username ? `/profile/${game.creator_username}` : "#"}
-                    className="flex items-center gap-3 p-3 border border-gray-200 dark:border-[#2a2a2a] rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                  >
-                    <UserAvatar userId={game.creatorId} username={creatorName} size={48} headshot />
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate flex items-center gap-1">
-                        {creatorName}
-                        {game.creator_is_verified && <VerifiedBadge size="sm" />}
-                      </p>
-                      {game.creator_username && (
-                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">@{game.creator_username}</p>
-                      )}
-                    </div>
-                  </Link>
-                </div>
               </div>
             )}
 
