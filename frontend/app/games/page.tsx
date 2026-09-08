@@ -88,7 +88,6 @@ const GamesPage = () => {
           </div>
           <h3 className="font-bold text-sm text-gray-900 dark:text-gray-100 line-clamp-1">{game.title}</h3>
           <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mt-0.5 mb-2">
-            <span className="flex items-center gap-1">👍 {likePct !== null ? `${likePct}%` : "N/A"}</span>
             <span className="flex items-center gap-1">👥 {game.currentPlayers?.toLocaleString() || 0} playing</span>
           </div>
         </Link>
