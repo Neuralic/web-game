@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -19,6 +20,7 @@ import Header from "../../components/Header";
 import VerifiedBadge from "../../components/VerifiedBadge";
 import UserAvatar from "../../components/UserAvatar";
 import UserAdBanner from "../../components/UserAdBanner";
+const Avatar3DViewer = dynamic(() => import("../../components/Avatar3DViewer"), { ssr: false });
 import ReportModal from "@/components/modals/ReportModal";
 import SuccessModal from "@/components/modals/SuccessModal";
 import { usersApi, friendsApi, groupsApi, storage } from "@/lib/api";
@@ -1147,21 +1149,7 @@ const ProfilePage = () => {
                   <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Currently Wearing</h2>
                   <div className="flex gap-6">
                     <div className="flex-shrink-0">
-                      <div className="relative bg-[#1a1a1a] rounded-lg border border-gray-200 dark:border-gray-800 p-4 w-80 overflow-hidden" style={{ minHeight: 260 }}>
-                        {avatarLoading ? (
-                          <div className="flex items-center justify-center h-48 mt-6">
-                            <div className="w-6 h-6 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-                          </div>
-                        ) : customAvatarUrl ? (
-                          <div className="flex justify-center items-center h-48 mt-6">
-                            <img src={customAvatarUrl} alt="Avatar" className="h-full object-contain" />
-                          </div>
-                        ) : (
-                          <div className="flex justify-center items-center h-48 mt-6">
-                            <UserAvatar userId={profileUser?.id || ""} username={displayName || username} size={160} />
-                          </div>
-                        )}
-                      </div>
+                      <Avatar3DViewer userId={profileUser?.id || ""} className="w-80 h-[400px]" />
                     </div>
                     <div className="flex-1">
                       <div className="grid grid-cols-4 gap-2">
