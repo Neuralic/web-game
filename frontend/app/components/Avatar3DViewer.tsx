@@ -130,10 +130,13 @@ export default function Avatar3DViewer({ userId, className = "" }: Props) {
         if (!data.success || !data.obj || !data.mtl) throw new Error("No model data");
         if (cancelled || !container) return;
 
-        // Step 2 — fetch OBJ and MTL text from Roblox CDN
+        // Step 2 — fetch OBJ and MTL text via our backend proxy to avoid CORS issues
+        // with direct browser requests to rbxcdn.com.
+        const proxyUrl = (cdnUrl: string) =>
+          `${API_BASE}/avatar/proxy?url=${encodeURIComponent(cdnUrl)}`;
         const [objRes, mtlRes] = await Promise.all([
-          fetch(data.obj),
-          fetch(data.mtl),
+          fetch(proxyUrl(data.obj)),
+          fetch(proxyUrl(data.mtl)),
         ]);
         if (!objRes.ok || !mtlRes.ok) throw new Error("Failed to fetch model files");
         const [objText, mtlText] = await Promise.all([objRes.text(), mtlRes.text()]);
@@ -163,7 +166,8 @@ export default function Avatar3DViewer({ userId, className = "" }: Props) {
         const manager = new THREE.LoadingManager();
         manager.setURLModifier((url: string) => {
           const hash = url.split("/").pop() || url;
-          return getCDNUrl(hash);
+          const cdnUrl = getCDNUrl(hash);
+          return `${API_BASE}/avatar/proxy?url=${encodeURIComponent(cdnUrl)}`;
         });
 
         const mtlLoader = new MTLLoader(manager);
