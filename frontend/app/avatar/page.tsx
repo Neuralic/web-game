@@ -13,6 +13,9 @@ import dynamic from "next/dynamic";
 const RobloxAvatar3D = dynamic(() => import("../components/RobloxAvatar3D"), {
   ssr: false,
 });
+const Avatar3DViewer = dynamic(() => import("../components/Avatar3DViewer"), {
+  ssr: false,
+});
 
 interface CatalogItem {
   id: string;
@@ -104,6 +107,7 @@ const AvatarPage = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [avatarState, setAvatarState] = useState<AvatarState | null>(null);
   const [avatarLoading, setAvatarLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [robloxUsername, setRobloxUsername] = useState("");
   const [showRobloxLink, setShowRobloxLink] = useState(false);
   const [robloxLinking, setRobloxLinking] = useState(false);
@@ -232,6 +236,17 @@ const AvatarPage = () => {
   useEffect(() => {
     fetchAvatarState();
   }, [fetchAvatarState]);
+
+  useEffect(() => {
+    const token = storage.getAccessToken();
+    if (!token) return;
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      setCurrentUserId(payload.userId || null);
+    } catch {
+      // not logged in
+    }
+  }, []);
 
   // Fetch the user's full owned-item set once on load, so the catalog grid can be
   // filtered down to only items the user actually owns (paginate until exhausted,
@@ -485,27 +500,12 @@ const AvatarPage = () => {
             {/* Left - Avatar Preview */}
             <div className="w-[300px] flex-shrink-0 sticky top-24 self-start">
               <div className="bg-[#1a1a1a] rounded-lg aspect-[3/4] flex items-end justify-center p-6 relative overflow-hidden">
-                {avatarLoading ? (
+                {currentUserId ? (
+                  <Avatar3DViewer userId={currentUserId} className="absolute inset-0 w-full h-full" />
+                ) : avatarLoading ? (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
                   </div>
-                ) : showCustomRender ? (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    {renderingCustom ? (
-                      <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-                    ) : (
-                      <img
-                        src={customAvatarUrl}
-                        alt="Your Avatar"
-                        className="w-full h-full object-contain"
-                      />
-                    )}
-                  </div>
-                ) : showRobloxAvatar ? (
-                  <RobloxAvatar3D
-                    robloxUserId={avatarState?.roblox_user_id || ""}
-                    onError={() => setRobloxThumbnail(null)}
-                  />
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center">
                     {renderingCustom ? (
@@ -554,7 +554,7 @@ const AvatarPage = () => {
                   </div>
                 )}
                 <div className="absolute bottom-4 right-4 bg-white dark:bg-[#1a1a1a] px-3 py-1 rounded font-semibold text-sm text-gray-900 dark:text-gray-100 z-20">
-                  {showRobloxAvatar ? "Roblox" : showCustomRender ? "R15" : "2D"}
+                  3D
                 </div>
               </div>
 
