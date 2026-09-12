@@ -129,6 +129,7 @@ const GameDetailPage = () => {
 
   const [servers, setServers] = useState<GameServer[]>([]);
   const [loadingServers, setLoadingServers] = useState(true);
+  const [showMobileModal, setShowMobileModal] = useState(false);
 
   useEffect(() => {
     const token = storage.getAccessToken();
@@ -169,7 +170,14 @@ const GameDetailPage = () => {
     fetchGame();
   }, [gameId]);
 
-  const handlePlayClick = () => {
+  const handlePlayClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile) {
+      e.preventDefault();
+      setShowMobileModal(true);
+      return;
+    }
+
     if (!gameId) return;
     const token = storage.getAccessToken();
     if (!token) return;
@@ -395,9 +403,12 @@ const GameDetailPage = () => {
   const canPlay = !!game?.placeId;
 
   const INT4_MAX = 2147483647;
+  const DISPLAY_MAX = 1_000_000;
   const likeCount = game?.likes || 0;
-  const favoriteCount = (game?.favorites ?? 0) >= INT4_MAX ? 0 : (game?.favorites || 0);
-  const visitCount = (game?.visits ?? 0) >= INT4_MAX ? 0 : (game?.visits || 0);
+  const rawFavorites = game?.favorites ?? 0;
+  const favoriteCount = rawFavorites >= INT4_MAX || rawFavorites > DISPLAY_MAX ? 0 : rawFavorites;
+  const rawVisits = game?.visits ?? 0;
+  const visitCount = rawVisits >= INT4_MAX || rawVisits > DISPLAY_MAX ? 0 : rawVisits;
 
   const handleLike = async () => {
     if (!game) return;
@@ -1026,6 +1037,40 @@ const GameDetailPage = () => {
       </main>
 
       <Footer />
+
+      {/* Mobile Play Modal */}
+      {showMobileModal && game && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4" onClick={() => setShowMobileModal(false)}>
+          <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl p-6 w-full max-w-sm shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Play on Mobile</h2>
+              <button onClick={() => setShowMobileModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl leading-none">&times;</button>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+              Open the Roblox app and search for <span className="font-semibold text-gray-900 dark:text-gray-100">{game.title}</span> to play on AdventureBlox.
+            </p>
+            <div className="flex flex-col gap-3">
+              <a
+                href={`https://www.roblox.com/games/${game.placeId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-center py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
+              >
+                Open in Roblox App
+              </a>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(`https://www.roblox.com/games/${game.placeId}`);
+                  setShowMobileModal(false);
+                }}
+                className="py-2.5 bg-gray-100 dark:bg-[#242424] hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold rounded-lg transition-colors"
+              >
+                Copy Game Link
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
