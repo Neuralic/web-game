@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -229,7 +228,7 @@ export default function Avatar3DViewer({ userId, className = "" }: Props) {
 
           // Auto-rotate when not dragging
           if (autoRotate && !isDragging) {
-            targetTheta += 0.005;
+            targetTheta += 0.015;
           }
 
           // Smooth damp current values toward targets
