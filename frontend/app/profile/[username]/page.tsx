@@ -1147,24 +1147,30 @@ const ProfilePage = () => {
                 {/* Currently Wearing */}
                 <div className="py-6 border-b border-gray-200 dark:border-gray-800">
                   <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Currently Wearing</h2>
-                  <div className="flex gap-6">
-                    <div className="flex-shrink-0">
-                      <Avatar3DViewer userId={profileUser?.id || ""} className="w-64 h-[300px]" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="grid grid-cols-4 gap-2">
-                        {visibleWearingItems.length > 0 ? (
-                          visibleWearingItems.map((item) => (
-                            <div key={item.id} className="cursor-pointer group">
-                              <div className="w-24 h-24 bg-gray-100 dark:bg-[#1a1a1a] rounded-lg overflow-hidden border border-gray-200 dark:border-[#2a2a2a] group-hover:border-gray-400 dark:group-hover:border-gray-500 transition-colors">
-                                <img src={item.thumb} alt={item.id} className="w-full h-full object-contain p-1" />
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-sm text-gray-500 dark:text-gray-400 col-span-4">No items equipped yet.</p>
-                        )}
+                  <div className="bg-gray-100 dark:bg-[#111] rounded-xl overflow-hidden flex">
+                    {/* Left — 3D viewer (40%) */}
+                    <div className="relative w-[40%] flex-shrink-0">
+                      <Avatar3DViewer userId={profileUser?.id || ""} className="w-full h-[350px] rounded-none" />
+                      <div className="absolute top-2 right-2 bg-black/60 text-white text-xs font-bold px-2 py-0.5 rounded">
+                        3D
                       </div>
+                    </div>
+
+                    {/* Right — item grid (60%) */}
+                    <div className="flex-1 p-4">
+                      {visibleWearingItems.length > 0 ? (
+                        <div className="grid grid-cols-3 gap-2">
+                          {visibleWearingItems.map((item) => (
+                            <div key={item.id} className="group cursor-pointer aspect-square bg-gray-200 dark:bg-[#1a1a1a] rounded-lg overflow-hidden border border-transparent group-hover:border-gray-400 dark:group-hover:border-gray-600 transition-colors">
+                              <img src={item.thumb} alt={item.id} className="w-full h-full object-contain p-1.5" />
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="h-full flex items-center justify-center">
+                          <p className="text-sm text-gray-500 dark:text-gray-400">No items equipped yet.</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
