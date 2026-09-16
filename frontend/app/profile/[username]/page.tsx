@@ -1149,7 +1149,7 @@ const ProfilePage = () => {
                   <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Currently Wearing</h2>
                   <div className="flex gap-6">
                     <div className="flex-shrink-0">
-                      <Avatar3DViewer userId={profileUser?.id || ""} className="w-80 h-[400px]" />
+                      <Avatar3DViewer userId={profileUser?.id || ""} className="w-64 h-[300px]" />
                     </div>
                     <div className="flex-1">
                       <div className="grid grid-cols-4 gap-2">
