@@ -218,10 +218,11 @@ export default function MergeGroupPage() {
               <p className="font-semibold text-gray-700 dark:text-gray-300">What gets imported</p>
               <p>✓ Group name and description from Roblox</p>
               <p>✓ Members who already have an AdventureBlox account (matched by username)</p>
+              <p>✓ Group icon and banner image</p>
+              <p>✓ Group roles and rank structure</p>
+              <p>✓ Group shout</p>
               <p className="font-semibold text-gray-700 dark:text-gray-300 pt-1">What does not get imported</p>
-              <p>✗ Members without an AdventureBlox account</p>
-              <p>✗ Group funds, shout, or rank/role structure</p>
-              <p>✗ Your group&apos;s icon or banner image</p>
+              <p>✗ Group funds</p>
             </div>
           </div>
         </main>
