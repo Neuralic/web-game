@@ -5,12 +5,18 @@ import { Loader2 } from "lucide-react";
 import * as THREE from "three";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { MTLLoader } from "three/examples/jsm/loaders/MTLLoader.js";
+import {
+  buildAvatar, createAvatarScene, fitDistance, orbitCamera, DEG,
+  type AvatarModel, type CustomAvatarData,
+} from "./avatar3d/avatarScene";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
 interface Props {
   userId: string;
   className?: string;
+  /** Bump to make the viewer refetch and swap in the latest outfit without remounting. */
+  refreshKey?: number;
 }
 
 interface Vec3 { x: number; y: number; z: number; }
@@ -24,18 +30,35 @@ interface AvatarData {
   aabb: { min: Vec3; max: Vec3 } | null;
 }
 
-// Roblox CDN hash decoder — mirrors the backend resolver exactly.
+// CDN hash decoder for Roblox-linked path
 function getCDNUrl(hash: string): string {
   let i = 31;
   for (let t = 0; t < 38; t++) i ^= hash.charCodeAt(t);
   return `https://t${(i % 8).toString()}.rbxcdn.com/${hash}`;
 }
 
-const DEG = Math.PI / 180;
+// ─── Constants ─────────────────────────────────────────────────────
 const DAMPING = 0.08;
+const AUTO_ROTATE_SPEED = 0.025;
 
-export default function Avatar3DViewer({ userId, className = "" }: Props) {
+/** Free GPU resources (geometries, materials, textures) of everything in a scene. */
+function disposeScene(scene: THREE.Scene) {
+  scene.traverse((obj) => {
+    const mesh = obj as THREE.Mesh;
+    mesh.geometry?.dispose();
+    const mats = Array.isArray(mesh.material) ? mesh.material : mesh.material ? [mesh.material] : [];
+    for (const mat of mats) {
+      for (const value of Object.values(mat)) {
+        if (value instanceof THREE.Texture) value.dispose();
+      }
+      mat.dispose();
+    }
+  });
+}
+
+export default function Avatar3DViewer({ userId, className = "", refreshKey = 0 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const reloadRef = useRef<((fresh?: boolean) => void) | null>(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [fallbackUrl, setFallbackUrl] = useState<string | null>(null);
@@ -49,30 +72,26 @@ export default function Avatar3DViewer({ userId, className = "" }: Props) {
     let frameId = 0;
     let resizeObserver: ResizeObserver | null = null;
 
-    // Spherical camera orbit state
-    let targetTheta = 0;       // azimuth (horizontal)
-    let targetPhi = 90 * DEG;  // elevation (vertical) — start level
-    let targetRadius = 1;      // distance from center
+    let targetTheta = 0;
+    let targetPhi = 85 * DEG;
+    let targetRadius = 1;
 
     let currentTheta = targetTheta;
     let currentPhi = targetPhi;
     let currentRadius = targetRadius;
 
-    const PHI_MIN = 5 * DEG;
-    const PHI_MAX = 175 * DEG;
+    const PHI_MIN = 15 * DEG;
+    const PHI_MAX = 165 * DEG;
 
     let isDragging = false;
     let autoRotate = true;
     let prevX = 0;
     let prevY = 0;
-
-    // Pinch zoom state
     let prevPinchDist = 0;
 
     let minRadius = 1;
     let maxRadius = 10;
 
-    // --- Mouse handlers ---
     const onPointerDown = (e: PointerEvent) => {
       isDragging = true;
       autoRotate = false;
@@ -82,204 +101,236 @@ export default function Avatar3DViewer({ userId, className = "" }: Props) {
     };
     const onPointerMove = (e: PointerEvent) => {
       if (!isDragging) return;
-      const dx = e.clientX - prevX;
-      const dy = e.clientY - prevY;
-      targetTheta -= dx * 0.005;
-      targetPhi = Math.max(PHI_MIN, Math.min(PHI_MAX, targetPhi - dy * 0.005));
+      targetTheta -= (e.clientX - prevX) * 0.005;
+      targetPhi = Math.max(PHI_MIN, Math.min(PHI_MAX, targetPhi - (e.clientY - prevY) * 0.005));
       prevX = e.clientX;
       prevY = e.clientY;
     };
     const onPointerUp = () => { isDragging = false; };
 
-    // --- Touch handlers (pinch zoom) ---
     const getTouchDist = (e: TouchEvent) => {
       const t = e.touches;
       if (t.length < 2) return 0;
-      const dx = t[0].clientX - t[1].clientX;
-      const dy = t[0].clientY - t[1].clientY;
-      return Math.sqrt(dx * dx + dy * dy);
+      return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
     };
     const onTouchStart = (e: TouchEvent) => {
-      if (e.touches.length === 2) {
-        prevPinchDist = getTouchDist(e);
-      }
+      if (e.touches.length === 2) prevPinchDist = getTouchDist(e);
     };
     const onTouchMove = (e: TouchEvent) => {
       if (e.touches.length === 2) {
         e.preventDefault();
         const dist = getTouchDist(e);
         if (prevPinchDist > 0) {
-          const scale = prevPinchDist / dist;
-          targetRadius = Math.max(minRadius, Math.min(maxRadius, targetRadius * scale));
+          targetRadius = Math.max(minRadius, Math.min(maxRadius, targetRadius * (prevPinchDist / dist)));
         }
         prevPinchDist = dist;
       }
     };
     const onTouchEnd = () => { prevPinchDist = 0; };
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      targetRadius = Math.max(minRadius, Math.min(maxRadius, targetRadius * (1 + e.deltaY * 0.001)));
+    };
 
-    const load = async () => {
-      setLoading(true);
-      setFailed(false);
-      try {
-        // Step 1 — fetch CDN URLs from our backend proxy
-        const res = await fetch(`${API_BASE}/avatar/3d/${userId}`);
-        const rawText = await res.text();
-        console.log("Raw response:", rawText);
-        const data = JSON.parse(rawText) as AvatarData;
-        console.log("3D data:", data);
-        if (!data.success || !data.obj || !data.mtl) throw new Error("No model data");
-        if (cancelled || !container) return;
+    // Live render state. The renderer, camera and listeners are created once; later loads only swap `scene`.
+    let scene: THREE.Scene | null = null;
+    let camera: THREE.PerspectiveCamera | null = null;
+    let fitDist = 1;
+    let currentCustom: AvatarModel | undefined;
+    let currentFov = 30;
+    let requestId = 0; // bumped per load; a load whose id is stale must not touch the viewer
 
-        // Step 2 — fetch OBJ and MTL text directly from Roblox CDN
-        const [objRes, mtlRes] = await Promise.all([
-          fetch(data.obj),
-          fetch(data.mtl),
-        ]);
-        if (!objRes.ok || !mtlRes.ok) throw new Error("Failed to fetch model files");
-        const [objText, mtlText] = await Promise.all([objRes.text(), mtlRes.text()]);
-        if (cancelled || !container) return;
+    // Path 1 passes a baked OBJ; Path 2 passes a model from avatar3d/avatarScene (already centred and fitted).
+    const setupAndRender = (object: THREE.Object3D | null, fov = 30, custom?: AvatarModel) => {
+      if (cancelled || !container) return;
 
-        // Step 3 — set up Three.js scene
-        const width = container.clientWidth || 300;
-        const height = container.clientHeight || 400;
+      const width = container.clientWidth || 300;
+      const height = container.clientHeight || 400;
 
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x1a1a1a);
-
-        const camera = new THREE.PerspectiveCamera(data.camera?.fov || 30, width / height, 0.1, 1000);
-
-        scene.add(new THREE.AmbientLight(0xffffff, 1.5));
-        const dirLight = new THREE.DirectionalLight(0xffffff, 2);
+      let newScene: THREE.Scene;
+      if (custom) {
+        newScene = createAvatarScene(custom);
+      } else {
+        newScene = new THREE.Scene();
+        newScene.background = new THREE.Color(0x1a1a1a);
+        newScene.add(new THREE.AmbientLight(0xffffff, 1.8));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
         dirLight.position.set(2, 4, 3);
-        scene.add(dirLight);
+        newScene.add(dirLight);
+        const fillLight = new THREE.DirectionalLight(0xffffff, 0.5);
+        fillLight.position.set(-2, 1, -2);
+        newScene.add(fillLight);
+      }
 
-        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        renderer.setSize(width, height);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        container.innerHTML = "";
-        container.appendChild(renderer.domElement);
-
-        // Step 4 — parse MTL with a URL modifier that resolves texture hashes to CDN URLs.
-        const manager = new THREE.LoadingManager();
-        manager.setURLModifier((url: string) => {
-          const hash = url.split("/").pop() || url;
-          return getCDNUrl(hash);
-        });
-
-        const mtlLoader = new MTLLoader(manager);
-        const materials = mtlLoader.parse(mtlText, "");
-        materials.preload();
-
-        Object.values(materials.materials).forEach((mat) => {
-          const m = mat as THREE.Material;
-          m.transparent = false;
-          (m as any).alphaTest = 0;
-          m.depthWrite = true;
-          m.needsUpdate = true;
-        });
-
-        const objLoader = new OBJLoader();
-        objLoader.setMaterials(materials);
-        const object = objLoader.parse(objText);
-        console.log("Object loaded:", object);
-
-        // Center model at origin
-        const box = new THREE.Box3().setFromObject(object);
+      let idealDist: number;
+      if (custom) {
+        idealDist = fitDistance(custom, fov, width / height);
+      } else {
+        const box = new THREE.Box3().setFromObject(object!);
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
-        object.position.sub(center);
-
-        scene.add(object);
-
-        // Compute ideal camera distance from bounding box
+        object!.position.sub(center);
+        newScene.add(object!);
         const maxDim = Math.max(size.x, size.y, size.z) || 1;
-        const fovRad = camera.fov * DEG;
-        const idealDist = Math.abs(maxDim / Math.sin(fovRad / 2)) * 0.8;
+        idealDist = Math.abs(maxDim / Math.sin((fov * DEG) / 2)) * 0.75;
+      }
 
-        camera.near = idealDist / 100;
-        camera.far = idealDist * 100;
-        camera.updateProjectionMatrix();
+      if (!renderer || !camera) {
+        // First model: create the renderer, camera, listeners and render loop.
+        const cam = new THREE.PerspectiveCamera(fov, width / height, 0.1, 1000);
+        camera = cam;
+        const r = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer = r;
+        r.setSize(width, height);
+        r.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.innerHTML = "";
+        container.appendChild(r.domElement);
 
-        // Initialize spherical coords
         targetRadius = idealDist;
         currentRadius = idealDist;
         minRadius = idealDist * 0.3;
         maxRadius = idealDist * 3;
 
-        // Scroll wheel zoom
-        const onWheel = (e: WheelEvent) => {
-          e.preventDefault();
-          targetRadius = Math.max(minRadius, Math.min(maxRadius, targetRadius * (1 + e.deltaY * 0.001)));
-        };
-
-        // Attach input listeners
         container.addEventListener("wheel", onWheel, { passive: false });
-        renderer.domElement.addEventListener("pointerdown", onPointerDown);
-        renderer.domElement.addEventListener("pointermove", onPointerMove);
-        renderer.domElement.addEventListener("pointerup", onPointerUp);
-        renderer.domElement.addEventListener("pointercancel", onPointerUp);
-        renderer.domElement.addEventListener("touchstart", onTouchStart, { passive: true });
-        renderer.domElement.addEventListener("touchmove", onTouchMove, { passive: false });
-        renderer.domElement.addEventListener("touchend", onTouchEnd);
+        r.domElement.addEventListener("pointerdown", onPointerDown);
+        r.domElement.addEventListener("pointermove", onPointerMove);
+        r.domElement.addEventListener("pointerup", onPointerUp);
+        r.domElement.addEventListener("pointercancel", onPointerUp);
+        r.domElement.addEventListener("touchstart", onTouchStart, { passive: true });
+        r.domElement.addEventListener("touchmove", onTouchMove, { passive: false });
+        r.domElement.addEventListener("touchend", onTouchEnd);
 
-        // Animation loop with spherical camera orbit + damping
         const animate = () => {
           frameId = requestAnimationFrame(animate);
-
-          // Auto-rotate when not dragging
-          if (autoRotate && !isDragging) {
-            targetTheta += 0.015;
-          }
-
-          // Smooth damp current values toward targets
+          if (autoRotate && !isDragging) targetTheta += AUTO_ROTATE_SPEED;
           currentTheta += (targetTheta - currentTheta) * DAMPING;
           currentPhi += (targetPhi - currentPhi) * DAMPING;
           currentRadius += (targetRadius - currentRadius) * DAMPING;
-
-          // Convert spherical to cartesian
-          camera.position.x = currentRadius * Math.sin(currentPhi) * Math.sin(currentTheta);
-          camera.position.y = currentRadius * Math.cos(currentPhi);
-          camera.position.z = currentRadius * Math.sin(currentPhi) * Math.cos(currentTheta);
-          camera.lookAt(0, 0, 0);
-
-          renderer!.render(scene, camera);
+          orbitCamera(cam, currentTheta, currentPhi, currentRadius);
+          if (scene) r.render(scene, cam);
         };
         animate();
 
         resizeObserver = new ResizeObserver(() => {
-          if (!container || !renderer) return;
+          if (!container || !renderer || !camera) return;
           const w = container.clientWidth || width;
           const h = container.clientHeight || height;
           renderer.setSize(w, h);
           camera.aspect = w / h;
+          if (currentCustom) {
+            // keep the whole avatar in frame when the box changes shape, preserving the user's zoom
+            const newFit = fitDistance(currentCustom, currentFov, w / h);
+            const k = newFit / fitDist;
+            targetRadius *= k; currentRadius *= k; minRadius *= k; maxRadius *= k;
+            fitDist = newFit;
+          }
           camera.updateProjectionMatrix();
         });
         resizeObserver.observe(container);
+      } else {
+        // Swap: keep the user's orbit angle and zoom, only rescale for the new model's fit distance.
+        const k = idealDist / fitDist;
+        targetRadius *= k; currentRadius *= k; minRadius *= k; maxRadius *= k;
+        camera.aspect = width / height;
+        camera.fov = fov;
+      }
 
+      camera.near = idealDist / 100;
+      camera.far = idealDist * 100;
+      camera.updateProjectionMatrix();
+
+      fitDist = idealDist;
+      currentCustom = custom;
+      currentFov = fov;
+
+      // Swap in the new scene on the next frame, then free the old one's GPU resources.
+      const oldScene = scene;
+      scene = newScene;
+      if (oldScene) disposeScene(oldScene);
+    };
+
+    // `fresh`: the outfit just changed, so ask the server to skip its short-lived per-user cache.
+    const load = async (fresh = false) => {
+      const myId = ++requestId;
+      // Superseded by a newer load, or the viewer unmounted: drop this load's result.
+      const stale = () => cancelled || myId !== requestId;
+      // Keep showing the current avatar while a refresh loads; only show the spinner when nothing is on screen.
+      if (!scene) setLoading(true);
+      try {
+        // --- Path 1: Roblox-linked avatar (single baked OBJ/MTL) ---
+        const res = await fetch(`${API_BASE}/avatar/3d/${userId}`, { cache: "no-store" });
+        const data = JSON.parse(await res.text()) as AvatarData;
+
+        if (data.success && data.obj && data.mtl) {
+          const [objRes, mtlRes] = await Promise.all([fetch(data.obj), fetch(data.mtl)]);
+          if (!objRes.ok || !mtlRes.ok) throw new Error("Failed to fetch model files");
+          const [objText, mtlText] = await Promise.all([objRes.text(), mtlRes.text()]);
+          if (stale()) return;
+
+          const manager = new THREE.LoadingManager();
+          manager.setURLModifier((url: string) => getCDNUrl(url.split("/").pop() || url));
+
+          const mtlLoader = new MTLLoader(manager);
+          const materials = mtlLoader.parse(mtlText, "");
+          materials.preload();
+
+          Object.values(materials.materials).forEach((mat) => {
+            const m = mat as THREE.Material;
+            m.transparent = false;
+            (m as any).alphaTest = 0;
+            m.depthWrite = true;
+            m.needsUpdate = true;
+          });
+
+          const objLoader = new OBJLoader();
+          objLoader.setMaterials(materials);
+          setupAndRender(objLoader.parse(objText), data.camera?.fov ?? 30);
+          setFailed(false);
+          setLoading(false);
+          return;
+        }
+
+        // --- Path 2: custom avatar (server-parsed geometry) ---
+        const customRes = await fetch(`${API_BASE}/avatar/3d-custom-v2/${userId}${fresh ? "?fresh=1" : ""}`, { cache: "no-store" });
+        if (!customRes.ok) throw new Error("Custom avatar fetch failed");
+
+        const customData = await customRes.json() as CustomAvatarData;
+        if (!customData.success) throw new Error("No avatar data");
+        if (stale()) return;
+
+        const model = await buildAvatar(customData);
+        if (stale()) {
+          disposeScene(createAvatarScene(model)); // never shown — free its textures/geometry
+          return;
+        }
+        setupAndRender(null, 30, model);
+        setFailed(false);
         setLoading(false);
       } catch (error) {
-        console.error("Error:", error);
-        if (!cancelled) {
-          // Fetch 2D fallback
-          try {
-            const fb = await fetch(`${API_BASE}/avatar/render/${userId}`);
-            const fbData = await fb.json();
-            if (fbData.imageUrl) setFallbackUrl(fbData.imageUrl);
-          } catch {
-            // ignore
-          }
-          setFailed(true);
-          setLoading(false);
-        }
+        console.error("Avatar3DViewer load error:", error);
+        if (stale()) return;
+        if (scene) return; // a refresh failed: keep showing the current avatar
+        try {
+          const fb = await fetch(`${API_BASE}/avatar/render/${userId}`);
+          const fbData = await fb.json();
+          if (!stale() && fbData.imageUrl) setFallbackUrl(fbData.imageUrl);
+        } catch { /* ignore */ }
+        if (stale()) return;
+        setFailed(true);
+        setLoading(false);
       }
     };
 
+    reloadRef.current = load;
     load();
 
     return () => {
       cancelled = true;
+      reloadRef.current = null;
       if (frameId) cancelAnimationFrame(frameId);
       resizeObserver?.disconnect();
+      container.removeEventListener("wheel", onWheel);
+      if (scene) disposeScene(scene);
       if (renderer) {
         renderer.domElement.removeEventListener("pointerdown", onPointerDown);
         renderer.domElement.removeEventListener("pointermove", onPointerMove);
@@ -291,20 +342,25 @@ export default function Avatar3DViewer({ userId, className = "" }: Props) {
     };
   }, [userId]);
 
-  if (failed) {
-    return (
-      <div className={`flex items-center justify-center bg-[#1a1a1a] rounded-lg overflow-hidden ${className}`}>
-        {fallbackUrl ? (
-          <img src={fallbackUrl} alt="Avatar" className="h-full object-contain" />
-        ) : (
-          <div className="text-gray-500 text-sm">Avatar unavailable</div>
-        )}
-      </div>
-    );
-  }
+  // Refetch and swap when the parent bumps refreshKey (skip the initial mount — the effect above loads).
+  const firstKey = useRef(refreshKey);
+  useEffect(() => {
+    if (refreshKey === firstKey.current) return;
+    firstKey.current = refreshKey;
+    reloadRef.current?.(true);
+  }, [refreshKey]);
 
   return (
     <div className={`relative bg-[#1a1a1a] rounded-lg overflow-hidden ${className}`}>
+      {failed && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#1a1a1a]">
+          {fallbackUrl ? (
+            <img src={fallbackUrl} alt="Avatar" className="h-full object-contain" />
+          ) : (
+            <div className="text-gray-500 text-sm">Avatar unavailable</div>
+          )}
+        </div>
+      )}
       {loading && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 z-10">
           <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
