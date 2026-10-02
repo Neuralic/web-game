@@ -19,6 +19,7 @@ import Sidebar from "../../components/Sidebar";
 import Header from "../../components/Header";
 import VerifiedBadge from "../../components/VerifiedBadge";
 import UserAvatar from "../../components/UserAvatar";
+import { useAvatarRender } from "../../components/useAvatarRender";
 import UserAdBanner from "../../components/UserAdBanner";
 const Avatar3DViewer = dynamic(() => import("../../components/Avatar3DViewer"), { ssr: false });
 import ReportModal from "@/components/modals/ReportModal";
@@ -93,16 +94,7 @@ interface AvatarStateData {
 
 
 function ProfileHeadshot({ userId, username }: { userId: string; username: string }) {
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
-
-  useEffect(() => {
-    if (!userId) return;
-    fetch(`${API_BASE}/avatar/render/${userId}`)
-      .then(r => r.json())
-      .then(data => { if (data.imageUrl) setImageUrl(data.imageUrl); })
-      .catch(() => {});
-  }, [userId]);
+  const imageUrl = useAvatarRender(userId);
 
   const initials = (username || "?")[0].toUpperCase();
 
@@ -183,7 +175,6 @@ const ProfilePage = () => {
   const [avatarState, setAvatarState] = useState<AvatarStateData | null>(null);
   const [avatarLoading, setAvatarLoading] = useState(true);
   const [userGender, setUserGender] = useState<string | null>(null);
-  const [customAvatarUrl, setCustomAvatarUrl] = useState<string | null>(null);
 
   const [relationship, setRelationship] = useState<{
     isFriend: boolean;
@@ -291,46 +282,14 @@ const ProfilePage = () => {
           });
           const data = await res.json();
           if (data.success && data.data?.avatarState) {
-            const state = data.data.avatarState;
-            setAvatarState(state);
-            const assetIds = [
-              state.hair_asset_id, state.face_asset_id, state.head_asset_id,
-              state.hat_asset_id, state.body_asset_id, state.shirt_asset_id,
-              state.pants_asset_id, state.accessory_asset_id,
-            ].filter(Boolean).map((id: string) => parseInt(id));
-            if (assetIds.length > 0) {
-              fetch(`${API_BASE}/avatar/render-custom`, {
-                method: "POST",
-                headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-                body: JSON.stringify({ assetIds }),
-              }).then(r => r.json()).then(d => {
-                if (d.success && d.imageUrl) setCustomAvatarUrl(d.imageUrl);
-              }).catch(() => {});
-            }
+            // The 3D viewer fetches its own data; no 2D Roblox render is needed here.
+            setAvatarState(data.data.avatarState);
           }
         } else if (profileUser?.id) {
           const res = await fetch(`${API_BASE}/avatar/public/${profileUser.id}`);
           const data = await res.json();
           if (data.success && data.data?.avatarState) {
-            const state = data.data.avatarState;
-            setAvatarState(state);
-            const assetIds = [
-              state.hair_asset_id, state.face_asset_id, state.head_asset_id,
-              state.hat_asset_id, state.body_asset_id, state.shirt_asset_id,
-              state.pants_asset_id, state.accessory_asset_id,
-            ].filter(Boolean).map((id: string) => parseInt(id));
-            if (assetIds.length > 0) {
-              const token = storage.getAccessToken();
-              if (token) {
-                fetch(`${API_BASE}/avatar/render-custom`, {
-                  method: "POST",
-                  headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-                  body: JSON.stringify({ assetIds }),
-                }).then(r => r.json()).then(d => {
-                  if (d.success && d.imageUrl) setCustomAvatarUrl(d.imageUrl);
-                }).catch(() => {});
-              }
-            }
+            setAvatarState(data.data.avatarState);
           }
         }
       } catch (err) {
