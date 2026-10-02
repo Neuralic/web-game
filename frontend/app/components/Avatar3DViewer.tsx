@@ -3,8 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import * as THREE from "three";
-import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
-import { MTLLoader } from "three/examples/jsm/loaders/MTLLoader.js";
 import {
   buildAvatar, createAvatarScene, fitDistance, orbitCamera, DEG,
   type AvatarModel, type CustomAvatarData,
@@ -17,24 +15,6 @@ interface Props {
   className?: string;
   /** Bump to make the viewer refetch and swap in the latest outfit without remounting. */
   refreshKey?: number;
-}
-
-interface Vec3 { x: number; y: number; z: number; }
-
-interface AvatarData {
-  success: boolean;
-  obj: string | null;
-  mtl: string | null;
-  textures: string[];
-  camera: { position: Vec3; direction: Vec3; fov?: number } | null;
-  aabb: { min: Vec3; max: Vec3 } | null;
-}
-
-// CDN hash decoder for Roblox-linked path
-function getCDNUrl(hash: string): string {
-  let i = 31;
-  for (let t = 0; t < 38; t++) i ^= hash.charCodeAt(t);
-  return `https://t${(i % 8).toString()}.rbxcdn.com/${hash}`;
 }
 
 // ─── Constants ─────────────────────────────────────────────────────
@@ -257,40 +237,8 @@ export default function Avatar3DViewer({ userId, className = "", refreshKey = 0 
       // Keep showing the current avatar while a refresh loads; only show the spinner when nothing is on screen.
       if (!scene) setLoading(true);
       try {
-        // --- Path 1: Roblox-linked avatar (single baked OBJ/MTL) ---
-        const res = await fetch(`${API_BASE}/avatar/3d/${userId}`, { cache: "no-store" });
-        const data = JSON.parse(await res.text()) as AvatarData;
+        // Always the custom, server-parsed outfit (/avatar/3d-custom-v2), including users with a linked Roblox account.
 
-        if (data.success && data.obj && data.mtl) {
-          const [objRes, mtlRes] = await Promise.all([fetch(data.obj), fetch(data.mtl)]);
-          if (!objRes.ok || !mtlRes.ok) throw new Error("Failed to fetch model files");
-          const [objText, mtlText] = await Promise.all([objRes.text(), mtlRes.text()]);
-          if (stale()) return;
-
-          const manager = new THREE.LoadingManager();
-          manager.setURLModifier((url: string) => getCDNUrl(url.split("/").pop() || url));
-
-          const mtlLoader = new MTLLoader(manager);
-          const materials = mtlLoader.parse(mtlText, "");
-          materials.preload();
-
-          Object.values(materials.materials).forEach((mat) => {
-            const m = mat as THREE.Material;
-            m.transparent = false;
-            (m as any).alphaTest = 0;
-            m.depthWrite = true;
-            m.needsUpdate = true;
-          });
-
-          const objLoader = new OBJLoader();
-          objLoader.setMaterials(materials);
-          setupAndRender(objLoader.parse(objText), data.camera?.fov ?? 30);
-          setFailed(false);
-          setLoading(false);
-          return;
-        }
-
-        // --- Path 2: custom avatar (server-parsed geometry) ---
         const customRes = await fetch(`${API_BASE}/avatar/3d-custom-v2/${userId}${fresh ? "?fresh=1" : ""}`, { cache: "no-store" });
         if (!customRes.ok) throw new Error("Custom avatar fetch failed");
 
