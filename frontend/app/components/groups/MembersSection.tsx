@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight, ChevronDown, Loader2 } from "lucide-react";
 import { groupsApi } from "@/lib/api";
 import UserAvatar from "../UserAvatar";
+import PresenceBadge from "../PresenceBadge";
 import { useUserPresence } from "@/hooks/useUserPresence";
 interface Member {
   id: string;
@@ -28,16 +29,12 @@ interface MembersSectionProps {
 
 function MemberCard({ member }: { member: Member }) {
   const presence = useUserPresence(member.user_id);
-  const ps = presence.presenceStatus;
-  const dotClass = ps === 'in-game' ? 'bg-green-500' : ps === 'online' ? 'bg-blue-500' : null;
 
   return (
     <a href={`/profile/${member.username}`} className="group flex flex-col items-center">
       <div className="relative">
         <UserAvatar userId={member.user_id} username={member.display_name || member.username} size={110} headshot />
-        {dotClass && (
-          <div className={`absolute w-4 h-4 rounded-full border-2 border-white dark:border-gray-900 ${dotClass}`} style={{ bottom: "-2px", right: "-2px" }} />
-        )}
+        <PresenceBadge status={presence.presenceStatus} size={24} />
       </div>
       <p className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-1 truncate w-[110px] text-center">
         {member.display_name || member.username}
