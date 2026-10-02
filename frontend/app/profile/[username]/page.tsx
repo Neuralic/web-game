@@ -90,6 +90,15 @@ interface AvatarStateData {
   shirt_asset_id: string | null;
   pants_asset_id: string | null;
   accessory_asset_id: string | null;
+  // catalog_items ids (av.* from the avatar endpoints) — used to link tiles to /catalog/<id>
+  hair_item_id?: string | null;
+  face_item_id?: string | null;
+  head_item_id?: string | null;
+  hat_item_id?: string | null;
+  body_item_id?: string | null;
+  shirt_item_id?: string | null;
+  pants_item_id?: string | null;
+  accessory_item_id?: string | null;
 }
 
 
@@ -218,7 +227,16 @@ const ProfilePage = () => {
           setCurrentUser(currentUserData);
         }
 
-        const isOwn = !!(currentUserData && currentUserData.username === profileUsername);
+        // Own profile when reached by username, or by number: compare ids with the fetched profile,
+        // falling back to user_number vs the URL param if that profile couldn't be loaded.
+        const isOwn = !!(
+          currentUserData && (
+            currentUserData.username === profileUsername ||
+            (viewedUser?.id
+              ? currentUserData.id === viewedUser.id
+              : currentUserData.user_number != null && String(currentUserData.user_number) === profileUsername)
+          )
+        );
         setIsOwnProfile(isOwn);
 
         if (isOwn && currentUserData) {
@@ -652,15 +670,15 @@ const ProfilePage = () => {
 
   const currentlyWearing = avatarState
     ? [
-        avatarState.hat_thumbnail && { id: "hat", thumb: avatarState.hat_thumbnail },
-        avatarState.hair_thumbnail && { id: "hair", thumb: avatarState.hair_thumbnail },
-        avatarState.face_thumbnail && { id: "face", thumb: avatarState.face_thumbnail },
-        avatarState.head_thumbnail && { id: "head", thumb: avatarState.head_thumbnail },
-        avatarState.shirt_thumbnail && { id: "shirt", thumb: avatarState.shirt_thumbnail },
-        avatarState.pants_thumbnail && { id: "pants", thumb: avatarState.pants_thumbnail },
-        avatarState.body_thumbnail && { id: "body", thumb: avatarState.body_thumbnail },
-        avatarState.accessory_thumbnail && { id: "accessory", thumb: avatarState.accessory_thumbnail },
-      ].filter(Boolean) as { id: string; thumb: string }[]
+        avatarState.hat_thumbnail && { id: "hat", thumb: avatarState.hat_thumbnail, itemId: avatarState.hat_item_id ?? null },
+        avatarState.hair_thumbnail && { id: "hair", thumb: avatarState.hair_thumbnail, itemId: avatarState.hair_item_id ?? null },
+        avatarState.face_thumbnail && { id: "face", thumb: avatarState.face_thumbnail, itemId: avatarState.face_item_id ?? null },
+        avatarState.head_thumbnail && { id: "head", thumb: avatarState.head_thumbnail, itemId: avatarState.head_item_id ?? null },
+        avatarState.shirt_thumbnail && { id: "shirt", thumb: avatarState.shirt_thumbnail, itemId: avatarState.shirt_item_id ?? null },
+        avatarState.pants_thumbnail && { id: "pants", thumb: avatarState.pants_thumbnail, itemId: avatarState.pants_item_id ?? null },
+        avatarState.body_thumbnail && { id: "body", thumb: avatarState.body_thumbnail, itemId: avatarState.body_item_id ?? null },
+        avatarState.accessory_thumbnail && { id: "accessory", thumb: avatarState.accessory_thumbnail, itemId: avatarState.accessory_item_id ?? null },
+      ].filter(Boolean) as { id: string; thumb: string; itemId: string | null }[]
     : [];
 
   const itemsPerPage = 8;
@@ -1119,11 +1137,16 @@ const ProfilePage = () => {
                     <div className="flex-1 p-4">
                       {visibleWearingItems.length > 0 ? (
                         <div className="grid grid-cols-3 gap-2">
-                          {visibleWearingItems.map((item) => (
-                            <div key={item.id} className="group cursor-pointer aspect-square bg-gray-200 dark:bg-[#1a1a1a] rounded-lg overflow-hidden border border-transparent group-hover:border-gray-400 dark:group-hover:border-gray-600 transition-colors">
-                              <img src={item.thumb} alt={item.id} className="w-full h-full object-contain p-1.5" />
-                            </div>
-                          ))}
+                          {visibleWearingItems.map((item) => {
+                            const tileClass = "group cursor-pointer aspect-square bg-gray-200 dark:bg-[#1a1a1a] rounded-lg overflow-hidden border border-transparent group-hover:border-gray-400 dark:group-hover:border-gray-600 transition-colors";
+                            const thumb = <img src={item.thumb} alt={item.id} className="w-full h-full object-contain p-1.5" />;
+                            // Same URL pattern as the Catalog grid: /catalog/<catalog item id>
+                            return item.itemId ? (
+                              <Link key={item.id} href={`/catalog/${item.itemId}`} className={`block ${tileClass}`}>{thumb}</Link>
+                            ) : (
+                              <div key={item.id} className={tileClass}>{thumb}</div>
+                            );
+                          })}
                         </div>
                       ) : (
                         <div className="h-full flex items-center justify-center">
