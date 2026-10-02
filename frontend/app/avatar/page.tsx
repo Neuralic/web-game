@@ -113,11 +113,10 @@ const AvatarPage = () => {
   const [robloxLinking, setRobloxLinking] = useState(false);
   const [robloxThumbnail, setRobloxThumbnail] = useState<string | null>(null);
   const [userGender, setUserGender] = useState<string | null>(null);
-  const [customAvatarUrl, setCustomAvatarUrl] = useState<string | null>(null);
-  const [renderingCustom, setRenderingCustom] = useState(false);
   const [updatingSkinColor, setUpdatingSkinColor] = useState(false);
+  // Bumped after the server confirms an equip/unequip/skin change so the 3D viewer refetches.
+  const [viewerRefreshKey, setViewerRefreshKey] = useState(0);
   const [bodyType, setBodyType] = useState(0);
-  const bodyTypeRef = useRef(bodyType);
   // Face section toggle: 3D "Face Accessories" (default, equippable) vs classic
   // 2D "Classic Faces" (mostly unavailable, shown here despite that).
   const [showClassicFaces, setShowClassicFaces] = useState(false);
@@ -134,59 +133,6 @@ const AvatarPage = () => {
     "Head & Body": ["Hair", "Classic Heads", "Classic Faces"],
     Animations: ["Emotes"],
     Pets: ["All Pets"],
-  };
-
-  const renderCustomAvatar = async (state: AvatarState, bodyTypeValue: number) => {
-    const token = storage.getAccessToken();
-    if (!token) return;
-
-    // Collect all equipped asset IDs
-    const assetIds = [
-      state.hair_asset_id,
-      state.face_asset_id,
-      state.head_asset_id,
-      state.hat_asset_id,
-      state.body_asset_id,
-      state.shirt_asset_id,
-      state.pants_asset_id,
-      state.accessory_asset_id,
-      state.accessory_2_asset_id,
-      state.accessory_3_asset_id,
-    ].filter(Boolean).map(id => parseInt(id!));
-
-    // null/"1" means no explicit skin tone was chosen — default to "1003" (light peach).
-    const skinToneId = (!state.skin_color || state.skin_color === "1") ? "1003" : state.skin_color;
-    const skinHex = SKIN_TONES.find(t => t.id === skinToneId)?.hex || "#F5D0C5";
-    const bodyColors = {
-      headColor: skinHex,
-      torsoColor: skinHex,
-      leftArmColor: skinHex,
-      rightArmColor: skinHex,
-      leftLegColor: skinHex,
-      rightLegColor: skinHex,
-    };
-
-    // Always render — empty array gives default R15 character
-
-    setRenderingCustom(true);
-    try {
-      const res = await fetch(`${API_BASE}/avatar/render-custom`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ assetIds, bodyColors, scales: { bodyType: bodyTypeValue / 100 } }),
-      });
-      const data = await res.json();
-      if (data.success && data.imageUrl) {
-        setCustomAvatarUrl(data.imageUrl);
-      }
-    } catch (err) {
-      console.error("Failed to render custom avatar:", err);
-    } finally {
-      setRenderingCustom(false);
-    }
   };
 
   const fetchAvatarState = useCallback(async () => {
@@ -206,10 +152,6 @@ const AvatarPage = () => {
         setEquippedItems(equipped);
         if (state?.roblox_user_id) {
           setRobloxThumbnail(state.roblox_user_id);
-        }
-        // Render custom avatar with equipped items
-        if (state) {
-          renderCustomAvatar(state, bodyTypeRef.current);
         }
       }
     } catch (err) {
@@ -276,22 +218,6 @@ const AvatarPage = () => {
     fetchOwnedItems();
   }, [fetchOwnedItems]);
 
-  // Keep a ref in sync with bodyType so callbacks with stale closures (e.g. the
-  // memoized fetchAvatarState below) can still read the current value.
-  useEffect(() => {
-    bodyTypeRef.current = bodyType;
-  }, [bodyType]);
-
-  // Debounce bodyType changes so dragging the slider doesn't re-render on every pixel.
-  useEffect(() => {
-    if (!avatarState) return;
-    const timeout = setTimeout(() => {
-      renderCustomAvatar(avatarState, bodyType);
-    }, 500);
-    return () => clearTimeout(timeout);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bodyType]);
-
   const fetchItems = useCallback(async (subTab: string, page: number = 1) => {
     setLoading(true);
     try {
@@ -354,6 +280,7 @@ const AvatarPage = () => {
         const data = await res.json();
         if (data.success) {
           setEquippedItems(prev => { const next = new Set(prev); next.delete(item.id); return next; });
+          setViewerRefreshKey(k => k + 1);
           fetchAvatarState();
         }
       } catch (err) {
@@ -391,6 +318,7 @@ const AvatarPage = () => {
       const data = await res.json();
       if (data.success) {
         setEquippedItems(prev => { const next = new Set(prev); next.add(item.id); return next; });
+        setViewerRefreshKey(k => k + 1);
         fetchAvatarState();
       }
     } catch (err) {
@@ -440,6 +368,7 @@ const AvatarPage = () => {
       });
       const data = await res.json();
       if (data.success) {
+        setViewerRefreshKey(k => k + 1);
         await fetchAvatarState();
       }
     } catch (err) {
@@ -464,13 +393,6 @@ const AvatarPage = () => {
 
   const isFemale = userGender === "female";
   const ownedItems = items.filter((item) => ownedItemIds.has(item.id));
-
-  // Determine what to show in avatar preview
-  // If the body type slider has been moved, prefer the custom render even when
-  // a Roblox thumbnail is available, since the Roblox thumbnail can't reflect it.
-  const showCustomRender = customAvatarUrl && (bodyType !== 0 || !robloxThumbnail);
-  const showRobloxAvatar = !!robloxThumbnail;
-  const showDefault = !showCustomRender && !showRobloxAvatar;
 
   return (
     <div className="min-h-screen bg-white dark:bg-black flex flex-col">
@@ -501,19 +423,14 @@ const AvatarPage = () => {
             <div className="w-[300px] flex-shrink-0 sticky top-24 self-start">
               <div className="bg-[#1a1a1a] rounded-lg aspect-[3/4] flex items-end justify-center p-6 relative overflow-hidden">
                 {currentUserId ? (
-                  <Avatar3DViewer userId={currentUserId} className="absolute inset-0 w-full h-full" />
+                  <Avatar3DViewer userId={currentUserId} refreshKey={viewerRefreshKey} className="absolute inset-0 w-full h-full" />
                 ) : avatarLoading ? (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
                   </div>
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    {renderingCustom ? (
-                      <div className="flex flex-col items-center gap-2">
-                        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Rendering avatar...</p>
-                      </div>
-                    ) : (
+                    {(
                       <div className="relative" style={{ width: 180, height: 270 }}>
                         <svg width="180" height="270" viewBox="0 0 120 180" fill="none" xmlns="http://www.w3.org/2000/svg">
                           {/* Legs */}
