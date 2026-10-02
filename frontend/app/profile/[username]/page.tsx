@@ -19,6 +19,7 @@ import Sidebar from "../../components/Sidebar";
 import Header from "../../components/Header";
 import VerifiedBadge from "../../components/VerifiedBadge";
 import UserAvatar from "../../components/UserAvatar";
+import PresenceBadge from "../../components/PresenceBadge";
 import { useAvatarRender } from "../../components/useAvatarRender";
 import UserAdBanner from "../../components/UserAdBanner";
 const Avatar3DViewer = dynamic(() => import("../../components/Avatar3DViewer"), { ssr: false });
@@ -818,14 +819,14 @@ const ProfilePage = () => {
     return formatDate(dateString);
   };
 
-  const getPresenceStatus = (): { color: string; hasIcon: boolean; label: string } | null => {
+  const getPresenceStatus = (): { status: "online" | "in-game"; label: string } | null => {
     const status = realtimePresence?.presenceStatus || profileUser?.presence_status || 'offline';
     const lastOnline = realtimePresence?.lastOnline || profileUser?.last_online;
     const currentGame = realtimePresence?.currentGame || profileUser?.current_game;
     const isRecentlyActive = lastOnline && (new Date().getTime() - new Date(lastOnline).getTime()) < 5 * 60 * 1000;
     if ((status === 'online' || status === 'in-game') && isRecentlyActive) {
-      if (status === 'in-game') return { color: 'bg-green-500', hasIcon: true, label: currentGame ? `Playing ${currentGame}` : 'In Game' };
-      return { color: 'bg-blue-500', hasIcon: false, label: 'Online' };
+      if (status === 'in-game') return { status: 'in-game', label: currentGame ? `Playing ${currentGame}` : 'In Game' };
+      return { status: 'online', label: 'Online' };
     }
     return null;
   };
@@ -952,17 +953,7 @@ const ProfilePage = () => {
               <div className="relative">
                 {/* Profile pic — always R15 via UserAvatar */}
                 <ProfileHeadshot userId={profileUser?.id || ""} username={displayName || username} />
-                {getPresenceStatus() && (
-                  <div
-                    className={`absolute w-7 h-7 ${getPresenceStatus()?.color} rounded-full flex items-center justify-center border-2 border-white dark:border-gray-900`}
-                    style={{ bottom: "-3.5px", right: "-3.5px" }}
-                    title={getPresenceStatus()?.label}
-                  >
-                    <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
-                    </svg>
-                  </div>
-                )}
+                <PresenceBadge status={getPresenceStatus()?.status} size={28} title={getPresenceStatus()?.label} />
               </div>
 
               <div className="flex-1">
@@ -1168,12 +1159,7 @@ const ProfilePage = () => {
                       <Link key={connection.id} href={`/profile/${connection.username}`} className="flex flex-col items-center cursor-pointer group">
                         <div className="relative">
                           <UserAvatar userId={connection.id} username={connection.name} size={80} headshot />
-                          {(() => {
-                            const ps = presenceMap.get(connection.id)?.presenceStatus;
-                            if (!ps || ps === 'offline') return null;
-                            const cls = ps === 'in-game' ? 'bg-green-500' : ps === 'online' ? 'bg-blue-500' : 'bg-gray-400';
-                            return <div className={`absolute w-4 h-4 rounded-full border-2 border-white dark:border-gray-900 ${cls}`} style={{ bottom: "-2px", right: "-2px" }} />;
-                          })()}
+                          <PresenceBadge status={presenceMap.get(connection.id)?.presenceStatus} size={20} />
                         </div>
                         <p className="mt-2 text-xs text-gray-900 dark:text-gray-100">{connection.name}</p>
                       </Link>
