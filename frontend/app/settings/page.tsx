@@ -42,9 +42,6 @@ const SettingsPage = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [robloxUsername, setRobloxUsername] = useState("");
-  const [connectingRoblox, setConnectingRoblox] = useState(false);
-  const [disconnectingRoblox, setDisconnectingRoblox] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -139,7 +136,6 @@ const [myGames, setMyGames] = useState<any[]>([]);
           setDisplayName(userData.display_name || userData.username || "");
           setSelectedGender(userData.gender || "");
           setNewEmail(userData.email || "");
-          setRobloxUsername(userData.roblox_username || "");
           if (userData.can_receive_messages) setCanReceiveMessages(userData.can_receive_messages);
           if (userData.can_follow) setCanFollow(userData.can_follow);
           if (userData.can_view_inventory) setCanViewInventory(userData.can_view_inventory);
@@ -268,52 +264,6 @@ if (groupsResponse.success && groupsResponse.data) {
       setErrorMessage("Failed to update email");
     } finally {
       setSavingEmail(false);
-    }
-  };
-
-  const handleConnectRoblox = async () => {
-    if (!robloxUsername.trim()) { setErrorMessage("Please enter your Roblox username"); return; }
-    setConnectingRoblox(true);
-    setSuccessMessage("");
-    setErrorMessage("");
-    try {
-      const response = await usersApi.connectRoblox(robloxUsername.trim());
-      if (response.success) {
-        const refreshResponse = await usersApi.getCurrentUser();
-        if (refreshResponse.success && refreshResponse.data) {
-          setUser(refreshResponse.data.user as UserData);
-        }
-        setSuccessMessage("Roblox account connected successfully!");
-        setTimeout(() => setSuccessMessage(""), 3000);
-      } else {
-        setErrorMessage((response as any).message || "Failed to connect Roblox account");
-      }
-    } catch (error) {
-      setErrorMessage("Failed to connect Roblox account");
-    } finally {
-      setConnectingRoblox(false);
-    }
-  };
-
-  const handleDisconnectRoblox = async () => {
-    if (!confirm("Are you sure you want to disconnect your Roblox account?")) return;
-    setDisconnectingRoblox(true);
-    setSuccessMessage("");
-    setErrorMessage("");
-    try {
-      const response = await usersApi.disconnectRoblox();
-      if (response.success) {
-        setUser(prev => prev ? { ...prev, roblox_username: undefined, roblox_id: undefined, roblox_avatar_url: undefined } : prev);
-        setRobloxUsername("");
-        setSuccessMessage("Roblox account disconnected successfully!");
-        setTimeout(() => setSuccessMessage(""), 3000);
-      } else {
-        setErrorMessage((response as any).message || "Failed to disconnect Roblox account");
-      }
-    } catch (error) {
-      setErrorMessage("Failed to disconnect Roblox account");
-    } finally {
-      setDisconnectingRoblox(false);
     }
   };
 
@@ -747,36 +697,6 @@ if (groupsResponse.success && groupsResponse.data) {
                   <button onClick={handleSavePersonalInfo} disabled={saving} className="px-4 py-2 bg-gray-900 dark:bg-gray-100 hover:bg-gray-800 dark:hover:bg-gray-200 text-white dark:text-gray-900 font-semibold rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed">
                     {saving ? "Saving..." : "Save Personal Info"}
                   </button>
-                </div>
-
-                {/* Roblox Account */}
-                <div className="mb-6 pb-6 border-b border-gray-200 dark:border-[#2a2a2a]">
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">Roblox Account</h3>
-                  {user?.roblox_username ? (
-                    <div className="flex items-center gap-4">
-                      {user.roblox_avatar_url && (
-                        <img src={user.roblox_avatar_url} alt={user.roblox_username} className="w-16 h-16 rounded-full border border-gray-200 dark:border-[#2a2a2a]" />
-                      )}
-                      <div className="flex-1">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{user.roblox_username}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Roblox ID: {user.roblox_id}</p>
-                        <p className="text-xs text-green-600 dark:text-green-400 mt-1">✓ Connected</p>
-                      </div>
-                      <button onClick={handleDisconnectRoblox} disabled={disconnectingRoblox} className="px-3 py-1.5 bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm font-medium rounded hover:bg-red-200 dark:hover:bg-red-900/40 transition-colors disabled:opacity-50">
-                        {disconnectingRoblox ? "Disconnecting..." : "Disconnect"}
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Connect your Roblox account to unlock platform features.</p>
-                      <div className="flex gap-2">
-                        <input type="text" value={robloxUsername} onChange={(e) => setRobloxUsername(e.target.value)} placeholder="Enter your Roblox username" className="flex-1 border border-gray-300 dark:border-[#2a2a2a] rounded px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-[#242424]" />
-                        <button onClick={handleConnectRoblox} disabled={connectingRoblox} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded disabled:opacity-50">
-                          {connectingRoblox ? "Connecting..." : "Connect"}
-                        </button>
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 {/* Social Networks */}
