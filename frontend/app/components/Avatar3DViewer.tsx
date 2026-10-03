@@ -19,7 +19,7 @@ interface Props {
 
 // ─── Constants ─────────────────────────────────────────────────────
 const DAMPING = 0.08;
-const AUTO_ROTATE_SPEED = 0.025;
+const AUTO_ROTATE_SPEED = 0.05;
 
 /** Free GPU resources (geometries, materials, textures) of everything in a scene. */
 function disposeScene(scene: THREE.Scene) {
