@@ -151,7 +151,7 @@ async function composeSheet(skin: string, layers: Array<string | undefined>): Pr
 
 /** Roblox heads are rounded, not cubes, and hair meshes are modelled around that shape.
  *  Blend a subdivided box toward a sphere: face centres keep their 0.6 extent, corners pull in. */
-function roundedHeadGeometry(size: number, roundness = 0.55): THREE.BufferGeometry {
+function roundedHeadGeometry(size: number, roundness = 0.8): THREE.BufferGeometry {
   const geo = new THREE.BoxGeometry(size, size, size, 10, 10, 10);
   const pos = geo.getAttribute("position") as THREE.BufferAttribute;
   const nor = geo.getAttribute("normal") as THREE.BufferAttribute;
