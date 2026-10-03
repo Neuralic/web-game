@@ -43,9 +43,21 @@ export function fetchAvatarRender(userId: string): Promise<string | null> {
   return pending;
 }
 
+/** Forget the cached render for a user (call after their outfit changed). */
+export function invalidateAvatarRender(userId: string) {
+  results.delete(userId);
+  retried.delete(userId);
+}
+
 /** The user's 2D avatar render URL, or null (callers show their initial-letter fallback). */
 export function useAvatarRender(userId: string): string | null {
+  return useAvatarRenderState(userId).imageUrl;
+}
+
+/** Same as useAvatarRender, plus `loading` (true until the first request for this user settles). */
+export function useAvatarRenderState(userId: string): { imageUrl: string | null; loading: boolean } {
   const [imageUrl, setImageUrl] = useState<string | null>(() => (userId ? peek(userId) : null));
+  const [loading, setLoading] = useState<boolean>(() => !!userId && !peek(userId));
 
   useEffect(() => {
     if (!userId) return;
@@ -55,6 +67,7 @@ export function useAvatarRender(userId: string): string | null {
     fetchAvatarRender(userId).then((url) => {
       if (cancelled) return;
       setImageUrl(url);
+      setLoading(false);
       if (url) return;
       // One delayed retry per user (shared across components). Marked used only when it actually fires,
       // so a dev double-effect that clears its timer doesn't consume it.
@@ -78,5 +91,5 @@ export function useAvatarRender(userId: string): string | null {
     };
   }, [userId]);
 
-  return imageUrl;
+  return { imageUrl, loading };
 }
