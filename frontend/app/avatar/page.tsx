@@ -2,18 +2,13 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { ChevronDown, Loader2, Link2, Unlink } from "lucide-react";
+import { ChevronDown, Loader2 } from "lucide-react";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
 import UserAdBanner from "../components/UserAdBanner";
 import AvatarPreview from "../components/AvatarPreview";
 import { catalogApi, storage } from "@/lib/api";
-import dynamic from "next/dynamic";
-
-const RobloxAvatar3D = dynamic(() => import("../components/RobloxAvatar3D"), {
-  ssr: false,
-});
 
 interface CatalogItem {
   id: string;
@@ -106,10 +101,6 @@ const AvatarPage = () => {
   const [avatarState, setAvatarState] = useState<AvatarState | null>(null);
   const [avatarLoading, setAvatarLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [robloxUsername, setRobloxUsername] = useState("");
-  const [showRobloxLink, setShowRobloxLink] = useState(false);
-  const [robloxLinking, setRobloxLinking] = useState(false);
-  const [robloxThumbnail, setRobloxThumbnail] = useState<string | null>(null);
   const [userGender, setUserGender] = useState<string | null>(null);
   const [updatingSkinColor, setUpdatingSkinColor] = useState(false);
   // Bumped after the server confirms an equip/unequip/skin change so the 3D viewer refetches.
@@ -148,9 +139,6 @@ const AvatarPage = () => {
           data.data.equippedItems.map((i: CatalogItem) => i.id)
         );
         setEquippedItems(equipped);
-        if (state?.roblox_user_id) {
-          setRobloxThumbnail(state.roblox_user_id);
-        }
       }
     } catch (err) {
       console.error("Failed to fetch avatar state:", err);
@@ -324,36 +312,6 @@ const AvatarPage = () => {
     }
   };
 
-  const linkRobloxAccount = async () => {
-    if (!robloxUsername.trim()) return;
-    setRobloxLinking(true);
-    const token = storage.getAccessToken();
-    if (!token) return;
-    try {
-      const lookupRes = await fetch(`${API_BASE}/avatar/roblox-lookup/${robloxUsername}`);
-      const lookupJson = await lookupRes.json();
-      if (!lookupJson.success || !lookupJson.data?.Id) {
-        alert("Roblox username not found");
-        return;
-      }
-      const res = await fetch(`${API_BASE}/avatar/roblox-link`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ robloxUserId: lookupJson.data.Id.toString() }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setShowRobloxLink(false);
-        setRobloxUsername("");
-        fetchAvatarState();
-      }
-    } catch (err) {
-      console.error("Failed to link Roblox account:", err);
-    } finally {
-      setRobloxLinking(false);
-    }
-  };
-
   const handleSelectSkinColor = async (skinColor: string) => {
     const token = storage.getAccessToken();
     if (!token || updatingSkinColor) return;
@@ -498,60 +456,6 @@ const AvatarPage = () => {
                     );
                   })}
                 </div>
-              </div>
-
-              {/* Roblox Link */}
-              <div className="mt-4">
-                {avatarState?.roblox_user_id ? (
-                  <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Link2 className="w-4 h-4 text-green-600" />
-                      <span className="text-sm text-green-700 dark:text-green-400 font-medium">Roblox linked</span>
-                    </div>
-                    <button
-                      onClick={() => {
-                        setAvatarState(prev => prev ? { ...prev, roblox_user_id: null } : null);
-                        setRobloxThumbnail(null);
-                      }}
-                      className="text-xs text-red-500 hover:underline flex items-center gap-1"
-                    >
-                      <Unlink className="w-3 h-3" /> Unlink
-                    </button>
-                  </div>
-                ) : showRobloxLink ? (
-                  <div className="p-3 bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded-lg">
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">Enter your Roblox username to show your avatar</p>
-                    <input
-                      type="text"
-                      value={robloxUsername}
-                      onChange={e => setRobloxUsername(e.target.value)}
-                      placeholder="Roblox username"
-                      className="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-[#2a2a2a] rounded bg-white dark:bg-[#242424] text-gray-900 dark:text-gray-100 mb-2"
-                    />
-                    <div className="flex gap-2">
-                      <button
-                        onClick={linkRobloxAccount}
-                        disabled={robloxLinking}
-                        className="flex-1 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded transition-colors disabled:opacity-50"
-                      >
-                        {robloxLinking ? "Linking..." : "Link Account"}
-                      </button>
-                      <button
-                        onClick={() => setShowRobloxLink(false)}
-                        className="px-3 py-1.5 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs rounded"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setShowRobloxLink(true)}
-                    className="w-full py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center justify-center gap-2 transition-colors"
-                  >
-                    <Link2 className="w-4 h-4" /> Link Roblox Account
-                  </button>
-                )}
               </div>
 
               <div className="mt-3 text-center">
