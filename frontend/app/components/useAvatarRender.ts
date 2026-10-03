@@ -43,10 +43,25 @@ export function fetchAvatarRender(userId: string): Promise<string | null> {
   return pending;
 }
 
-/** Forget the cached render for a user (call after their outfit changed). */
+const listeners = new Map<string, Set<() => void>>();
+const notifyTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const REFETCH_DEBOUNCE_MS = 1500;
+
+/**
+ * Forget the cached render for a user (call after their outfit changed) and, after a short debounce,
+ * make every mounted useAvatarRender/useAvatarRenderState for that user refetch. They keep showing the
+ * previous image until the new one arrives, and keep it if the refetch fails.
+ */
 export function invalidateAvatarRender(userId: string) {
   results.delete(userId);
   retried.delete(userId);
+
+  const pending = notifyTimers.get(userId);
+  if (pending) clearTimeout(pending);
+  notifyTimers.set(userId, setTimeout(() => {
+    notifyTimers.delete(userId);
+    listeners.get(userId)?.forEach((refetch) => refetch());
+  }, REFETCH_DEBOUNCE_MS));
 }
 
 /** The user's 2D avatar render URL, or null (callers show their initial-letter fallback). */
@@ -63,6 +78,16 @@ export function useAvatarRenderState(userId: string): { imageUrl: string | null;
     if (!userId) return;
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
+
+    // Refetch requested by invalidateAvatarRender (outfit changed).
+    const refetch = () => {
+      fetchAvatarRender(userId).then((url) => {
+        if (!cancelled && url) setImageUrl(url);
+      });
+    };
+    let set = listeners.get(userId);
+    if (!set) listeners.set(userId, (set = new Set()));
+    set.add(refetch);
 
     fetchAvatarRender(userId).then((url) => {
       if (cancelled) return;
@@ -88,6 +113,7 @@ export function useAvatarRenderState(userId: string): { imageUrl: string | null;
     return () => {
       cancelled = true;
       if (timer) clearTimeout(timer);
+      listeners.get(userId)?.delete(refetch);
     };
   }, [userId]);
 
