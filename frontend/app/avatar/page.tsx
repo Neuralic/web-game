@@ -475,22 +475,6 @@ const AvatarPage = () => {
                 )}
               </div>
 
-              {/* Body Type Slider */}
-              <div className="mt-4 p-4 bg-gray-50 dark:bg-[#1a1a1a] rounded-lg border border-gray-200 dark:border-[#2a2a2a]">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100">Body Type</span>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">{bodyType}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={bodyType}
-                  onChange={(e) => setBodyType(Number(e.target.value))}
-                  className="w-full h-2 bg-gray-200 dark:bg-[#242424] rounded-lg appearance-none cursor-pointer"
-                />
-              </div>
-
               {/* Skin Tone */}
               <div className="mt-4 p-4 bg-gray-50 dark:bg-[#1a1a1a] rounded-lg border border-gray-200 dark:border-[#2a2a2a]">
                 <span className="text-sm font-medium text-gray-900 dark:text-gray-100 block mb-3">Skin Tone</span>
