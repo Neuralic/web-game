@@ -7,13 +7,11 @@ import Footer from "../components/Footer";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
 import UserAdBanner from "../components/UserAdBanner";
+import AvatarPreview from "../components/AvatarPreview";
 import { catalogApi, storage } from "@/lib/api";
 import dynamic from "next/dynamic";
 
 const RobloxAvatar3D = dynamic(() => import("../components/RobloxAvatar3D"), {
-  ssr: false,
-});
-const Avatar3DViewer = dynamic(() => import("../components/Avatar3DViewer"), {
   ssr: false,
 });
 
@@ -423,7 +421,7 @@ const AvatarPage = () => {
             <div className="w-[300px] flex-shrink-0 sticky top-24 self-start">
               <div className="bg-[#1a1a1a] rounded-lg aspect-[3/4] flex items-end justify-center p-6 relative overflow-hidden">
                 {currentUserId ? (
-                  <Avatar3DViewer userId={currentUserId} refreshKey={viewerRefreshKey} className="absolute inset-0 w-full h-full" />
+                  <AvatarPreview userId={currentUserId} refreshKey={viewerRefreshKey} variant="editor" className="absolute inset-0 w-full h-full" />
                 ) : avatarLoading ? (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
@@ -470,9 +468,11 @@ const AvatarPage = () => {
                     )}
                   </div>
                 )}
-                <div className="absolute bottom-4 right-4 bg-white dark:bg-[#1a1a1a] px-3 py-1 rounded font-semibold text-sm text-gray-900 dark:text-gray-100 z-20">
-                  3D
-                </div>
+                {!currentUserId && (
+                  <div className="absolute bottom-4 right-4 bg-white dark:bg-[#1a1a1a] px-3 py-1 rounded font-semibold text-sm text-gray-900 dark:text-gray-100 z-20">
+                    3D
+                  </div>
+                )}
               </div>
 
               {/* Body Type Slider */}
