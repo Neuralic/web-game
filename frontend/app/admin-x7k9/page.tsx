@@ -3,9 +3,6 @@
 import { useState, useEffect } from 'react';
 import { Trash2, Users, Shield, LogOut, Search, RefreshCw, AlertTriangle } from 'lucide-react';
 
-const ADMIN_SECRET = 'ab-admin-x9k2p7qm4z';
-const SESSION_KEY = 'admin_auth';
-
 interface User {
   id: string;
   username: string;
@@ -45,33 +42,36 @@ export default function AdminPanel() {
 
   const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
 
-  // Check session
-  useEffect(() => {
-    if (sessionStorage.getItem(SESSION_KEY) === '1') setAuthed(true);
-  }, []);
-
   const showToast = (msg: string, ok = true) => {
     setToast({ msg, ok });
     setTimeout(() => setToast(null), 3500);
   };
 
-  const login = () => {
-    if (password === ADMIN_SECRET) {
-      sessionStorage.setItem(SESSION_KEY, '1');
-      setAuthed(true);
-      setLoginError('');
-    } else {
-      setLoginError('Wrong password.');
+  // The secret is typed each visit and lives only in this component's state (never stored anywhere).
+  const headers = { 'x-admin-secret': password, 'Content-Type': 'application/json' };
+
+  // The server is the only judge of the secret: sign in by making an authenticated request.
+  const login = async () => {
+    if (!password) { setLoginError('Enter the admin password.'); return; }
+    try {
+      const r = await fetch(`${API}/admin/users`, { headers });
+      if (r.ok) {
+        setAuthed(true);
+        setLoginError('');
+      } else {
+        setLoginError(r.status === 401 ? 'Wrong password.' : `Sign-in failed (${r.status}).`);
+      }
+    } catch {
+      setLoginError('Could not reach the server.');
     }
   };
 
   const logout = () => {
-    sessionStorage.removeItem(SESSION_KEY);
     setAuthed(false);
     setPassword('');
+    setUsers([]);
+    setGroups([]);
   };
-
-  const headers = { 'x-admin-secret': ADMIN_SECRET, 'Content-Type': 'application/json' };
 
   const fetchUsers = async () => {
     setLoading(true);
