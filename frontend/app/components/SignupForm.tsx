@@ -56,12 +56,12 @@ const SignupForm = () => {
     setErrors([]);
     setLoading(true);
 
-    // TEMP: Turnstile check commented out for local testing — RESTORE BEFORE PUSHING TO REPO
-    // if (!turnstileToken) {
-    //   setErrors(["Please wait for the security check to complete."]);
-    //   setLoading(false);
-    //   return;
-    // }
+    // Only enforced when the CAPTCHA widget is enabled (site key configured)
+    if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken) {
+      setErrors(["Please complete the security check before signing up."]);
+      setLoading(false);
+      return;
+    }
 
     try {
       const response = await authApi.signup({
