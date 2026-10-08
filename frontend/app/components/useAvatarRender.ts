@@ -44,15 +44,25 @@ export function fetchAvatarRender(userId: string): Promise<string | null> {
 }
 
 const listeners = new Map<string, Set<() => void>>();
+const changeSubscribers = new Map<string, Set<() => void>>();
 const notifyTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const REFETCH_DEBOUNCE_MS = 1500;
 
-/**
- * Forget the cached render for a user (call after their outfit changed) and, after a short debounce,
- * make every mounted useAvatarRender/useAvatarRenderState for that user refetch. They keep showing the
- * previous image until the new one arrives, and keep it if the refetch fails.
- */
-export function invalidateAvatarRender(userId: string) {
+// Tell the other tabs of this browser. A message only ever triggers a LOCAL invalidation (no re-broadcast),
+// so tabs can't ping-pong.
+const CHANNEL_NAME = "avatar-render";
+let channel: BroadcastChannel | null = null;
+if (typeof window !== "undefined" && typeof BroadcastChannel !== "undefined") {
+  try {
+    channel = new BroadcastChannel(CHANNEL_NAME);
+    channel.onmessage = (event: MessageEvent) => {
+      const userId = event.data?.userId;
+      if (typeof userId === "string" && userId) invalidateLocal(userId);
+    };
+  } catch { /* unsupported or blocked: single-tab behaviour only */ }
+}
+
+function invalidateLocal(userId: string) {
   results.delete(userId);
   retried.delete(userId);
 
@@ -61,7 +71,38 @@ export function invalidateAvatarRender(userId: string) {
   notifyTimers.set(userId, setTimeout(() => {
     notifyTimers.delete(userId);
     listeners.get(userId)?.forEach((refetch) => refetch());
+    changeSubscribers.get(userId)?.forEach((onChange) => onChange());
   }, REFETCH_DEBOUNCE_MS));
+}
+
+/**
+ * Forget the cached render for a user (call after their outfit changed) and, after a short debounce,
+ * make every mounted useAvatarRender/useAvatarRenderState for that user refetch. They keep showing the
+ * previous image until the new one arrives, and keep it if the refetch fails.
+ * Other open tabs of this browser are told too (pass broadcast: false when reacting to a notification).
+ */
+export function invalidateAvatarRender(userId: string, options: { broadcast?: boolean } = {}) {
+  invalidateLocal(userId);
+  if (options.broadcast !== false) {
+    try { channel?.postMessage({ userId }); } catch { /* ignore */ }
+  }
+}
+
+/** Drop the cached render for a user without notifying anyone (their next fetch is fresh). */
+export function forgetAvatarRender(userId: string) {
+  results.delete(userId);
+  retried.delete(userId);
+}
+
+/**
+ * Call `onChange` (after the same debounce) whenever this user's outfit changed, here or in another tab.
+ * For things that load their own data, such as the profile's Currently Wearing tiles. Returns an unsubscribe.
+ */
+export function subscribeAvatarChanged(userId: string, onChange: () => void): () => void {
+  let set = changeSubscribers.get(userId);
+  if (!set) changeSubscribers.set(userId, (set = new Set()));
+  set.add(onChange);
+  return () => { changeSubscribers.get(userId)?.delete(onChange); };
 }
 
 /** The user's 2D avatar render URL, or null (callers show their initial-letter fallback). */
