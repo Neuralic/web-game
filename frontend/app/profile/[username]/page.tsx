@@ -20,7 +20,7 @@ import VerifiedBadge from "../../components/VerifiedBadge";
 import UserAvatar from "../../components/UserAvatar";
 import PresenceBadge from "../../components/PresenceBadge";
 import AvatarPreview from "../../components/AvatarPreview";
-import { useAvatarRender } from "../../components/useAvatarRender";
+import { useAvatarRender, subscribeAvatarChanged } from "../../components/useAvatarRender";
 import UserAdBanner from "../../components/UserAdBanner";
 import ReportModal from "@/components/modals/ReportModal";
 import SuccessModal from "@/components/modals/SuccessModal";
@@ -287,6 +287,14 @@ const ProfilePage = () => {
     }
   }, [profileUsername]);
 
+  // Bumped when this user's outfit changed (e.g. edited in another tab): refetches the Currently Wearing
+  // tiles and refreshes the 3D viewer.
+  const [avatarVersion, setAvatarVersion] = useState(0);
+  useEffect(() => {
+    if (!profileUser?.id) return;
+    return subscribeAvatarChanged(profileUser.id, () => setAvatarVersion((v) => v + 1));
+  }, [profileUser?.id]);
+
   // Fetch avatar state (own profile only — for Currently Wearing panel)
   useEffect(() => {
     const fetchAvatarState = async () => {
@@ -320,7 +328,7 @@ const ProfilePage = () => {
     if (profileUser?.id) {
       fetchAvatarState();
     }
-  }, [profileUser?.id, isOwnProfile]);
+  }, [profileUser?.id, isOwnProfile, avatarVersion]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -1117,7 +1125,7 @@ const ProfilePage = () => {
                   <div className="bg-gray-100 dark:bg-[#111] rounded-xl overflow-hidden flex">
                     {/* Left — 3D viewer (40%) */}
                     <div className="relative w-[40%] flex-shrink-0">
-                      <AvatarPreview userId={profileUser?.id || ""} variant="profile" className="w-full h-[350px]" />
+                      <AvatarPreview userId={profileUser?.id || ""} variant="profile" refreshKey={avatarVersion} broadcastChanges={false} className="w-full h-[350px]" />
                     </div>
 
                     {/* Right — item grid (60%) */}
