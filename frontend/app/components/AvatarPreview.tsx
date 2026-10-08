@@ -3,7 +3,7 @@
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import { Loader2 } from "lucide-react";
-import { useAvatarRenderState, invalidateAvatarRender } from "./useAvatarRender";
+import { useAvatarRenderState, invalidateAvatarRender, forgetAvatarRender } from "./useAvatarRender";
 
 const Avatar3DViewer = dynamic(() => import("./Avatar3DViewer"), { ssr: false });
 
@@ -15,6 +15,11 @@ interface AvatarPreviewProps {
   refreshKey?: number;
   /** "profile": dark translucent badge, top-right. "editor": light badge, bottom-right. */
   variant?: "profile" | "editor";
+  /**
+   * Whether a refreshKey change announces the outfit change to other tabs. True for the editor, which makes
+   * the change; pages that only react to a notification must pass false or tabs would notify each other forever.
+   */
+  broadcastChanges?: boolean;
 }
 
 type Mode = "3d" | "2d";
@@ -39,7 +44,7 @@ function Avatar2DView({ userId, className }: { userId: string; className: string
 }
 
 /** 3D viewer with a working 3D / 2D toggle. Starts in 3D. */
-export default function AvatarPreview({ userId, className = "", refreshKey = 0, variant = "profile" }: AvatarPreviewProps) {
+export default function AvatarPreview({ userId, className = "", refreshKey = 0, variant = "profile", broadcastChanges = true }: AvatarPreviewProps) {
   const [mode, setMode] = useState<Mode>("3d");
 
   // The outfit changed: the cached 2D render is stale. Done during render (idempotent) so the 2D view,
@@ -47,7 +52,13 @@ export default function AvatarPreview({ userId, className = "", refreshKey = 0, 
   const [seenKey, setSeenKey] = useState(refreshKey);
   if (seenKey !== refreshKey) {
     setSeenKey(refreshKey);
-    if (userId) invalidateAvatarRender(userId);
+    if (userId) {
+      // The editor made the change: refresh avatar images everywhere, here and in other tabs.
+      // Elsewhere the change was only announced to us, so just drop the stale 2D render (announcing it
+      // again would loop).
+      if (broadcastChanges) invalidateAvatarRender(userId);
+      else forgetAvatarRender(userId);
+    }
   }
 
   const wrap =
