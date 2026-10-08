@@ -23,6 +23,17 @@ interface CatalogItem {
   favoriteCount: number;
 }
 
+// An item from GET /catalog/inventory (the user's owned items)
+interface OwnedItem {
+  id: string;
+  name: string;
+  category: string;
+  subcategory: string;
+  itemType: string;
+  thumbnailUrl: string;
+  robloxAssetId: string;
+}
+
 interface AvatarState {
   hair_item_id: string | null;
   face_item_id: string | null;
@@ -67,17 +78,16 @@ const SKIN_TONES: { id: string; label: string; hex: string }[] = [
   { id: "1007", label: "Darkest", hex: "#4A2C17" },
 ];
 
+// What each sub-tab shows from the user's inventory. An empty entry means every owned item.
+// Sub-tabs without an entry have nothing to show and are not offered.
 const TAB_TO_CATEGORY: Record<string, { category?: string; subcategory?: string }> = {
-  "Recently Added": { category: undefined, subcategory: undefined },
-  "Recently Worn": { category: undefined, subcategory: undefined },
-  "Accessories": { category: "Accessories", subcategory: undefined },
-  "Clothing": { category: "Clothing", subcategory: undefined },
-  "Body Parts": { category: "Body", subcategory: undefined },
-  "Animations": { category: undefined, subcategory: undefined },
+  "Recently Added": {},
+  "Accessories": { category: "Accessories" },
+  "Clothing": { category: "Clothing" },
+  "Body Parts": { category: "Body" },
   "Characters": { category: "Body", subcategory: "Full Bodies" },
-  "Pets": { category: undefined, subcategory: undefined },
-  "Outerwear": { category: "Clothing", subcategory: undefined },
-  "Classic": { category: "Clothing", subcategory: undefined },
+  "Shirts": { category: "Clothing", subcategory: "Classic Shirts" },
+  "Pants": { category: "Clothing", subcategory: "Classic Pants" },
   "Neck": { category: "Accessories", subcategory: "Neck" },
   "Hair": { category: "Body", subcategory: "Hair" },
   "Classic Heads": { category: "Body", subcategory: "Classic Heads" },
@@ -85,19 +95,19 @@ const TAB_TO_CATEGORY: Record<string, { category?: string; subcategory?: string 
   "Full Bodies": { category: "Body", subcategory: "Full Bodies" },
 };
 
+const ITEMS_PER_PAGE = 24;
+
 const AvatarPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("Recent");
   const [activeSubTab, setActiveSubTab] = useState("Recently Added");
   const [isTabsSticky, setIsTabsSticky] = useState(false);
-  const [items, setItems] = useState<CatalogItem[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [ownedItems, setOwnedItems] = useState<OwnedItem[]>([]);
+  const [inventoryError, setInventoryError] = useState(false);
   const [equippedItems, setEquippedItems] = useState<Set<string>>(new Set());
-  const [ownedItemIds, setOwnedItemIds] = useState<Set<string>>(new Set());
   const [ownedItemsLoaded, setOwnedItemsLoaded] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [avatarState, setAvatarState] = useState<AvatarState | null>(null);
   const [avatarLoading, setAvatarLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -112,16 +122,14 @@ const AvatarPage = () => {
   const tabsRef = useRef<HTMLDivElement>(null);
   const tabsOffsetRef = useRef<number>(0);
 
-  const mainTabs = ["Recent", "Characters", "Clothing", "Accessories", "Head & Body", "Animations", "Pets"];
+  const mainTabs = ["Recent", "Characters", "Clothing", "Accessories", "Head & Body"];
 
   const subTabs: { [key: string]: string[] } = {
-    Recent: ["Recently Added", "Recently Worn", "Accessories", "Clothing", "Body Parts", "Animations", "Characters", "Pets"],
+    Recent: ["Recently Added", "Accessories", "Clothing", "Body Parts", "Characters"],
     Characters: ["Full Bodies"],
-    Clothing: ["Outerwear", "Classic"],
+    Clothing: ["Shirts", "Pants"],
     Accessories: ["Neck"],
     "Head & Body": ["Hair", "Classic Heads", "Classic Faces"],
-    Animations: ["Emotes"],
-    Pets: ["All Pets"],
   };
 
   const fetchAvatarState = useCallback(async () => {
@@ -176,25 +184,27 @@ const AvatarPage = () => {
     }
   }, []);
 
-  // Fetch the user's full owned-item set once on load, so the catalog grid can be
-  // filtered down to only items the user actually owns (paginate until exhausted,
-  // capped so a runaway inventory can't loop forever).
+  // Load the user's whole inventory once (paginate until exhausted, capped so a runaway inventory can't
+  // loop forever). The grid filters this list on the client; any failed request is surfaced with a retry.
   const fetchOwnedItems = useCallback(async () => {
+    setOwnedItemsLoaded(false);
+    setInventoryError(false);
     try {
-      const owned = new Set<string>();
+      const all: OwnedItem[] = [];
       let page = 1;
       let totalPages = 1;
       do {
         const response = await catalogApi.getUserInventory({ page, limit: 100 });
-        if (!response.success || !response.data) break;
-        const invData = response.data as { items: { id: string }[]; pagination: { totalPages: number } };
-        invData.items.forEach((i) => owned.add(i.id));
+        if (!response.success || !response.data) throw new Error("Inventory request failed");
+        const invData = response.data as { items: OwnedItem[]; pagination: { totalPages: number } };
+        all.push(...invData.items);
         totalPages = invData.pagination.totalPages;
         page++;
       } while (page <= totalPages && page <= 20);
-      setOwnedItemIds(owned);
+      setOwnedItems(all);
     } catch (err) {
       console.error("Failed to fetch owned items:", err);
+      setInventoryError(true);
     } finally {
       setOwnedItemsLoaded(true);
     }
@@ -204,54 +214,12 @@ const AvatarPage = () => {
     fetchOwnedItems();
   }, [fetchOwnedItems]);
 
-  const fetchItems = useCallback(async (subTab: string, page: number = 1) => {
-    setLoading(true);
-    try {
-      const mapping = TAB_TO_CATEGORY[subTab];
-      if (!mapping || (!mapping.category && subTab !== "Recently Added")) {
-        setItems([]);
-        setLoading(false);
-        return;
-      }
-
-      const isFacesTab = subTab === "Classic Faces";
-      const response = await catalogApi.getItems({
-        category: mapping.category,
-        subcategory: isFacesTab && !showClassicFaces ? "Face Accessories" : mapping.subcategory,
-        sort: subTab === "Recently Added" ? "recent" : "relevance",
-        page,
-        limit: 24,
-        // Classic Faces items are almost all marked unavailable — surface them
-        // anyway when the toggle is on, instead of filtering them out.
-        available: isFacesTab && showClassicFaces ? undefined : "true",
-      });
-      if (response.success && response.data) {
-        // Layered clothing items sometimes get miscategorized as Classic Pants —
-        // their robloxAssetId is much larger than classic ids (same filter as the catalog page).
-        const fetchedItems = (response.data.items as CatalogItem[]).filter((item) => {
-          if (item.subcategory === "Classic Pants" && Number(item.robloxAssetId) > 100000000000) {
-            return false;
-          }
-          return true;
-        });
-        setItems(fetchedItems);
-        setTotalPages(response.data.pagination.totalPages);
-        setCurrentPage(response.data.pagination.page);
-      } else {
-        setItems([]);
-      }
-    } catch {
-      setItems([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [showClassicFaces]);
-
+  // Back to the first page whenever the visible list changes
   useEffect(() => {
-    fetchItems(activeSubTab, 1);
-  }, [activeSubTab, fetchItems]);
+    setCurrentPage(1);
+  }, [activeSubTab, showClassicFaces]);
 
-  const toggleEquip = async (item: CatalogItem) => {
+  const toggleEquip = async (item: OwnedItem) => {
     const token = storage.getAccessToken();
     if (!token) return;
 
@@ -348,7 +316,20 @@ const AvatarPage = () => {
   }, []);
 
   const isFemale = userGender === "female";
-  const ownedItems = items.filter((item) => ownedItemIds.has(item.id));
+
+  // Owned items for the active sub-tab, paginated on the client. Owned items always show (no availability filter).
+  const tabFilter = TAB_TO_CATEGORY[activeSubTab];
+  const tabItems = ownedItems.filter((item) => {
+    if (!tabFilter) return false;
+    // Classic Faces: the toggle switches between 3D face accessories and the classic 2D faces
+    if (activeSubTab === "Classic Faces") {
+      return item.subcategory === (showClassicFaces ? "Classic Faces" : "Face Accessories");
+    }
+    return (!tabFilter.category || item.category === tabFilter.category) &&
+      (!tabFilter.subcategory || item.subcategory === tabFilter.subcategory);
+  });
+  const totalPages = Math.max(1, Math.ceil(tabItems.length / ITEMS_PER_PAGE));
+  const pageItems = tabItems.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   return (
     <div className="min-h-screen bg-white dark:bg-black flex flex-col">
@@ -525,11 +506,21 @@ const AvatarPage = () => {
 
               {isTabsSticky && <div className="h-24"></div>}
 
-              {loading || !ownedItemsLoaded ? (
+              {!ownedItemsLoaded ? (
                 <div className="flex items-center justify-center py-20">
                   <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
                 </div>
-              ) : ownedItemIds.size === 0 ? (
+              ) : inventoryError ? (
+                <div className="flex flex-col items-center justify-center py-20 gap-3">
+                  <p className="text-gray-500 dark:text-gray-400 text-sm">Couldn&apos;t load your inventory.</p>
+                  <button
+                    onClick={fetchOwnedItems}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded transition-colors"
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : ownedItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 gap-3">
                   <p className="text-gray-500 dark:text-gray-400 text-sm">You don&apos;t own any catalog items yet.</p>
                   <Link
@@ -539,7 +530,7 @@ const AvatarPage = () => {
                     Visit Catalog
                   </Link>
                 </div>
-              ) : ownedItems.length === 0 ? (
+              ) : tabItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20">
                   <p className="text-gray-500 dark:text-gray-400 text-sm">No owned items in this category.</p>
                   <Link href="/catalog" className="mt-3 text-blue-600 dark:text-blue-400 text-sm hover:underline">Browse Catalog</Link>
@@ -547,7 +538,7 @@ const AvatarPage = () => {
               ) : (
                 <>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mt-6">
-                    {ownedItems.map((item) => (
+                    {pageItems.map((item) => (
                       <div
                         key={item.id}
                         onClick={() => toggleEquip(item)}
@@ -579,9 +570,9 @@ const AvatarPage = () => {
 
                   {totalPages > 1 && (
                     <div className="flex items-center justify-center gap-2 mt-8">
-                      <button onClick={() => fetchItems(activeSubTab, currentPage - 1)} disabled={currentPage <= 1} className="px-4 py-2 bg-white dark:bg-[#1a1a1a] border border-gray-300 dark:border-[#2a2a2a] rounded text-sm disabled:opacity-50">Previous</button>
+                      <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage <= 1} className="px-4 py-2 bg-white dark:bg-[#1a1a1a] border border-gray-300 dark:border-[#2a2a2a] rounded text-sm disabled:opacity-50">Previous</button>
                       <span className="text-sm text-gray-600 dark:text-gray-400">Page {currentPage} of {totalPages}</span>
-                      <button onClick={() => fetchItems(activeSubTab, currentPage + 1)} disabled={currentPage >= totalPages} className="px-4 py-2 bg-white dark:bg-[#1a1a1a] border border-gray-300 dark:border-[#2a2a2a] rounded text-sm disabled:opacity-50">Next</button>
+                      <button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage >= totalPages} className="px-4 py-2 bg-white dark:bg-[#1a1a1a] border border-gray-300 dark:border-[#2a2a2a] rounded text-sm disabled:opacity-50">Next</button>
                     </div>
                   )}
                 </>
