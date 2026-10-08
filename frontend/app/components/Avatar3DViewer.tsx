@@ -19,7 +19,9 @@ interface Props {
 
 // ─── Constants ─────────────────────────────────────────────────────
 const DAMPING = 0.08;
-const AUTO_ROTATE_SPEED = 0.05;
+const AUTO_ROTATE_RAD_PER_SEC = 1.5; // time-based, so the spin is the same on 60/120/144 Hz screens
+const AUTO_ROTATE_RESUME_MS = 1500;  // auto-spin resumes this long after the last interaction
+const MAX_FRAME_DT_S = 0.1;          // don't jump if the tab was in the background
 
 /** Free GPU resources (geometries, materials, textures) of everything in a scene. */
 function disposeScene(scene: THREE.Scene) {
@@ -64,7 +66,7 @@ export default function Avatar3DViewer({ userId, className = "", refreshKey = 0 
     const PHI_MAX = 165 * DEG;
 
     let isDragging = false;
-    let autoRotate = true;
+    let lastInteraction = -Infinity; // performance.now() of the last drag/zoom/pinch
     let prevX = 0;
     let prevY = 0;
     let prevPinchDist = 0;
@@ -74,19 +76,20 @@ export default function Avatar3DViewer({ userId, className = "", refreshKey = 0 
 
     const onPointerDown = (e: PointerEvent) => {
       isDragging = true;
-      autoRotate = false;
+      lastInteraction = performance.now();
       prevX = e.clientX;
       prevY = e.clientY;
       (e.target as HTMLElement).setPointerCapture(e.pointerId);
     };
     const onPointerMove = (e: PointerEvent) => {
       if (!isDragging) return;
+      lastInteraction = performance.now();
       targetTheta -= (e.clientX - prevX) * 0.005;
       targetPhi = Math.max(PHI_MIN, Math.min(PHI_MAX, targetPhi - (e.clientY - prevY) * 0.005));
       prevX = e.clientX;
       prevY = e.clientY;
     };
-    const onPointerUp = () => { isDragging = false; };
+    const onPointerUp = () => { isDragging = false; lastInteraction = performance.now(); };
 
     const getTouchDist = (e: TouchEvent) => {
       const t = e.touches;
@@ -99,6 +102,7 @@ export default function Avatar3DViewer({ userId, className = "", refreshKey = 0 
     const onTouchMove = (e: TouchEvent) => {
       if (e.touches.length === 2) {
         e.preventDefault();
+        lastInteraction = performance.now();
         const dist = getTouchDist(e);
         if (prevPinchDist > 0) {
           targetRadius = Math.max(minRadius, Math.min(maxRadius, targetRadius * (prevPinchDist / dist)));
@@ -109,6 +113,7 @@ export default function Avatar3DViewer({ userId, className = "", refreshKey = 0 
     const onTouchEnd = () => { prevPinchDist = 0; };
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
+      lastInteraction = performance.now();
       targetRadius = Math.max(minRadius, Math.min(maxRadius, targetRadius * (1 + e.deltaY * 0.001)));
     };
 
@@ -180,16 +185,19 @@ export default function Avatar3DViewer({ userId, className = "", refreshKey = 0 
         r.domElement.addEventListener("touchmove", onTouchMove, { passive: false });
         r.domElement.addEventListener("touchend", onTouchEnd);
 
-        const animate = () => {
+        let lastFrameTime = 0;
+        const animate = (now: number) => {
           frameId = requestAnimationFrame(animate);
-          if (autoRotate && !isDragging) targetTheta += AUTO_ROTATE_SPEED;
+          const dt = lastFrameTime ? Math.min((now - lastFrameTime) / 1000, MAX_FRAME_DT_S) : 0;
+          lastFrameTime = now;
+          if (!isDragging && now - lastInteraction >= AUTO_ROTATE_RESUME_MS) targetTheta += AUTO_ROTATE_RAD_PER_SEC * dt;
           currentTheta += (targetTheta - currentTheta) * DAMPING;
           currentPhi += (targetPhi - currentPhi) * DAMPING;
           currentRadius += (targetRadius - currentRadius) * DAMPING;
           orbitCamera(cam, currentTheta, currentPhi, currentRadius);
           if (scene) r.render(scene, cam);
         };
-        animate();
+        animate(performance.now());
 
         resizeObserver = new ResizeObserver(() => {
           if (!container || !renderer || !camera) return;
