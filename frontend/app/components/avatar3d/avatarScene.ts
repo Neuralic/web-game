@@ -37,7 +37,11 @@ const LOWER_TORSO_H = 0.4, UPPER_TORSO_H = 1.6, HEAD_S = 1.2;
 const HAND_H = 0.3, LOWER_ARM_H = 0.7, UPPER_ARM_H = 1.0;
 const LEG_TOP = FOOT_H + LOWER_LEG_H + UPPER_LEG_H;     // 2.0
 const TORSO_TOP = LEG_TOP + LOWER_TORSO_H + UPPER_TORSO_H; // 4.0
-const HEAD_CY = TORSO_TOP + HEAD_S / 2;                   // 4.6
+// The head is a sphere that touches the torso top at a single point, which leaves a visible gap at its sides.
+// Sinking it into the torso hides that gap. Everything attached to the head (hair, hats, face accessories and
+// the face decal) is positioned from the head mesh, so it moves with it. Tune here.
+const HEAD_SINK = 0.12;
+const HEAD_CY = TORSO_TOP + HEAD_S / 2 - HEAD_SINK;       // 4.48
 
 type Seg = [number, number]; // vertical fraction of the classic 2-stud tall slot [top, bottom]
 type PartName =
@@ -52,7 +56,7 @@ interface PartDef {
 // Roblox "Right" = +X. Right limbs are at +X. Limbs sit 0.04 studs clear of the torso/each other
 // (a visual gap only) so same-coloured clothing keeps readable edges.
 const PARTS: PartDef[] = [
-  { name: "Head",          w: 1.2, h: HEAD_S,       d: 1.2, x: 0,    yTop: TORSO_TOP + HEAD_S, kind: "head",  seg: [0, 1] },
+  { name: "Head",          w: 1.2, h: HEAD_S,       d: 1.2, x: 0,    yTop: TORSO_TOP + HEAD_S - HEAD_SINK, kind: "head",  seg: [0, 1] },
   { name: "UpperTorso",    w: 2.0, h: UPPER_TORSO_H, d: 1.0, x: 0,    yTop: TORSO_TOP,          kind: "torso", seg: [0, 0.8] },
   { name: "LowerTorso",    w: 2.0, h: LOWER_TORSO_H, d: 1.0, x: 0,    yTop: LEG_TOP + LOWER_TORSO_H, kind: "torso", seg: [0.8, 1] },
   { name: "RightUpperArm", w: 1.0, h: UPPER_ARM_H,  d: 1.0, x: 1.54,  yTop: TORSO_TOP,          kind: "armR",  seg: [0, 0.5] },
