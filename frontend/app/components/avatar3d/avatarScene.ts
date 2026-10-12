@@ -5,7 +5,7 @@
 // COORDINATES: everything is built in Roblox's own right-handed frame (x = avatar's right,
 // y = up, front of the avatar = -Z), in studs. No axis negation anywhere: the finished
 // model is wrapped in a pivot rotated 180° about Y so its front faces the default +Z camera.
-// A Z-negation would mirror the model (wrong chirality: mirrored shirt text, swapped sides).
+// A Z-negation would mirror the model (wrong chirality: mirrored shirt text, swapped sides)
 import * as THREE from "three";
 
 export const DEG = Math.PI / 180;
