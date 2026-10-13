@@ -62,6 +62,17 @@ export default function CreatePage() {
     }
   }, []);
 
+  // Opened from Roblox Studio's "Publish to AdventureBlox": /create?universeId=123 prefills the form.
+  // Digits only; anything else in the query is ignored. (The place ID isn't needed: the server looks it up
+  // from the universe.)
+  useEffect(() => {
+    const universeId = new URLSearchParams(window.location.search).get("universeId");
+    if (universeId && /^\d{1,15}$/.test(universeId)) {
+      setForm((prev) => ({ ...prev, universeId }));
+      setShowCreateModal(true);
+    }
+  }, []);
+
   const fetchMyGames = async () => {
     const token = storage.getAccessToken();
     if (!token) return;
