@@ -18,7 +18,7 @@ interface MyGroup {
 interface MergeResult {
   name: string;
   description: string;
-  membersImported: number;
+  rolesImported: number;
 }
 
 export default function MergeGroupPage() {
@@ -195,10 +195,7 @@ export default function MergeGroupPage() {
                     </p>
                   )}
                   <p className="text-sm text-green-600 dark:text-green-400">
-                    Members added:{" "}
-                    <strong>{result.membersImported}</strong>
-                    {result.membersImported === 0 &&
-                      " (none of your Roblox members have AdventureBlox accounts yet)"}
+                    Roles added: <strong>{result.rolesImported}</strong>
                   </p>
                 </div>
               )}
@@ -217,11 +214,11 @@ export default function MergeGroupPage() {
             <div className="mt-6 p-4 bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-[#2a2a2a] rounded-xl text-xs text-gray-500 dark:text-gray-400 space-y-1.5">
               <p className="font-semibold text-gray-700 dark:text-gray-300">What gets imported</p>
               <p>✓ Group name and description from Roblox</p>
-              <p>✓ Members who already have an AdventureBlox account (matched by username)</p>
-              <p>✓ Group icon and banner image</p>
-              <p>✓ Group roles and rank structure</p>
+              <p>✓ Group icon</p>
               <p>✓ Group shout</p>
+              <p>✓ Group roles and rank structure</p>
               <p className="font-semibold text-gray-700 dark:text-gray-300 pt-1">What does not get imported</p>
+              <p>✗ Members: they join your group after they sign up on AdventureBlox</p>
               <p>✗ Group funds</p>
             </div>
           </div>
