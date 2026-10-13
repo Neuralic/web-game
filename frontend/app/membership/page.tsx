@@ -218,7 +218,7 @@ const MembershipPage = () => {
                         <div className="max-w-5xl mx-auto">
                             <div className="text-center mb-8">
                                 <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                                    Membership benefits within experiences
+                                    Membership benefits within games
                                 </h2>
                                 <p className="text-gray-600 dark:text-gray-400 text-sm">
                                     Get access to{" "}
@@ -274,7 +274,7 @@ const MembershipPage = () => {
                                     href="/games"
                                     className="text-blue-600 dark:text-blue-400 hover:underline text-sm font-medium"
                                 >
-                                    Explore popular among Membership experiences
+                                    Explore popular among Membership games
                                 </Link>
                             </div>
                         </div>
@@ -396,7 +396,7 @@ const MembershipPage = () => {
                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                                             </svg>
                                         </div>
-                                        <span className="text-sm">Access Membership benefits within experiences</span>
+                                        <span className="text-sm">Access Membership benefits within games</span>
                                     </div>
                                     <div className="flex items-center gap-3 text-gray-900 dark:text-white">
                                         <div className="w-6 h-6 rounded-full bg-black dark:bg-white flex items-center justify-center flex-shrink-0">
