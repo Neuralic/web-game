@@ -1516,7 +1516,7 @@ const ConfigureGroupPage = () => {
                                   Select an image from your computer
                                 </span>
                               </label>
-                              {coverPreview && (
+                              {(coverPreview || coverPhotoUrl) && (
                                 <button
                                   type="button"
                                   onClick={handleDeleteCover}
