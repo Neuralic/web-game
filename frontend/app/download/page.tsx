@@ -10,6 +10,7 @@ const PLAYER_DOWNLOAD_URL =
   "https://fwjvihdbbnksqnhcsuse.supabase.co/storage/v1/object/public/Downloads/AdventureBloxPlayer.exe";
 const STUDIO_DOWNLOAD_URL =
   "https://fwjvihdbbnksqnhcsuse.supabase.co/storage/v1/object/public/Downloads/AdventureBloxStudio.zip";
+const SHOW_PLAYER_DOWNLOAD = false;
 
 export default function DownloadPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -25,6 +26,7 @@ export default function DownloadPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {/* AdventureBlox Player */}
+          {SHOW_PLAYER_DOWNLOAD && (
           <div className="border border-gray-200 dark:border-[#2a2a2a] bg-gray-50 dark:bg-[#1a1a1a] rounded-xl p-6 flex flex-col">
             <div className="w-12 h-12 rounded-lg bg-blue-600/10 flex items-center justify-center mb-4">
               <Gamepad2 className="w-6 h-6 text-blue-600 dark:text-blue-400" />
@@ -43,6 +45,7 @@ export default function DownloadPage() {
               Download Player
             </a>
           </div>
+          )}
 
           {/* AdventureBlox Studio */}
           <div className="border border-gray-200 dark:border-[#2a2a2a] bg-gray-50 dark:bg-[#1a1a1a] rounded-xl p-6 flex flex-col">
