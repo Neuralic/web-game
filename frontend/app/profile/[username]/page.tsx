@@ -142,6 +142,7 @@ const ProfilePage = () => {
   const [activeTab, setActiveTab] = useState("About");
   const [currentWearingIndex, setCurrentWearingIndex] = useState(0);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   const [bio, setBio] = useState("");
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [editedBio, setEditedBio] = useState("");
@@ -934,7 +935,7 @@ const ProfilePage = () => {
                   />
                 </a>
               )}
-              <div className="absolute inset-0 bg-black/40" />
+              <div className="absolute inset-0 bg-black/40 pointer-events-none" />
               {isOwnProfile && (
                 <>
                   <button
@@ -1013,6 +1014,18 @@ const ProfilePage = () => {
                       </button>
                       {showProfileMenu && (
                         <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg py-1 min-w-[180px] z-50">
+                          <button
+                            className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+                            onClick={() => {
+                              setShowProfileMenu(false);
+                              navigator.clipboard.writeText(`${window.location.origin}/profile/${profileUser?.username || profileUsername}`);
+                              setLinkCopied(true);
+                              setTimeout(() => setLinkCopied(false), 2000);
+                            }}
+                          >
+                            Copy Profile Link
+                          </button>
+                          <div className="border-t border-gray-200 dark:border-[#2a2a2a] my-1"></div>
                           {isOwnProfile ? (
                             <>
                               <button className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700" onClick={() => setShowProfileMenu(false)}>Inventory</button>
@@ -1036,6 +1049,11 @@ const ProfilePage = () => {
                               <button className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700" onClick={handleReportAbuse}>Report Abuse</button>
                             </>
                           )}
+                        </div>
+                      )}
+                      {linkCopied && (
+                        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 bg-gray-900 text-white text-sm rounded-lg shadow-lg z-[60]">
+                          Link copied
                         </div>
                       )}
                     </div>
