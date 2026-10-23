@@ -15,7 +15,15 @@ interface Props {
   className?: string;
   /** Bump to make the viewer refetch and swap in the latest outfit without remounting. */
   refreshKey?: number;
+  /** Catalog item id to preview on this avatar (server `?try=`). Preview only: nothing is equipped or saved. */
+  tryOnItemId?: string;
+  /** Called with a front-view PNG data URL each time a model finishes loading. */
+  onSnapshot?: (dataUrl: string) => void;
+  /** Called after a load with the server's verdict on the `tryOnItemId` preview. */
+  onTryOnResult?: (result: TryOnResult) => void;
 }
+
+export type TryOnResult = { ok: true; slot?: string } | { ok: false; reason?: string };
 
 // ─── Constants ─────────────────────────────────────────────────────
 const DAMPING = 0.08;
@@ -38,8 +46,15 @@ function disposeScene(scene: THREE.Scene) {
   });
 }
 
-export default function Avatar3DViewer({ userId, className = "", refreshKey = 0 }: Props) {
+export default function Avatar3DViewer({
+  userId, className = "", refreshKey = 0, tryOnItemId, onSnapshot, onTryOnResult,
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
+  // Latest callbacks, read inside the long-lived effect without re-running it.
+  const onSnapshotRef = useRef(onSnapshot);
+  const onTryOnResultRef = useRef(onTryOnResult);
+  onSnapshotRef.current = onSnapshot;
+  onTryOnResultRef.current = onTryOnResult;
   const reloadRef = useRef<((fresh?: boolean) => void) | null>(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
@@ -235,6 +250,19 @@ export default function Avatar3DViewer({ userId, className = "", refreshKey = 0 
       const oldScene = scene;
       scene = newScene;
       if (oldScene) disposeScene(oldScene);
+
+      // Front-view snapshot: render once from a fixed camera and read the canvas in the same task,
+      // so no preserveDrawingBuffer is needed. The next animation frame redraws the live view.
+      if (onSnapshotRef.current && renderer) {
+        try {
+          const snapCam = new THREE.PerspectiveCamera(fov, camera.aspect, camera.near, camera.far);
+          orbitCamera(snapCam, 0, 85 * DEG, idealDist);
+          renderer.render(newScene, snapCam);
+          onSnapshotRef.current(renderer.domElement.toDataURL("image/png"));
+        } catch (error) {
+          console.error("Avatar3DViewer snapshot error:", error);
+        }
+      }
     };
 
     // `fresh`: the outfit just changed, so ask the server to skip its short-lived per-user cache.
@@ -247,12 +275,17 @@ export default function Avatar3DViewer({ userId, className = "", refreshKey = 0 
       try {
         // Always the custom, server-parsed outfit (/avatar/3d-custom-v2), including users with a linked Roblox account.
 
-        const customRes = await fetch(`${API_BASE}/avatar/3d-custom-v2/${userId}${fresh ? "?fresh=1" : ""}`, { cache: "no-store" });
+        const query = new URLSearchParams();
+        if (fresh) query.set("fresh", "1");
+        if (tryOnItemId) query.set("try", tryOnItemId);
+        const qs = query.toString();
+        const customRes = await fetch(`${API_BASE}/avatar/3d-custom-v2/${userId}${qs ? `?${qs}` : ""}`, { cache: "no-store" });
         if (!customRes.ok) throw new Error("Custom avatar fetch failed");
 
-        const customData = await customRes.json() as CustomAvatarData;
+        const customData = await customRes.json() as CustomAvatarData & { tryOn?: TryOnResult };
         if (!customData.success) throw new Error("No avatar data");
         if (stale()) return;
+        if (tryOnItemId && customData.tryOn) onTryOnResultRef.current?.(customData.tryOn);
 
         const model = await buildAvatar(customData);
         if (stale()) {
@@ -296,7 +329,7 @@ export default function Avatar3DViewer({ userId, className = "", refreshKey = 0 
         renderer.domElement.remove();
       }
     };
-  }, [userId]);
+  }, [userId, tryOnItemId]);
 
   // Refetch and swap when the parent bumps refreshKey (skip the initial mount — the effect above loads).
   const firstKey = useRef(refreshKey);
