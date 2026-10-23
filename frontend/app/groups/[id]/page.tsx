@@ -1130,7 +1130,7 @@ const GroupDetailPage = () => {
                 />
               </a>
             )}
-            <div className="absolute inset-0 bg-black/40" />
+            <div className="absolute inset-0 bg-black/40 pointer-events-none" />
           </div>
 
           {/* Group Header */}
@@ -1301,29 +1301,27 @@ const GroupDetailPage = () => {
 
                               <div className="border-t border-gray-200 dark:border-[#2a2a2a] my-1"></div>
                             </>
-                          ) : (
-                            /* If user is NOT a member - show limited menu */
-                            <>
-                              <button
-                                onClick={() => {
-                                  setGroupMenuOpen(false);
-                                  if (groupId) {
-                                    navigator.clipboard.writeText(
-                                      `${window.location.origin}/groups/${groupId}`
-                                    );
-                                    setSuccessMessage({
-                                      title: "Success",
-                                      message: "Group link copied to clipboard!",
-                                    });
-                                    setShowSuccessModal(true);
-                                  }
-                                }}
-                                className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                              >
-                                Copy Link
-                              </button>
-                            </>
-                          )}
+                          ) : null}
+
+                          {/* Copy Link - Always visible */}
+                          <button
+                            onClick={() => {
+                              setGroupMenuOpen(false);
+                              if (groupId) {
+                                navigator.clipboard.writeText(
+                                  `${window.location.origin}/groups/${groupId}`
+                                );
+                                setSuccessMessage({
+                                  title: "Success",
+                                  message: "Group link copied to clipboard!",
+                                });
+                                setShowSuccessModal(true);
+                              }
+                            }}
+                            className="w-full px-4 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                          >
+                            Copy Link
+                          </button>
 
                           {/* Report Abuse - Always visible */}
                           <button
