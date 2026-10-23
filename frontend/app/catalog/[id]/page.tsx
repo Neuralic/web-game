@@ -5,7 +5,12 @@ import { useParams, useRouter } from "next/navigation";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import Footer from "../../components/Footer";
-import { catalogApi } from "@/lib/api";
+import dynamic from "next/dynamic";
+import { catalogApi, usersApi } from "@/lib/api";
+import { isAuthenticated } from "@/lib/auth";
+import type { TryOnResult } from "../../components/Avatar3DViewer";
+
+const Avatar3DViewer = dynamic(() => import("../../components/Avatar3DViewer"), { ssr: false });
 
 interface CatalogItem {
   id: string;
@@ -40,6 +45,15 @@ export default function CatalogItemPage() {
   const [isEquipped, setIsEquipped] = useState(false);
   const [adding, setAdding] = useState(false);
   const [equipping, setEquipping] = useState(false);
+
+  // Try-on preview modal. Never touches the equip routes.
+  const [tryOnOpen, setTryOnOpen] = useState(false);
+  const [tryOnUserId, setTryOnUserId] = useState<string | null>(null);
+  const [tryOnNeedsLogin, setTryOnNeedsLogin] = useState(false);
+  const [tryOnUserError, setTryOnUserError] = useState(false);
+  const [tryOnResult, setTryOnResult] = useState<TryOnResult | null>(null);
+  const [tryOnView, setTryOnView] = useState<"3d" | "2d">("3d");
+  const [tryOnSnapshot, setTryOnSnapshot] = useState<string | null>(null);
 
   useEffect(() => {
     const checkInventoryAndAvatar = async () => {
@@ -98,6 +112,39 @@ export default function CatalogItemPage() {
       console.error('Failed to add to inventory:', error);
     } finally {
       setAdding(false);
+    }
+  };
+
+  const closeTryOn = () => {
+    setTryOnOpen(false);
+    setTryOnResult(null);
+    setTryOnSnapshot(null);
+    setTryOnView("3d");
+    setTryOnNeedsLogin(false);
+    setTryOnUserError(false);
+  };
+
+  const handleTryOn = async () => {
+    if (!item) return;
+    setTryOnResult(null);
+    setTryOnSnapshot(null);
+    setTryOnView("3d");
+    setTryOnUserError(false);
+    setTryOnOpen(true);
+
+    if (!isAuthenticated()) {
+      setTryOnNeedsLogin(true);
+      return;
+    }
+    setTryOnNeedsLogin(false);
+    if (tryOnUserId) return;
+    try {
+      const response = await usersApi.getCurrentUser();
+      const user = response.success ? (response.data?.user as { id?: string } | undefined) : undefined;
+      if (user?.id) setTryOnUserId(user.id);
+      else setTryOnUserError(true);
+    } catch {
+      setTryOnUserError(true);
     }
   };
 
@@ -243,6 +290,14 @@ export default function CatalogItemPage() {
               {inInventory ? "✔ In Inventory" : adding ? "Adding..." : item.isAvailable ? "Get Item" : "Unavailable"}
             </button>
 
+            {/* Try On Button (preview only) */}
+            <button
+              onClick={handleTryOn}
+              className="w-full py-3 rounded-xl font-bold text-sm transition-colors mb-3 bg-white dark:bg-[#1a1a1a] border border-gray-300 dark:border-[#3a3a3a] text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-[#242424]"
+            >
+              Try on
+            </button>
+
             {/* Equip to Avatar Button */}
             {inInventory && (
               <button
@@ -289,6 +344,93 @@ export default function CatalogItemPage() {
           </div>
         </div>
       </main>
+
+      {tryOnOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
+          onClick={closeTryOn}
+        >
+          <div
+            className="w-full max-w-md bg-white dark:bg-[#1a1a1a] rounded-xl border border-gray-200 dark:border-[#2a2a2a] p-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-base font-bold text-gray-900 dark:text-gray-100 truncate">Try on: {item.name}</h2>
+              <button
+                onClick={closeTryOn}
+                aria-label="Close"
+                className="text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 text-xl leading-none px-2"
+              >
+                ×
+              </button>
+            </div>
+
+            {tryOnNeedsLogin ? (
+              <div className="py-8 text-center">
+                <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">Log in to try this item on your avatar.</p>
+                <button
+                  onClick={() => router.push("/login")}
+                  className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
+                >
+                  Log in
+                </button>
+              </div>
+            ) : tryOnUserError ? (
+              <p className="py-8 text-center text-sm text-gray-700 dark:text-gray-300">
+                Couldn't preview this item. We couldn't load your avatar.
+              </p>
+            ) : !tryOnUserId ? (
+              <div className="py-12 flex justify-center">
+                <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            ) : (
+              <>
+                {tryOnResult && !tryOnResult.ok && (
+                  <div className="mb-3 p-3 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-sm">
+                    <p className="font-semibold">Couldn't preview this item</p>
+                    {tryOnResult.reason && <p>{tryOnResult.reason}</p>}
+                  </div>
+                )}
+
+                <div className="relative">
+                  <Avatar3DViewer
+                    userId={tryOnUserId}
+                    tryOnItemId={item.id}
+                    onSnapshot={setTryOnSnapshot}
+                    onTryOnResult={setTryOnResult}
+                    className="w-full h-[420px]"
+                  />
+                  {tryOnView === "2d" && tryOnSnapshot && (
+                    <div className="absolute inset-0 rounded-lg bg-[#1a1a1a] flex items-center justify-center">
+                      <img src={tryOnSnapshot} alt={`${item.name} preview`} className="h-full w-full object-contain" />
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between mt-3">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Preview only, not equipped</p>
+                  <div className="inline-flex rounded-lg overflow-hidden border border-gray-300 dark:border-[#3a3a3a]">
+                    {(["3d", "2d"] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        onClick={() => setTryOnView(mode)}
+                        disabled={mode === "2d" && !tryOnSnapshot}
+                        className={`px-3 py-1 text-xs font-semibold disabled:opacity-50 ${
+                          tryOnView === mode
+                            ? "bg-blue-600 text-white"
+                            : "bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300"
+                        }`}
+                      >
+                        {mode === "3d" ? "3D" : "2D"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>
