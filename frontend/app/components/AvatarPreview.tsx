@@ -24,21 +24,26 @@ interface AvatarPreviewProps {
 
 type Mode = "3d" | "2d";
 
-/** The 2D Roblox render. Only mounted in 2D mode, so nothing is requested until the user asks for it. */
-function Avatar2DView({ userId, className }: { userId: string; className: string }) {
+/** The 2D Roblox render. Mounted only when there is no snapshot, so no Roblox request is made otherwise. */
+function RobloxRender2D({ userId }: { userId: string }) {
   const { imageUrl, loading } = useAvatarRenderState(userId);
+  return imageUrl ? (
+    <img src={imageUrl} alt="Avatar" className="h-full object-contain" />
+  ) : loading ? (
+    <div className="flex flex-col items-center gap-2">
+      <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+      <p className="text-xs text-gray-400">Loading 2D render...</p>
+    </div>
+  ) : (
+    <div className="text-gray-500 text-sm">2D render unavailable</div>
+  );
+}
+
+/** The 2D view: the 3D viewer's own front-view snapshot when there is one, otherwise the Roblox render. */
+function Avatar2DView({ userId, className, snapshot }: { userId: string; className: string; snapshot: string | null }) {
   return (
     <div className={`relative bg-[#1a1a1a] rounded-lg overflow-hidden flex items-center justify-center ${className}`}>
-      {imageUrl ? (
-        <img src={imageUrl} alt="Avatar" className="h-full object-contain" />
-      ) : loading ? (
-        <div className="flex flex-col items-center gap-2">
-          <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-          <p className="text-xs text-gray-400">Loading 2D render...</p>
-        </div>
-      ) : (
-        <div className="text-gray-500 text-sm">2D render unavailable</div>
-      )}
+      {snapshot ? <img src={snapshot} alt="Avatar" className="h-full object-contain" /> : <RobloxRender2D userId={userId} />}
     </div>
   );
 }
@@ -46,12 +51,16 @@ function Avatar2DView({ userId, className }: { userId: string; className: string
 /** 3D viewer with a working 3D / 2D toggle. Starts in 3D. */
 export default function AvatarPreview({ userId, className = "", refreshKey = 0, variant = "profile", broadcastChanges = true }: AvatarPreviewProps) {
   const [mode, setMode] = useState<Mode>("3d");
+  // Latest front-view PNG captured by the 3D viewer, tagged with the user it belongs to.
+  const [snapshot, setSnapshot] = useState<{ userId: string; url: string } | null>(null);
 
-  // The outfit changed: the cached 2D render is stale. Done during render (idempotent) so the 2D view,
-  // if open, remounts below with the cache already cleared.
+  // The outfit changed: the cached 2D render and the snapshot are stale. Done during render (idempotent) so
+  // the 2D view, if open, remounts below with the cache already cleared and falls back to Roblox until the
+  // viewer captures a new snapshot.
   const [seenKey, setSeenKey] = useState(refreshKey);
   if (seenKey !== refreshKey) {
     setSeenKey(refreshKey);
+    setSnapshot(null);
     if (userId) {
       // The editor made the change: refresh avatar images everywhere, here and in other tabs.
       // Elsewhere the change was only announced to us, so just drop the stale 2D render (announcing it
@@ -89,9 +98,19 @@ export default function AvatarPreview({ userId, className = "", refreshKey = 0, 
   return (
     <div className={`relative ${className}`}>
       {mode === "3d" ? (
-        <Avatar3DViewer userId={userId} refreshKey={refreshKey} className="w-full h-full rounded-none" />
+        <Avatar3DViewer
+          userId={userId}
+          refreshKey={refreshKey}
+          onSnapshot={(url) => setSnapshot({ userId, url })}
+          className="w-full h-full rounded-none"
+        />
       ) : (
-        <Avatar2DView key={refreshKey} userId={userId} className="w-full h-full rounded-none" />
+        <Avatar2DView
+          key={refreshKey}
+          userId={userId}
+          snapshot={snapshot && snapshot.userId === userId ? snapshot.url : null}
+          className="w-full h-full rounded-none"
+        />
       )}
       <div className={wrap}>
         {button("3d", "3D")}
