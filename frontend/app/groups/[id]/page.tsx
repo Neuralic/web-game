@@ -15,7 +15,7 @@ import DescriptionSection from "../../components/groups/DescriptionSection";
 import ConfirmModal from "@/components/modals/ConfirmModal";
 import ReportModal from "@/components/modals/ReportModal";
 import SuccessModal from "@/components/modals/SuccessModal";
-import { groupsApi, uploadApi, storage } from "@/lib/api";
+import { groupsApi, uploadApi, storage, usersApi } from "@/lib/api";
 import UserAvatar from "../../components/UserAvatar";
 import VoiceChat from "../../components/VoiceChat";
 
@@ -64,6 +64,17 @@ const GroupDetailPage = () => {
       // not logged in
     }
   }, []);
+
+  // Site admins can delete any wall post or reply.
+  const [isSiteAdmin, setIsSiteAdmin] = useState(false);
+  useEffect(() => {
+    if (!currentUserId) return;
+    usersApi.getCurrentUser().then((response) => {
+      if (response.success && response.data) {
+        setIsSiteAdmin(!!(response.data.user as { is_admin?: boolean }).is_admin);
+      }
+    });
+  }, [currentUserId]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -165,6 +176,7 @@ const GroupDetailPage = () => {
   const [applicationForm, setApplicationForm] = useState<any>(null);
   const [loadingApplicationForm, setLoadingApplicationForm] = useState(true);
   const [canManageGroupMembers, setCanManageGroupMembers] = useState(false);
+  const [canDeleteWallPosts, setCanDeleteWallPosts] = useState(false);
   const [applicationAnswers, setApplicationAnswers] = useState<string[]>([]);
   const [submittingApplication, setSubmittingApplication] = useState(false);
   const [applicationSubmitError, setApplicationSubmitError] = useState<string | null>(null);
@@ -513,10 +525,12 @@ const GroupDetailPage = () => {
     const checkMembersPermission = async () => {
       if (!groupId || !currentGroup?.role) {
         setCanManageGroupMembers(false);
+        setCanDeleteWallPosts(false);
         return;
       }
       if (currentGroup.role === "Owner") {
         setCanManageGroupMembers(true);
+        setCanDeleteWallPosts(true);
         return;
       }
       try {
@@ -525,6 +539,7 @@ const GroupDetailPage = () => {
           const roles = (response.data as any).roles || [];
           const myRole = roles.find((r: any) => r.name === currentGroup.role);
           setCanManageGroupMembers(!!myRole?.can_manage_members);
+          setCanDeleteWallPosts(!!myRole?.can_delete_wall_posts);
         }
       } catch (error) {
         console.error("Error checking members permission:", error);
@@ -1595,7 +1610,7 @@ const GroupDetailPage = () => {
                                   onClick={() => setOpenPostMenu(null)}
                                 />
                                 <div className="absolute right-0 top-full mt-1 w-40 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded shadow-lg z-20 py-1">
-  {(post.author_id === currentUserId || currentGroupDetails?.owner_id === currentUserId) && (
+  {(post.author_id === currentUserId || currentGroupDetails?.owner_id === currentUserId || canDeleteWallPosts || isSiteAdmin) && (
     <>
       <button
         onClick={async () => {
@@ -1773,7 +1788,7 @@ const GroupDetailPage = () => {
                                             {reply.content}
                                           </p>
                                         </div>
-                                        {reply.author_id === currentGroupDetails?.owner_id && (
+                                        {(reply.author_id === currentUserId || currentGroupDetails?.owner_id === currentUserId || canDeleteWallPosts || isSiteAdmin) && (
                                           <button
                                             onClick={() => handleDeleteReply(post.id, reply.id)}
                                             className="text-xs text-red-600 dark:text-red-400 hover:underline"
