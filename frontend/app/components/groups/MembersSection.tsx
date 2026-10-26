@@ -63,7 +63,7 @@ export default function MembersSection({ groupId }: MembersSectionProps) {
         const rolesResponse = await groupsApi.getGroupRoles(groupId);
         if (rolesResponse.success && rolesResponse.data) {
           const fetchedRoles = (rolesResponse.data.roles as Role[]) || [];
-          setRoles(fetchedRoles);
+          setRoles([...fetchedRoles].sort((a, b) => a.rank - b.rank));
           const lowestRank = fetchedRoles
             .filter(r => r.name !== 'Owner')
             .sort((a, b) => a.rank - b.rank)[0];
