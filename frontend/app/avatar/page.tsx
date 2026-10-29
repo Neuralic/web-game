@@ -250,6 +250,7 @@ const AvatarPage = () => {
       try {
         const importRes = await fetch(`${API_BASE}/catalog/roblox/import/${item.robloxAssetId || item.id}`, {
           method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
         });
         const importData = await importRes.json();
         if (importData.success && importData.data?.id) {
