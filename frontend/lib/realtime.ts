@@ -26,6 +26,8 @@ export interface PresenceData {
 let presenceChannel: RealtimeChannel | null = null;
 let messageChannels: Map<string, RealtimeChannel> = new Map();
 let typingChannels: Map<string, RealtimeChannel> = new Map();
+// What this client last tracked, so the heartbeat can re-track it with a fresh lastOnline.
+let trackedPresence: { userId: string; username: string; presenceStatus: string; currentGame?: string | null } | null = null;
 
 /**
  * Initialize presence tracking with Supabase Realtime
@@ -36,7 +38,10 @@ const buildPresenceMap = (state: RealtimePresenceState): Map<string, PresenceDat
   Object.keys(state).forEach((key) => {
     const presences = state[key];
     if (presences && presences.length > 0) {
-      const p = presences[0] as any;
+      // Several entries can share a key (multiple tabs, a reconnect): use the most recently tracked one.
+      const p = (presences as any[]).reduce((latest, cur) =>
+        (Date.parse(cur?.lastOnline ?? '') || 0) >= (Date.parse(latest?.lastOnline ?? '') || 0) ? cur : latest
+      );
       if (p && p.userId) {
         map.set(p.userId, {
           userId: p.userId,
@@ -87,10 +92,9 @@ export const initializePresence = async (
     })
     .subscribe(async (status: string) => {
       if (status === 'SUBSCRIBED') {
+        trackedPresence = { userId, username, presenceStatus: 'online' };
         await presenceChannel!.track({
-          userId,
-          username,
-          presenceStatus: 'online',
+          ...trackedPresence,
           lastOnline: new Date().toISOString(),
         });
         await updatePresenceInDatabase(userId, 'online');
@@ -117,16 +121,26 @@ export const updatePresenceStatus = async (
   const userId = payload.userId;
   const username = payload.username;
 
+  trackedPresence = { userId, username, presenceStatus: status, currentGame: currentGame || null };
   await presenceChannel.track({
-    userId,
-    username,
-    presenceStatus: status,
-    currentGame: currentGame || null,
+    ...trackedPresence,
     lastOnline: new Date().toISOString(),
   });
 
   // Update database
   await updatePresenceInDatabase(userId, status, currentGame);
+};
+
+/**
+ * Heartbeat: re-track the current presence with a fresh lastOnline so other clients can tell
+ * a live user from a stale entry. No database write.
+ */
+export const refreshPresenceHeartbeat = async () => {
+  if (!presenceChannel || !trackedPresence) return;
+  await presenceChannel.track({
+    ...trackedPresence,
+    lastOnline: new Date().toISOString(),
+  });
 };
 
 /**
@@ -161,6 +175,7 @@ const updatePresenceInDatabase = async (
  * Disconnect presence
  */
 export const disconnectPresence = async () => {
+  trackedPresence = null;
   if (presenceChannel) {
     await presenceChannel.untrack();
     await supabase.removeChannel(presenceChannel);
