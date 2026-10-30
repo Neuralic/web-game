@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
-import { initializePresence, disconnectPresence, cleanupRealtimeChannels, PresenceData } from '@/lib/realtime';
+import { initializePresence, disconnectPresence, cleanupRealtimeChannels, refreshPresenceHeartbeat, PresenceData } from '@/lib/realtime';
 import { isAuthenticated } from '@/lib/auth';
 import { storage } from '@/lib/api';
 
@@ -9,6 +9,9 @@ interface RealtimeContextType {
   presenceMap: Map<string, PresenceData>;
   isConnected: boolean;
 }
+
+// How often a visible tab re-tracks its presence so lastOnline stays fresh (readers treat > 3 min as offline).
+const PRESENCE_HEARTBEAT_MS = 60 * 1000;
 
 const RealtimeContext = createContext<RealtimeContextType>({
   presenceMap: new Map(),
@@ -46,10 +49,25 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
       return;
     }
 
+    let heartbeat: ReturnType<typeof setInterval> | null = null;
+    const stopHeartbeat = () => {
+      if (heartbeat) {
+        clearInterval(heartbeat);
+        heartbeat = null;
+      }
+    };
+    const startHeartbeat = () => {
+      stopHeartbeat();
+      heartbeat = setInterval(() => {
+        refreshPresenceHeartbeat().catch(() => {});
+      }, PRESENCE_HEARTBEAT_MS);
+    };
+
     const initPresence = async () => {
       try {
         await initializePresence(userId, username, handlePresenceUpdate);
         setIsConnected(true);
+        if (document.visibilityState === 'visible') startHeartbeat();
       } catch (error) {
         console.error('Failed to initialize presence:', error);
         setIsConnected(false);
@@ -61,6 +79,7 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
     // Mark offline when tab is hidden / closed
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
+        stopHeartbeat();
         disconnectPresence();
       } else if (document.visibilityState === 'visible') {
         // Re-join when tab becomes visible again
@@ -69,6 +88,7 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
     };
 
     const handleBeforeUnload = () => {
+      stopHeartbeat();
       disconnectPresence();
     };
 
@@ -76,6 +96,7 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
     window.addEventListener('beforeunload', handleBeforeUnload);
 
     return () => {
+      stopHeartbeat();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('beforeunload', handleBeforeUnload);
       cleanupRealtimeChannels();
