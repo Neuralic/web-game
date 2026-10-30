@@ -99,6 +99,8 @@ const ITEMS_PER_PAGE = 24;
 
 const AvatarPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  // Filters the owned-items grid; separate from the header's searchQuery (players/groups/games).
+  const [itemSearch, setItemSearch] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("Recent");
   const [activeSubTab, setActiveSubTab] = useState("Recently Added");
@@ -320,7 +322,7 @@ const AvatarPage = () => {
 
   // Owned items for the active sub-tab, paginated on the client. Owned items always show (no availability filter).
   const tabFilter = TAB_TO_CATEGORY[activeSubTab];
-  const tabItems = ownedItems.filter((item) => {
+  const categoryItems = ownedItems.filter((item) => {
     if (!tabFilter) return false;
     // Classic Faces: the toggle switches between 3D face accessories and the classic 2D faces
     if (activeSubTab === "Classic Faces") {
@@ -329,6 +331,10 @@ const AvatarPage = () => {
     return (!tabFilter.category || item.category === tabFilter.category) &&
       (!tabFilter.subcategory || item.subcategory === tabFilter.subcategory);
   });
+  const itemSearchTerm = itemSearch.trim().toLowerCase();
+  const tabItems = itemSearchTerm
+    ? categoryItems.filter((item) => item.name.toLowerCase().includes(itemSearchTerm))
+    : categoryItems;
   const totalPages = Math.max(1, Math.ceil(tabItems.length / ITEMS_PER_PAGE));
   const pageItems = tabItems.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
@@ -507,6 +513,19 @@ const AvatarPage = () => {
 
               {isTabsSticky && <div className="h-24"></div>}
 
+              {ownedItemsLoaded && !inventoryError && ownedItems.length > 0 && (
+                <input
+                  type="text"
+                  value={itemSearch}
+                  onChange={(e) => {
+                    setItemSearch(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  placeholder="Search your items"
+                  className="mt-4 w-full max-w-xs px-3 py-2 text-sm border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-gray-50 dark:bg-[#242424] text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              )}
+
               {!ownedItemsLoaded ? (
                 <div className="flex items-center justify-center py-20">
                   <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
@@ -530,6 +549,10 @@ const AvatarPage = () => {
                   >
                     Visit Catalog
                   </Link>
+                </div>
+              ) : categoryItems.length > 0 && tabItems.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                  <p className="text-gray-500 dark:text-gray-400 text-sm">No items match</p>
                 </div>
               ) : tabItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20">
