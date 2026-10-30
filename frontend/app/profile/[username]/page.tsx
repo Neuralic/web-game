@@ -189,6 +189,7 @@ const ProfilePage = () => {
   const [relationship, setRelationship] = useState<{
     isFriend: boolean;
     friendRequestStatus: 'sent' | 'received' | null;
+    friendRequestId?: string | null;
     isFollowing: boolean;
     isBestFriend: boolean;
     isBlocked: boolean;
@@ -758,6 +759,24 @@ const ProfilePage = () => {
     finally { setIsLoadingAction(false); }
   };
 
+  const handleAcceptFriendRequest = async () => {
+    const requestId = relationship?.friendRequestId;
+    if (!requestId) { alert("Couldn't find this friend request. Please refresh the page."); return; }
+    setIsLoadingAction(true);
+    try {
+      const response = await friendsApi.acceptFriendRequest(requestId);
+      if (response.success) {
+        setRelationship(prev => prev ? { ...prev, isFriend: true, friendRequestStatus: null, friendRequestId: null } : null);
+      } else {
+        alert(response.message || response.error || "Failed to accept friend request. Please try again.");
+      }
+    } catch (error) {
+      console.error('Accept friend request error:', error);
+      alert("An error occurred while accepting the friend request.");
+    }
+    finally { setIsLoadingAction(false); }
+  };
+
   const handleUnfriend = async () => {
     if (!profileUser?.id || !window.confirm('Are you sure you want to unfriend this user?')) return;
     setIsLoadingAction(true);
@@ -999,7 +1018,7 @@ const ProfilePage = () => {
                             ) : relationship?.friendRequestStatus === 'sent' ? (
                               <button disabled className="px-4 py-2 bg-gray-400 text-white font-medium rounded-lg text-sm cursor-not-allowed">Request Sent</button>
                             ) : relationship?.friendRequestStatus === 'received' ? (
-                              <button onClick={handleSendFriendRequest} disabled={isLoadingAction} className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg text-sm transition-colors">Accept Friend Request</button>
+                              <button onClick={handleAcceptFriendRequest} disabled={isLoadingAction} className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg text-sm transition-colors disabled:opacity-50">Accept Friend Request</button>
                             ) : (
                               <button onClick={handleSendFriendRequest} disabled={isLoadingAction} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm transition-colors disabled:opacity-50">Add Friend</button>
                             )}
