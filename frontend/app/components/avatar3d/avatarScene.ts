@@ -5,7 +5,7 @@
 // COORDINATES: everything is built in Roblox's own right-handed frame (x = avatar's right,
 // y = up, front of the avatar = -Z), in studs. No axis negation anywhere: the finished
 // model is wrapped in a pivot rotated 180° about Y so its front faces the default +Z camera.
-// A Z-negation would mirror the model (wrong chirality: mirrored shirt text, swapped sides)
+// A Z-negation would mirror the model (wrong chirality: mirrored shirt text, swapped sides).
 import * as THREE from "three";
 
 export const DEG = Math.PI / 180;
@@ -37,10 +37,14 @@ const LOWER_TORSO_H = 0.4, UPPER_TORSO_H = 1.6, HEAD_S = 1.2;
 const HAND_H = 0.3, LOWER_ARM_H = 0.7, UPPER_ARM_H = 1.0;
 const LEG_TOP = FOOT_H + LOWER_LEG_H + UPPER_LEG_H;     // 2.0
 const TORSO_TOP = LEG_TOP + LOWER_TORSO_H + UPPER_TORSO_H; // 4.0
-// The head is a sphere that touches the torso top at a single point, which leaves a visible gap at its sides.
-// Sinking it into the torso hides that gap. Everything attached to the head (hair, hats, face accessories and
-// the face decal) is positioned from the head mesh, so it moves with it. Tune here.
+// The head is a rounded box: flat sides, top and front, corners rounded with radius HEAD_CORNER, built from
+// HEAD_SEGMENTS subdivisions per side. Sinking it into the torso tucks its rounded lower edge under the torso top
+// so no gap shows. Everything attached to the head (hair, hats, face accessories and the face decal) is
+// positioned from the head mesh, so it moves with it. Tune here.
 const HEAD_SINK = 0.12;
+const HEAD_CORNER = 0.28;
+const HEAD_SEGMENTS = 24;
+const DECAL_OFFSET = 0.004; // how far the face decal floats off the head surface
 const HEAD_CY = TORSO_TOP + HEAD_S / 2 - HEAD_SINK;       // 4.48
 
 type Seg = [number, number]; // vertical fraction of the classic 2-stud tall slot [top, bottom]
@@ -153,23 +157,49 @@ async function composeSheet(skin: string, layers: Array<string | undefined>): Pr
   return tex;
 }
 
-/** Roblox heads are rounded, not cubes, and hair meshes are modelled around that shape.
- *  Blend a subdivided box toward a sphere: face centres keep their 0.6 extent, corners pull in. */
-function roundedHeadGeometry(size: number, roundness = 1.0): THREE.BufferGeometry {
-  const geo = new THREE.BoxGeometry(size, size, size, 10, 10, 10);
+/** Roblox-style head: a box with flat sides and rounded corners. Every vertex of a subdivided box is pushed to
+ *  `radius` from the inner (shrunken) box, so flat areas stay exactly flat and edges/corners become arcs/spheres. */
+function roundedHeadGeometry(size: number, radius: number, segments: number): THREE.BufferGeometry {
+  const geo = new THREE.BoxGeometry(size, size, size, segments, segments, segments);
   const pos = geo.getAttribute("position") as THREE.BufferAttribute;
   const nor = geo.getAttribute("normal") as THREE.BufferAttribute;
-  const v = new THREE.Vector3(), n = new THREE.Vector3(), r = size / 2;
+  const inner = size / 2 - radius;
+  const v = new THREE.Vector3(), d = new THREE.Vector3();
   for (let i = 0; i < pos.count; i++) {
     v.fromBufferAttribute(pos, i);
-    n.fromBufferAttribute(nor, i);
-    const sphere = v.clone().normalize().multiplyScalar(r);
-    v.lerp(sphere, roundness);
-    n.lerp(sphere.normalize(), roundness).normalize();
-    pos.setXYZ(i, v.x, v.y, v.z);
-    nor.setXYZ(i, n.x, n.y, n.z);
+    d.set(
+      v.x - THREE.MathUtils.clamp(v.x, -inner, inner),
+      v.y - THREE.MathUtils.clamp(v.y, -inner, inner),
+      v.z - THREE.MathUtils.clamp(v.z, -inner, inner),
+    ).normalize(); // every box-surface vertex is at least `radius` from the inner box, so d is never zero
+    pos.setXYZ(
+      i,
+      THREE.MathUtils.clamp(v.x, -inner, inner) + d.x * radius,
+      THREE.MathUtils.clamp(v.y, -inner, inner) + d.y * radius,
+      THREE.MathUtils.clamp(v.z, -inner, inner) + d.z * radius,
+    );
+    nor.setXYZ(i, d.x, d.y, d.z);
   }
   return geo;
+}
+
+/** Point on the front (+Z) of the rounded-box head, `offset` off its surface, for plane coordinates (x, y).
+ *  The flat part maps 1:1. Past the flat part the plane runs along the rounded corner by arc length, so the
+ *  decal follows the head with even sampling and never dips into it. */
+function headFrontPoint(x: number, y: number, offset: number): [number, number, number] {
+  const half = HEAD_S / 2;
+  const inner = half - HEAD_CORNER;
+  const ax = (Math.max(Math.abs(x) - inner, 0) / HEAD_CORNER) * (Math.PI / 2); // angle round the corner in x
+  const ay = (Math.max(Math.abs(y) - inner, 0) / HEAD_CORNER) * (Math.PI / 2); // angle round the corner in y
+  const nx = Math.sign(x) * Math.sin(ax) * Math.cos(ay);
+  const ny = Math.sign(y) * Math.sin(ay);
+  const nz = Math.cos(ax) * Math.cos(ay);
+  const r = HEAD_CORNER + offset;
+  return [
+    THREE.MathUtils.clamp(x, -inner, inner) + nx * r,
+    THREE.MathUtils.clamp(y, -inner, inner) + ny * r,
+    inner + nz * r,
+  ];
 }
 
 // ─── Accessories ─────────────────────────────────────────────────────────
@@ -243,7 +273,7 @@ export async function buildAvatar(data: CustomAvatarData): Promise<AvatarModel> 
   const body = new THREE.Group();
   const parts = new Map<PartName, THREE.Mesh>();
   for (const p of PARTS) {
-    const geo = p.kind === "head" ? roundedHeadGeometry(p.w) : new THREE.BoxGeometry(p.w, p.h, p.d);
+    const geo = p.kind === "head" ? roundedHeadGeometry(p.w, HEAD_CORNER, HEAD_SEGMENTS) : new THREE.BoxGeometry(p.w, p.h, p.d);
     if (p.kind !== "head") setFaceUVs(geo, TEMPLATE[p.kind], p.seg);
     const mat = p.kind === "head" ? headMat : p.kind === "torso" ? mats.torso : p.kind.startsWith("arm") ? mats.arm : mats.leg;
     const mesh = new THREE.Mesh(geo, mat);
@@ -258,17 +288,14 @@ export async function buildAvatar(data: CustomAvatarData): Promise<AvatarModel> 
       const tex = new THREE.Texture(await loadImage(item.decalDataUrl as string));
       tex.colorSpace = THREE.SRGBColorSpace;
       tex.needsUpdate = true;
-      // The head is a sphere, so a flat plane would float off its surface (everywhere but dead centre).
-      // Wrap the decal onto the sphere instead: segment the plane and move each vertex onto a sphere just
-      // outside the head, keeping arc lengths so the face keeps its proportions.
-      const HEAD_R = 1.2 / 2;
-      const DECAL_R = HEAD_R + 0.004;
-      const geo = new THREE.PlaneGeometry(1.2, 1.2, 24, 24);
+      // The front of the head is flat with rounded edges, so a flat plane would float off the corners.
+      // Segment the plane and move each vertex onto the head surface (flat part 1:1, corners by arc length)
+      // with a small offset so the decal neither floats nor clips.
+      const geo = new THREE.PlaneGeometry(HEAD_S, HEAD_S, 24, 24);
       const gp = geo.getAttribute("position") as THREE.BufferAttribute;
       for (let i = 0; i < gp.count; i++) {
-        const ax = gp.getX(i) / HEAD_R; // longitude (radians)
-        const ay = gp.getY(i) / HEAD_R; // latitude (radians)
-        gp.setXYZ(i, DECAL_R * Math.sin(ax) * Math.cos(ay), DECAL_R * Math.sin(ay), DECAL_R * Math.cos(ax) * Math.cos(ay));
+        const [x, y, z] = headFrontPoint(gp.getX(i), gp.getY(i), DECAL_OFFSET);
+        gp.setXYZ(i, x, y, z);
       }
       gp.needsUpdate = true;
       geo.computeVertexNormals();
