@@ -16,6 +16,29 @@ import AnnouncementBanner from "../components/AnnouncementBanner";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
+// Same card as the Games page (app/games/page.tsx GameCard)
+const GameCard = ({ game }: { game: any }) => (
+  <div className="group cursor-pointer flex-shrink-0 w-[260px]">
+    <Link href={`/games/${game.id}`} className="block">
+      <div className="rounded-lg overflow-hidden bg-gray-200 dark:bg-[#242424] aspect-video mb-1.5 relative">
+        {game.thumbnailUrl ? (
+          <img src={game.thumbnailUrl} alt={game.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600">
+            <span className="text-white font-bold text-2xl">AB</span>
+          </div>
+        )}
+      </div>
+      <h3 className="font-bold text-sm text-gray-900 dark:text-gray-100 line-clamp-1">{game.title}</h3>
+      <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mt-0.5 mb-2">
+        <span className="flex items-center gap-1">👥 {game.currentPlayers?.toLocaleString() || 0} playing</span>
+      </div>
+    </Link>
+
+    <a href={`roblox://experiences/start?placeId=${game.id}`} className="block text-center bg-green-500 hover:bg-green-600 text-white text-sm font-bold py-2 rounded-lg transition-colors">Play</a>
+  </div>
+);
+
 const HomePage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -257,21 +280,9 @@ const HomePage = () => {
               ) : recentlyPlayed.length === 0 ? (
                 <p className="text-sm text-gray-500 dark:text-gray-400 py-6 text-center">No recently played games yet.</p>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
                   {recentlyPlayed.slice(0, 4).map((game) => (
-                    <Link key={game.id} href={`/games/${game.id}`} className="cursor-pointer group block">
-                      <div className="aspect-[4/3] rounded-lg overflow-hidden bg-gray-100 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] group-hover:border-gray-400 dark:group-hover:border-gray-500 transition-colors">
-                        {game.thumbnailUrl ? (
-                          <img src={game.thumbnailUrl} alt={game.title} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full bg-gradient-to-b from-blue-200 to-green-200 dark:from-blue-900 dark:to-green-900 flex items-center justify-center">
-                            <span className="text-xl font-bold text-gray-700 dark:text-gray-300">ADVENTUREBLOX</span>
-                          </div>
-                        )}
-                      </div>
-                      <h3 className="mt-2 text-sm font-bold text-gray-900 dark:text-gray-100 truncate">{game.title}</h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{game.visits?.toLocaleString() || 0} visits</p>
-                    </Link>
+                    <GameCard key={game.id} game={game} />
                   ))}
                 </div>
               )}
@@ -290,21 +301,9 @@ const HomePage = () => {
               ) : favoriteGames.length === 0 ? (
                 <p className="text-sm text-gray-500 dark:text-gray-400 py-6 text-center">No favorite games yet.</p>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
                   {favoriteGames.slice(0, 4).map((game) => (
-                    <Link key={game.id} href={`/games/${game.id}`} className="cursor-pointer group block">
-                      <div className="aspect-[4/3] rounded-lg overflow-hidden bg-gray-100 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] group-hover:border-gray-400 dark:group-hover:border-gray-500 transition-colors">
-                        {game.thumbnailUrl ? (
-                          <img src={game.thumbnailUrl} alt={game.title} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full bg-gradient-to-b from-blue-200 to-green-200 dark:from-blue-900 dark:to-green-900 flex items-center justify-center">
-                            <span className="text-xl font-bold text-gray-700 dark:text-gray-300">ADVENTUREBLOX</span>
-                          </div>
-                        )}
-                      </div>
-                      <h3 className="mt-2 text-sm font-bold text-gray-900 dark:text-gray-100 truncate">{game.title}</h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{game.visits?.toLocaleString() || 0} visits</p>
-                    </Link>
+                    <GameCard key={game.id} game={game} />
                   ))}
                 </div>
               )}
