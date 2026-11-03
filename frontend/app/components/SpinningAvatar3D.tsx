@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Loader2 } from "lucide-react";
 import * as THREE from "three";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { MTLLoader } from "three/examples/jsm/loaders/MTLLoader.js";
@@ -168,13 +167,12 @@ export default function SpinningAvatar3D({ userId, onError }: Props) {
 
   return (
     <div className="absolute inset-0 rounded-lg overflow-hidden">
-      {loading && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 z-10">
-          <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
-          <p className="text-xs text-amber-700 dark:text-amber-300">Loading 3D avatar...</p>
-        </div>
-      )}
-      <div ref={containerRef} className="w-full h-full" />
+      {/* No loading screen: the canvas stays invisible until the model is ready, then fades in. */}
+      <div
+        ref={containerRef}
+        className="w-full h-full transition-opacity duration-500 ease-out"
+        style={{ opacity: loading ? 0 : 1 }}
+      />
       <div className="absolute bottom-4 right-4 bg-white dark:bg-[#1a1a1a] px-3 py-1 rounded font-semibold text-sm text-gray-900 dark:text-gray-100 z-20">
         3D
       </div>
