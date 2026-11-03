@@ -152,10 +152,12 @@ const ConfigureGroupPage = () => {
   const [roleDescription, setRoleDescription] = useState("");
   const [roleRank, setRoleRank] = useState<number | "">("");
   const [permissionSectionsCollapsed, setPermissionSectionsCollapsed] = useState({
-    posts: true,
-    members: true,
-    moderation: true,
+    posts: false,
+    members: false,
+    moderation: false,
   });
+  const [showDeleteRoleModal, setShowDeleteRoleModal] = useState(false);
+  const [deletingRole, setDeletingRole] = useState(false);
   const [rolePermissions, setRolePermissions] = useState({
     postWall: true,
     deleteWallPosts: false,
@@ -1192,6 +1194,50 @@ const ConfigureGroupPage = () => {
       setSaving(false);
     }
   };
+
+  const handleDeleteRole = async () => {
+    if (!groupUuid || !selectedRole) return;
+
+    setDeletingRole(true);
+    try {
+      const response = await groupsApi.deleteGroupRole(groupUuid, selectedRole.id);
+      setShowDeleteRoleModal(false);
+
+      if (response?.success) {
+        setSuccessMessage({
+          title: "Success",
+          message: "Role deleted successfully!",
+        });
+        setShowSuccessModal(true);
+        handleClearForm();
+        const rolesResponse = await groupsApi.getGroupRoles(groupUuid);
+        if (rolesResponse.success && rolesResponse.data) {
+          setRoles((rolesResponse.data.roles as any[]) || []);
+        }
+        fetchMembers();
+      } else {
+        setSuccessMessage({
+          title: "Error",
+          message: response?.message || response?.error || "Failed to delete role",
+        });
+        setShowSuccessModal(true);
+      }
+    } catch (error) {
+      console.error("Error deleting role:", error);
+      setShowDeleteRoleModal(false);
+      setSuccessMessage({
+        title: "Error",
+        message: "An error occurred while deleting role",
+      });
+      setShowSuccessModal(true);
+    } finally {
+      setDeletingRole(false);
+    }
+  };
+
+  const deleteRoleMemberCount = selectedRole
+    ? members.filter((m) => m.role_id === selectedRole.id).length
+    : 0;
 
   const handleAdImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -2410,6 +2456,17 @@ const ConfigureGroupPage = () => {
                             {saving ? "Creating..." : "Create Role"}
                           </button>
                         ) : null}
+
+                        {selectedRole && selectedRole.name !== 'Owner' && selectedRole.rank !== 255 && (
+                          <button
+                            type="button"
+                            onClick={() => setShowDeleteRoleModal(true)}
+                            disabled={saving || deletingRole}
+                            className="w-full px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Delete Role
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -3018,6 +3075,23 @@ const ConfigureGroupPage = () => {
         cancelText="Cancel"
         loading={assigningRole}
         disabled={assigningRole}
+      />
+
+      <ConfirmModal
+        isOpen={showDeleteRoleModal}
+        onClose={() => setShowDeleteRoleModal(false)}
+        onConfirm={handleDeleteRole}
+        title="Delete Role"
+        message={
+          deleteRoleMemberCount > 0
+            ? `Delete the role "${selectedRole?.name}"? ${deleteRoleMemberCount} ${deleteRoleMemberCount === 1 ? "member has" : "members have"} this role and will be moved to the ${roles.some((r) => r.name === 'Member') ? '"Member"' : "lowest remaining"} role.`
+            : `Delete the role "${selectedRole?.name}"? No members have this role.`
+        }
+        confirmText="Delete Role"
+        cancelText="Cancel"
+        variant="danger"
+        loading={deletingRole}
+        disabled={deletingRole}
       />
     </div>
   );
