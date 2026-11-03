@@ -1,368 +1,360 @@
-// Scene-building code for the custom (server-parsed) 3D avatar.
-// Shared by Avatar3DViewer (React) and the dev-only screenshot harness in
-// frontend/scripts/avatar-harness. Pure three.js — no React, no DOM except canvas/Image.
-//
-// COORDINATES: everything is built in Roblox's own right-handed frame (x = avatar's right,
-// y = up, front of the avatar = -Z), in studs. No axis negation anywhere: the finished
-// model is wrapped in a pivot rotated 180° about Y so its front faces the default +Z camera.
-// A Z-negation would mirror the model (wrong chirality: mirrored shirt text, swapped sides).
+"use client";
+
+import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
+import {
+  buildAvatar, createAvatarScene, fitDistance, orbitCamera, DEG,
+  type AvatarModel, type CustomAvatarData,
+} from "./avatar3d/avatarScene";
 
-export const DEG = Math.PI / 180;
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
-// ─── Response types (GET /avatar/3d-custom-v2/:userId) ────────────────────
-export interface AccessoryItem {
-  itemType: "accessory";
-  positions: number[]; // handle-local studs (backend already normalises v1 meshes to studs)
-  normals: number[];
-  uvs: number[];
-  indices: number[];
-  scale: [number, number, number];   // SpecialMesh.Scale
-  offset: [number, number, number];  // SpecialMesh.Offset (studs, handle space, NOT scaled)
-  attachmentName: string | null;
-  accessoryCFrame?: number[];        // Attachment CFrame in Handle space: [x,y,z] or [x,y,z,r00..r22]
-  textureDataUrl: string | null;
-}
-export interface CustomAvatarData {
-  success: boolean;
-  skinColor: string;
-  items: Array<Record<string, unknown> | null>;
+interface Props {
+  userId: string;
+  className?: string;
+  /** Bump to make the viewer refetch and swap in the latest outfit without remounting. */
+  refreshKey?: number;
+  /** Catalog item id to preview on this avatar (server `?try=`). Preview only: nothing is equipped or saved. */
+  tryOnItemId?: string;
+  /** Called with a front-view PNG data URL each time a model finishes loading. */
+  onSnapshot?: (dataUrl: string) => void;
+  /** Called after a load with the server's verdict on the `tryOnItemId` preview. */
+  onTryOnResult?: (result: TryOnResult) => void;
 }
 
-// ─── R15-ish body layout (studs; origin at the soles) ────────────────────
-// Parts are stacked without overlap so the classic 2-stud-tall torso/arm/leg template
-// can be split proportionally between the R15 pieces.
-const FOOT_H = 0.3, LOWER_LEG_H = 0.7, UPPER_LEG_H = 1.0;
-const LOWER_TORSO_H = 0.4, UPPER_TORSO_H = 1.6, HEAD_S = 1.2;
-const HAND_H = 0.3, LOWER_ARM_H = 0.7, UPPER_ARM_H = 1.0;
-const LEG_TOP = FOOT_H + LOWER_LEG_H + UPPER_LEG_H;     // 2.0
-const TORSO_TOP = LEG_TOP + LOWER_TORSO_H + UPPER_TORSO_H; // 4.0
-// The head is a rounded box: flat sides, top and front, corners rounded with radius HEAD_CORNER, built from
-// HEAD_SEGMENTS subdivisions per side. Sinking it into the torso tucks its rounded lower edge under the torso top
-// so no gap shows. Everything attached to the head (hair, hats, face accessories and the face decal) is
-// positioned from the head mesh, so it moves with it. Tune here.
-const HEAD_SINK = 0.12;
-const HEAD_CORNER = 0.28;
-const HEAD_SEGMENTS = 24;
-const DECAL_OFFSET = 0.004; // how far the face decal floats off the head surface
-const HEAD_CY = TORSO_TOP + HEAD_S / 2 - HEAD_SINK;       // 4.48
+export type TryOnResult = { ok: true; slot?: string } | { ok: false; reason?: string };
 
-type Seg = [number, number]; // vertical fraction of the classic 2-stud tall slot [top, bottom]
-type PartName =
-  | "Head" | "UpperTorso" | "LowerTorso"
-  | "LeftUpperArm" | "RightUpperArm" | "LeftLowerArm" | "RightLowerArm" | "LeftHand" | "RightHand"
-  | "LeftUpperLeg" | "RightUpperLeg" | "LeftLowerLeg" | "RightLowerLeg" | "LeftFoot" | "RightFoot";
+// ─── Constants ─────────────────────────────────────────────────────
+const DAMPING = 0.08;
+const AUTO_ROTATE_RAD_PER_SEC = 1.5; // time-based, so the spin is the same on 60/120/144 Hz screens
+const AUTO_ROTATE_RESUME_MS = 1500;  // auto-spin resumes this long after the last interaction
+const MAX_FRAME_DT_S = 0.1;          // don't jump if the tab was in the background
 
-interface PartDef {
-  name: PartName; w: number; h: number; d: number; x: number; yTop: number;
-  kind: "head" | "torso" | "armR" | "armL" | "legR" | "legL"; seg: Seg;
-}
-// Roblox "Right" = +X. Right limbs are at +X. Limbs sit 0.04 studs clear of the torso/each other
-// (a visual gap only) so same-coloured clothing keeps readable edges.
-const PARTS: PartDef[] = [
-  { name: "Head",          w: 1.2, h: HEAD_S,       d: 1.2, x: 0,    yTop: TORSO_TOP + HEAD_S - HEAD_SINK, kind: "head",  seg: [0, 1] },
-  { name: "UpperTorso",    w: 2.0, h: UPPER_TORSO_H, d: 1.0, x: 0,    yTop: TORSO_TOP,          kind: "torso", seg: [0, 0.8] },
-  { name: "LowerTorso",    w: 2.0, h: LOWER_TORSO_H, d: 1.0, x: 0,    yTop: LEG_TOP + LOWER_TORSO_H, kind: "torso", seg: [0.8, 1] },
-  { name: "RightUpperArm", w: 1.0, h: UPPER_ARM_H,  d: 1.0, x: 1.54,  yTop: TORSO_TOP,          kind: "armR",  seg: [0, 0.5] },
-  { name: "RightLowerArm", w: 1.0, h: LOWER_ARM_H,  d: 1.0, x: 1.54,  yTop: TORSO_TOP - UPPER_ARM_H, kind: "armR", seg: [0.5, 0.85] },
-  { name: "RightHand",     w: 1.0, h: HAND_H,       d: 1.0, x: 1.54,  yTop: TORSO_TOP - UPPER_ARM_H - LOWER_ARM_H, kind: "armR", seg: [0.85, 1] },
-  { name: "LeftUpperArm",  w: 1.0, h: UPPER_ARM_H,  d: 1.0, x: -1.54, yTop: TORSO_TOP,          kind: "armL",  seg: [0, 0.5] },
-  { name: "LeftLowerArm",  w: 1.0, h: LOWER_ARM_H,  d: 1.0, x: -1.54, yTop: TORSO_TOP - UPPER_ARM_H, kind: "armL", seg: [0.5, 0.85] },
-  { name: "LeftHand",      w: 1.0, h: HAND_H,       d: 1.0, x: -1.54, yTop: TORSO_TOP - UPPER_ARM_H - LOWER_ARM_H, kind: "armL", seg: [0.85, 1] },
-  { name: "RightUpperLeg", w: 1.0, h: UPPER_LEG_H,  d: 1.0, x: 0.52,  yTop: LEG_TOP,            kind: "legR",  seg: [0, 0.5] },
-  { name: "RightLowerLeg", w: 1.0, h: LOWER_LEG_H,  d: 1.0, x: 0.52,  yTop: LEG_TOP - UPPER_LEG_H, kind: "legR", seg: [0.5, 0.85] },
-  { name: "RightFoot",     w: 1.0, h: FOOT_H,       d: 1.0, x: 0.52,  yTop: FOOT_H,             kind: "legR",  seg: [0.85, 1] },
-  { name: "LeftUpperLeg",  w: 1.0, h: UPPER_LEG_H,  d: 1.0, x: -0.52, yTop: LEG_TOP,            kind: "legL",  seg: [0, 0.5] },
-  { name: "LeftLowerLeg",  w: 1.0, h: LOWER_LEG_H,  d: 1.0, x: -0.52, yTop: LEG_TOP - UPPER_LEG_H, kind: "legL", seg: [0.5, 0.85] },
-  { name: "LeftFoot",      w: 1.0, h: FOOT_H,       d: 1.0, x: -0.52, yTop: FOOT_H,             kind: "legL",  seg: [0.85, 1] },
-];
-
-// Accessory attachment points: [body part, point in that part's local space (Roblox frame)].
-const ATTACHMENTS: Record<string, [PartName, [number, number, number]]> = {
-  HairAttachment:          ["Head", [0, 0.6, 0]],
-  HatAttachment:           ["Head", [0, 0.6, 0]],
-  FaceFrontAttachment:     ["Head", [0, 0, -0.6]],
-  FaceCenterAttachment:    ["Head", [0, 0, 0]],
-  NeckAttachment:          ["UpperTorso", [0, 0.8, 0]],
-  BodyFrontAttachment:     ["UpperTorso", [0, 0, -0.5]],
-  BodyBackAttachment:      ["UpperTorso", [0, 0, 0.5]],
-  LeftShoulderAttachment:  ["LeftUpperArm", [0, 0.4, 0]],
-  RightShoulderAttachment: ["RightUpperArm", [0, 0.4, 0]],
-  WaistFrontAttachment:    ["LowerTorso", [0, 0, -0.5]],
-  WaistBackAttachment:     ["LowerTorso", [0, 0, 0.5]],
-  WaistCenterAttachment:   ["LowerTorso", [0, 0, 0]],
-};
-
-// ─── Classic clothing template (585×559) ─────────────────────────────────
-// Verified by cropping the real shirt (asset 13707005008) — see scripts/avatar-harness/crop-template.mjs.
-// Rect = [x, y, w, h] in template pixels. Faces are named by Roblox surface (as seen from OUTSIDE).
-type Rect = [number, number, number, number];
-export const TW = 585, TH = 559;
-interface Slot { top: Rect; bottom: Rect; right: Rect; front: Rect; left: Rect; back: Rect }
-export const TEMPLATE: Record<"torso" | "armR" | "armL" | "legR" | "legL", Slot> = {
-  torso: { top: [231, 8, 128, 64],  bottom: [231, 204, 128, 64], right: [165, 74, 64, 128],  front: [231, 74, 128, 128], left: [361, 74, 64, 128],  back: [427, 74, 128, 128] },
-  armR:  { top: [217, 289, 64, 64], bottom: [217, 485, 64, 64],  right: [19, 355, 64, 128],  front: [85, 355, 64, 128],  left: [151, 355, 64, 128], back: [217, 355, 64, 128] },
-  armL:  { top: [308, 289, 64, 64], bottom: [308, 485, 64, 64],  right: [308, 355, 64, 128], front: [374, 355, 64, 128], left: [440, 355, 64, 128], back: [506, 355, 64, 128] },
-  legR:  { top: [217, 289, 64, 64], bottom: [217, 485, 64, 64],  right: [19, 355, 64, 128],  front: [85, 355, 64, 128],  left: [151, 355, 64, 128], back: [217, 355, 64, 128] },
-  legL:  { top: [308, 289, 64, 64], bottom: [308, 485, 64, 64],  right: [308, 355, 64, 128], front: [374, 355, 64, 128], left: [440, 355, 64, 128], back: [506, 355, 64, 128] },
-};
-
-// BoxGeometry face order is +X,-X,+Y,-Y,+Z,-Z. Roblox: +X=Right, -X=Left, -Z=Front, +Z=Back.
-const FACE_ORDER: Array<keyof Slot> = ["right", "left", "top", "bottom", "back", "front"];
-
-function setFaceUVs(geo: THREE.BufferGeometry, slot: Slot, seg: Seg) {
-  const uv = geo.getAttribute("uv") as THREE.BufferAttribute;
-  FACE_ORDER.forEach((face, f) => {
-    // Faces buried inside the body (where R15 pieces join) must not sample the template's top/bottom
-    // cells (e.g. the neck hole) or a hairline of that shows at the seam — use a plain side cell instead.
-    const internal = (face === "top" && seg[0] > 0) || (face === "bottom" && seg[1] < 1);
-    const [x, y, w, h] = slot[internal ? "front" : face];
-    const side = internal || (face !== "top" && face !== "bottom");
-    // Side faces: this part shows only a vertical slice of the 2-stud-tall classic slot.
-    const y0 = side ? y + h * seg[0] : y;
-    const y1 = side ? y + h * seg[1] : y + h;
-    const u0 = x / TW, u1 = (x + w) / TW, vTop = 1 - y0 / TH, vBot = 1 - y1 / TH;
-    const b = f * 4; // three BoxGeometry: verts are TL, TR, BL, BR of each face as seen from outside
-    uv.setXY(b + 0, u0, vTop);
-    uv.setXY(b + 1, u1, vTop);
-    uv.setXY(b + 2, u0, vBot);
-    uv.setXY(b + 3, u1, vBot);
-  });
-  uv.needsUpdate = true;
-}
-
-function loadImage(src: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error("image load failed"));
-    img.src = src;
-  });
-}
-
-/** Skin colour + clothing templates composited like Roblox does (transparent template pixels show what is underneath). */
-async function composeSheet(skin: string, layers: Array<string | undefined>): Promise<THREE.CanvasTexture> {
-  const c = document.createElement("canvas");
-  c.width = TW; c.height = TH;
-  const g = c.getContext("2d")!;
-  g.fillStyle = skin;
-  g.fillRect(0, 0, TW, TH);
-  for (const url of layers) {
-    if (!url) continue;
-    try { g.drawImage(await loadImage(url), 0, 0, TW, TH); } catch { /* skip bad template */ }
-  }
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 4;
-  return tex;
-}
-
-/** Roblox-style head: a box with flat sides and rounded corners. Every vertex of a subdivided box is pushed to
- *  `radius` from the inner (shrunken) box, so flat areas stay exactly flat and edges/corners become arcs/spheres. */
-function roundedHeadGeometry(size: number, radius: number, segments: number): THREE.BufferGeometry {
-  const geo = new THREE.BoxGeometry(size, size, size, segments, segments, segments);
-  const pos = geo.getAttribute("position") as THREE.BufferAttribute;
-  const nor = geo.getAttribute("normal") as THREE.BufferAttribute;
-  const inner = size / 2 - radius;
-  const v = new THREE.Vector3(), d = new THREE.Vector3();
-  for (let i = 0; i < pos.count; i++) {
-    v.fromBufferAttribute(pos, i);
-    d.set(
-      v.x - THREE.MathUtils.clamp(v.x, -inner, inner),
-      v.y - THREE.MathUtils.clamp(v.y, -inner, inner),
-      v.z - THREE.MathUtils.clamp(v.z, -inner, inner),
-    ).normalize(); // every box-surface vertex is at least `radius` from the inner box, so d is never zero
-    pos.setXYZ(
-      i,
-      THREE.MathUtils.clamp(v.x, -inner, inner) + d.x * radius,
-      THREE.MathUtils.clamp(v.y, -inner, inner) + d.y * radius,
-      THREE.MathUtils.clamp(v.z, -inner, inner) + d.z * radius,
-    );
-    nor.setXYZ(i, d.x, d.y, d.z);
-  }
-  return geo;
-}
-
-/** Point on the front (+Z) of the rounded-box head, `offset` off its surface, for plane coordinates (x, y).
- *  The flat part maps 1:1. Past the flat part the plane runs along the rounded corner by arc length, so the
- *  decal follows the head with even sampling and never dips into it. */
-function headFrontPoint(x: number, y: number, offset: number): [number, number, number] {
-  const half = HEAD_S / 2;
-  const inner = half - HEAD_CORNER;
-  const ax = (Math.max(Math.abs(x) - inner, 0) / HEAD_CORNER) * (Math.PI / 2); // angle round the corner in x
-  const ay = (Math.max(Math.abs(y) - inner, 0) / HEAD_CORNER) * (Math.PI / 2); // angle round the corner in y
-  const nx = Math.sign(x) * Math.sin(ax) * Math.cos(ay);
-  const ny = Math.sign(y) * Math.sin(ay);
-  const nz = Math.cos(ax) * Math.cos(ay);
-  const r = HEAD_CORNER + offset;
-  return [
-    THREE.MathUtils.clamp(x, -inner, inner) + nx * r,
-    THREE.MathUtils.clamp(y, -inner, inner) + ny * r,
-    inner + nz * r,
-  ];
-}
-
-// ─── Accessories ─────────────────────────────────────────────────────────
-async function buildAccessory(item: AccessoryItem, parts: Map<PartName, THREE.Mesh>): Promise<THREE.Object3D> {
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute("position", new THREE.Float32BufferAttribute(item.positions, 3));
-  geo.setAttribute("normal", new THREE.Float32BufferAttribute(item.normals, 3));
-  geo.setAttribute("uv", new THREE.Float32BufferAttribute(item.uvs, 2));
-  if (item.indices.length > 0) geo.setIndex(new THREE.Uint32BufferAttribute(item.indices, 1));
-
-  let mat: THREE.Material;
-  if (item.textureDataUrl) {
-    const tex = new THREE.Texture(await loadImage(item.textureDataUrl));
-    tex.colorSpace = THREE.SRGBColorSpace;
-    // Roblox mesh UVs have V measured from the bottom (OBJ convention); three's default flipY=true matches that.
-    tex.anisotropy = 4;
-    tex.needsUpdate = true;
-    mat = new THREE.MeshLambertMaterial({ map: tex, side: THREE.DoubleSide });
-  } else {
-    mat = new THREE.MeshLambertMaterial({ color: 0xcccccc, side: THREE.DoubleSide });
-  }
-
-  // SpecialMesh: vertex_in_handle = vertex * Scale + Offset
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.scale.fromArray(item.scale);
-  mesh.position.fromArray(item.offset);
-
-  // Handle world = AttachmentWorld * inverse(AttachmentCFrameInHandle)
-  const [partName, local] = ATTACHMENTS[item.attachmentName || ""] ?? ATTACHMENTS.HairAttachment;
-  const part = parts.get(partName)!;
-  const attachWorld = new THREE.Matrix4().makeTranslation(
-    part.position.x + local[0], part.position.y + local[1], part.position.z + local[2],
-  );
-  const cf = item.accessoryCFrame ?? [0, 0, 0];
-  const cfMat = new THREE.Matrix4().makeTranslation(cf[0], cf[1], cf[2]);
-  if (cf.length >= 12) {
-    cfMat.set(cf[3], cf[4], cf[5], cf[0], cf[6], cf[7], cf[8], cf[1], cf[9], cf[10], cf[11], cf[2], 0, 0, 0, 1);
-  }
-  const handle = new THREE.Group();
-  handle.add(mesh);
-  handle.matrixAutoUpdate = false;
-  handle.matrix.copy(attachWorld).multiply(cfMat.invert());
-  return handle;
-}
-
-// ─── Public API ──────────────────────────────────────────────────────────
-export interface AvatarModel {
-  /** Rotated so the avatar's front faces +Z; centred on the origin. Add this to a scene. */
-  pivot: THREE.Group;
-  /** Extents of everything (accessories included) for camera fitting. */
-  size: THREE.Vector3;
-  /** Largest horizontal distance from the vertical axis (for any orbit angle). */
-  radiusXZ: number;
-}
-
-export async function buildAvatar(data: CustomAvatarData): Promise<AvatarModel> {
-  const skin = data.skinColor || "#F5C842";
-  const items = (data.items || []).filter(Boolean) as Array<Record<string, any>>;
-  const shirt = items.find((i) => i.itemType === "shirt" && i.templateDataUrl)?.templateDataUrl as string | undefined;
-  const pants = items.find((i) => i.itemType === "pants" && i.templateDataUrl)?.templateDataUrl as string | undefined;
-
-  // Shirt covers torso + arms, pants cover torso + legs. Both templates reuse the same pixel slots
-  // for arms and legs, so they must NOT be composited onto the same limb.
-  const mats = {
-    torso: new THREE.MeshLambertMaterial({ map: await composeSheet(skin, [pants, shirt]) }),
-    arm: new THREE.MeshLambertMaterial({ map: await composeSheet(skin, [shirt]) }),
-    leg: new THREE.MeshLambertMaterial({ map: await composeSheet(skin, [pants]) }),
-  };
-  const headMat = new THREE.MeshLambertMaterial({ color: new THREE.Color(skin) });
-
-  const body = new THREE.Group();
-  const parts = new Map<PartName, THREE.Mesh>();
-  for (const p of PARTS) {
-    const geo = p.kind === "head" ? roundedHeadGeometry(p.w, HEAD_CORNER, HEAD_SEGMENTS) : new THREE.BoxGeometry(p.w, p.h, p.d);
-    if (p.kind !== "head") setFaceUVs(geo, TEMPLATE[p.kind], p.seg);
-    const mat = p.kind === "head" ? headMat : p.kind === "torso" ? mats.torso : p.kind.startsWith("arm") ? mats.arm : mats.leg;
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set(p.x, p.yTop - p.h / 2, 0);
-    mesh.name = p.name;
-    body.add(mesh);
-    parts.set(p.name, mesh);
-  }
-
-  for (const item of items) {
-    if (item.itemType === "face_decal" && item.decalDataUrl) {
-      const tex = new THREE.Texture(await loadImage(item.decalDataUrl as string));
-      tex.colorSpace = THREE.SRGBColorSpace;
-      tex.needsUpdate = true;
-      // The front of the head is flat with rounded edges, so a flat plane would float off the corners.
-      // Segment the plane and move each vertex onto the head surface (flat part 1:1, corners by arc length)
-      // with a small offset so the decal neither floats nor clips.
-      const geo = new THREE.PlaneGeometry(HEAD_S, HEAD_S, 24, 24);
-      const gp = geo.getAttribute("position") as THREE.BufferAttribute;
-      for (let i = 0; i < gp.count; i++) {
-        const [x, y, z] = headFrontPoint(gp.getX(i), gp.getY(i), DECAL_OFFSET);
-        gp.setXYZ(i, x, y, z);
+/** Free GPU resources (geometries, materials, textures) of everything in a scene. */
+function disposeScene(scene: THREE.Scene) {
+  scene.traverse((obj) => {
+    const mesh = obj as THREE.Mesh;
+    mesh.geometry?.dispose();
+    const mats = Array.isArray(mesh.material) ? mesh.material : mesh.material ? [mesh.material] : [];
+    for (const mat of mats) {
+      for (const value of Object.values(mat)) {
+        if (value instanceof THREE.Texture) value.dispose();
       }
-      gp.needsUpdate = true;
-      geo.computeVertexNormals();
-      const plane = new THREE.Mesh(
-        geo,
-        new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }),
-      );
-      plane.rotation.y = Math.PI; // the wrapped patch faces +Z by default; head front is -Z
-      parts.get("Head")!.add(plane);
-    } else if (item.itemType === "accessory" && item.positions) {
-      body.add(await buildAccessory(item as unknown as AccessoryItem, parts));
+      mat.dispose();
     }
-  }
+  });
+}
 
-  // Centre on the origin, then spin 180° about Y so the front (-Z) faces the +Z camera.
-  body.updateMatrixWorld(true);
-  const box = new THREE.Box3().setFromObject(body);
-  const center = box.getCenter(new THREE.Vector3());
-  const size = box.getSize(new THREE.Vector3());
-  body.position.sub(center);
-  const pivot = new THREE.Group();
-  pivot.rotation.y = Math.PI;
-  pivot.add(body);
+export default function Avatar3DViewer({
+  userId, className = "", refreshKey = 0, tryOnItemId, onSnapshot, onTryOnResult,
+}: Props) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  // Latest callbacks, read inside the long-lived effect without re-running it.
+  const onSnapshotRef = useRef(onSnapshot);
+  const onTryOnResultRef = useRef(onTryOnResult);
+  onSnapshotRef.current = onSnapshot;
+  onTryOnResultRef.current = onTryOnResult;
+  const reloadRef = useRef<((fresh?: boolean) => void) | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const [fallbackUrl, setFallbackUrl] = useState<string | null>(null);
 
-  const radiusXZ = Math.max(
-    Math.hypot(box.min.x - center.x, box.min.z - center.z),
-    Math.hypot(box.max.x - center.x, box.max.z - center.z),
-    Math.hypot(box.min.x - center.x, box.max.z - center.z),
-    Math.hypot(box.max.x - center.x, box.min.z - center.z),
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!userId || !container) return;
+
+    let cancelled = false;
+    let renderer: THREE.WebGLRenderer | null = null;
+    let frameId = 0;
+    let resizeObserver: ResizeObserver | null = null;
+
+    let targetTheta = 0;
+    let targetPhi = 85 * DEG;
+    let targetRadius = 1;
+
+    let currentTheta = targetTheta;
+    let currentPhi = targetPhi;
+    let currentRadius = targetRadius;
+
+    const PHI_MIN = 15 * DEG;
+    const PHI_MAX = 165 * DEG;
+
+    let isDragging = false;
+    let lastInteraction = -Infinity; // performance.now() of the last drag/zoom/pinch
+    let prevX = 0;
+    let prevY = 0;
+    let prevPinchDist = 0;
+
+    let minRadius = 1;
+    let maxRadius = 10;
+
+    const onPointerDown = (e: PointerEvent) => {
+      isDragging = true;
+      lastInteraction = performance.now();
+      prevX = e.clientX;
+      prevY = e.clientY;
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    };
+    const onPointerMove = (e: PointerEvent) => {
+      if (!isDragging) return;
+      lastInteraction = performance.now();
+      targetTheta -= (e.clientX - prevX) * 0.005;
+      targetPhi = Math.max(PHI_MIN, Math.min(PHI_MAX, targetPhi - (e.clientY - prevY) * 0.005));
+      prevX = e.clientX;
+      prevY = e.clientY;
+    };
+    const onPointerUp = () => { isDragging = false; lastInteraction = performance.now(); };
+
+    const getTouchDist = (e: TouchEvent) => {
+      const t = e.touches;
+      if (t.length < 2) return 0;
+      return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+    };
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) prevPinchDist = getTouchDist(e);
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        lastInteraction = performance.now();
+        const dist = getTouchDist(e);
+        if (prevPinchDist > 0) {
+          targetRadius = Math.max(minRadius, Math.min(maxRadius, targetRadius * (prevPinchDist / dist)));
+        }
+        prevPinchDist = dist;
+      }
+    };
+    const onTouchEnd = () => { prevPinchDist = 0; };
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      lastInteraction = performance.now();
+      targetRadius = Math.max(minRadius, Math.min(maxRadius, targetRadius * (1 + e.deltaY * 0.001)));
+    };
+
+    // Live render state. The renderer, camera and listeners are created once; later loads only swap `scene`.
+    let scene: THREE.Scene | null = null;
+    let camera: THREE.PerspectiveCamera | null = null;
+    let fitDist = 1;
+    let currentCustom: AvatarModel | undefined;
+    let currentFov = 30;
+    let requestId = 0; // bumped per load; a load whose id is stale must not touch the viewer
+
+    // Path 1 passes a baked OBJ; Path 2 passes a model from avatar3d/avatarScene (already centred and fitted).
+    const setupAndRender = (object: THREE.Object3D | null, fov = 30, custom?: AvatarModel) => {
+      if (cancelled || !container) return;
+
+      const width = container.clientWidth || 300;
+      const height = container.clientHeight || 400;
+
+      let newScene: THREE.Scene;
+      if (custom) {
+        newScene = createAvatarScene(custom);
+      } else {
+        newScene = new THREE.Scene();
+        newScene.background = new THREE.Color(0x1a1a1a);
+        newScene.add(new THREE.AmbientLight(0xffffff, 1.8));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+        dirLight.position.set(2, 4, 3);
+        newScene.add(dirLight);
+        const fillLight = new THREE.DirectionalLight(0xffffff, 0.5);
+        fillLight.position.set(-2, 1, -2);
+        newScene.add(fillLight);
+      }
+
+      let idealDist: number;
+      if (custom) {
+        idealDist = fitDistance(custom, fov, width / height);
+      } else {
+        const box = new THREE.Box3().setFromObject(object!);
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+        object!.position.sub(center);
+        newScene.add(object!);
+        const maxDim = Math.max(size.x, size.y, size.z) || 1;
+        idealDist = Math.abs(maxDim / Math.sin((fov * DEG) / 2)) * 0.75;
+      }
+
+      if (!renderer || !camera) {
+        // First model: create the renderer, camera, listeners and render loop.
+        const cam = new THREE.PerspectiveCamera(fov, width / height, 0.1, 1000);
+        camera = cam;
+        const r = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer = r;
+        r.setSize(width, height);
+        r.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.innerHTML = "";
+        container.appendChild(r.domElement);
+
+        targetRadius = idealDist;
+        currentRadius = idealDist;
+        minRadius = idealDist * 0.3;
+        maxRadius = idealDist * 3;
+
+        container.addEventListener("wheel", onWheel, { passive: false });
+        r.domElement.addEventListener("pointerdown", onPointerDown);
+        r.domElement.addEventListener("pointermove", onPointerMove);
+        r.domElement.addEventListener("pointerup", onPointerUp);
+        r.domElement.addEventListener("pointercancel", onPointerUp);
+        r.domElement.addEventListener("touchstart", onTouchStart, { passive: true });
+        r.domElement.addEventListener("touchmove", onTouchMove, { passive: false });
+        r.domElement.addEventListener("touchend", onTouchEnd);
+
+        let lastFrameTime = 0;
+        const animate = (now: number) => {
+          frameId = requestAnimationFrame(animate);
+          const dt = lastFrameTime ? Math.min((now - lastFrameTime) / 1000, MAX_FRAME_DT_S) : 0;
+          lastFrameTime = now;
+          if (!isDragging && now - lastInteraction >= AUTO_ROTATE_RESUME_MS) targetTheta += AUTO_ROTATE_RAD_PER_SEC * dt;
+          currentTheta += (targetTheta - currentTheta) * DAMPING;
+          currentPhi += (targetPhi - currentPhi) * DAMPING;
+          currentRadius += (targetRadius - currentRadius) * DAMPING;
+          orbitCamera(cam, currentTheta, currentPhi, currentRadius);
+          if (scene) r.render(scene, cam);
+        };
+        animate(performance.now());
+
+        resizeObserver = new ResizeObserver(() => {
+          if (!container || !renderer || !camera) return;
+          const w = container.clientWidth || width;
+          const h = container.clientHeight || height;
+          renderer.setSize(w, h);
+          camera.aspect = w / h;
+          if (currentCustom) {
+            // keep the whole avatar in frame when the box changes shape, preserving the user's zoom
+            const newFit = fitDistance(currentCustom, currentFov, w / h);
+            const k = newFit / fitDist;
+            targetRadius *= k; currentRadius *= k; minRadius *= k; maxRadius *= k;
+            fitDist = newFit;
+          }
+          camera.updateProjectionMatrix();
+        });
+        resizeObserver.observe(container);
+      } else {
+        // Swap: keep the user's orbit angle and zoom, only rescale for the new model's fit distance.
+        const k = idealDist / fitDist;
+        targetRadius *= k; currentRadius *= k; minRadius *= k; maxRadius *= k;
+        camera.aspect = width / height;
+        camera.fov = fov;
+      }
+
+      camera.near = idealDist / 100;
+      camera.far = idealDist * 100;
+      camera.updateProjectionMatrix();
+
+      fitDist = idealDist;
+      currentCustom = custom;
+      currentFov = fov;
+
+      // Swap in the new scene on the next frame, then free the old one's GPU resources.
+      const oldScene = scene;
+      scene = newScene;
+      if (oldScene) disposeScene(oldScene);
+
+      // Front-view snapshot: render once from a fixed camera and read the canvas in the same task,
+      // so no preserveDrawingBuffer is needed. The next animation frame redraws the live view.
+      if (onSnapshotRef.current && renderer) {
+        try {
+          const snapCam = new THREE.PerspectiveCamera(fov, camera.aspect, camera.near, camera.far);
+          orbitCamera(snapCam, 0, 85 * DEG, idealDist);
+          renderer.render(newScene, snapCam);
+          onSnapshotRef.current(renderer.domElement.toDataURL("image/png"));
+        } catch (error) {
+          console.error("Avatar3DViewer snapshot error:", error);
+        }
+      }
+    };
+
+    // `fresh`: the outfit just changed, so ask the server to skip its short-lived per-user cache.
+    const load = async (fresh = false) => {
+      const myId = ++requestId;
+      // Superseded by a newer load, or the viewer unmounted: drop this load's result.
+      const stale = () => cancelled || myId !== requestId;
+      // Keep showing the current avatar while a refresh loads; only show the spinner when nothing is on screen.
+      if (!scene) setLoading(true);
+      try {
+        // Always the custom, server-parsed outfit (/avatar/3d-custom-v2), including users with a linked Roblox account.
+
+        const query = new URLSearchParams();
+        if (fresh) query.set("fresh", "1");
+        if (tryOnItemId) query.set("try", tryOnItemId);
+        const qs = query.toString();
+        const customRes = await fetch(`${API_BASE}/avatar/3d-custom-v2/${userId}${qs ? `?${qs}` : ""}`, { cache: "no-store" });
+        if (!customRes.ok) throw new Error("Custom avatar fetch failed");
+
+        const customData = await customRes.json() as CustomAvatarData & { tryOn?: TryOnResult };
+        if (!customData.success) throw new Error("No avatar data");
+        if (stale()) return;
+        if (tryOnItemId && customData.tryOn) onTryOnResultRef.current?.(customData.tryOn);
+
+        const model = await buildAvatar(customData);
+        if (stale()) {
+          disposeScene(createAvatarScene(model)); // never shown — free its textures/geometry
+          return;
+        }
+        setupAndRender(null, 30, model);
+        setFailed(false);
+        setLoading(false);
+      } catch (error) {
+        console.error("Avatar3DViewer load error:", error);
+        if (stale()) return;
+        if (scene) return; // a refresh failed: keep showing the current avatar
+        try {
+          const fb = await fetch(`${API_BASE}/avatar/render/${userId}`);
+          const fbData = await fb.json();
+          if (!stale() && fbData.imageUrl) setFallbackUrl(fbData.imageUrl);
+        } catch { /* ignore */ }
+        if (stale()) return;
+        setFailed(true);
+        setLoading(false);
+      }
+    };
+
+    reloadRef.current = load;
+    load();
+
+    return () => {
+      cancelled = true;
+      reloadRef.current = null;
+      if (frameId) cancelAnimationFrame(frameId);
+      resizeObserver?.disconnect();
+      container.removeEventListener("wheel", onWheel);
+      if (scene) disposeScene(scene);
+      if (renderer) {
+        renderer.domElement.removeEventListener("pointerdown", onPointerDown);
+        renderer.domElement.removeEventListener("pointermove", onPointerMove);
+        renderer.domElement.removeEventListener("pointerup", onPointerUp);
+        renderer.domElement.removeEventListener("pointercancel", onPointerUp);
+        renderer.dispose();
+        renderer.domElement.remove();
+      }
+    };
+  }, [userId, tryOnItemId]);
+
+  // Refetch and swap when the parent bumps refreshKey (skip the initial mount — the effect above loads).
+  const firstKey = useRef(refreshKey);
+  useEffect(() => {
+    if (refreshKey === firstKey.current) return;
+    firstKey.current = refreshKey;
+    reloadRef.current?.(true);
+  }, [refreshKey]);
+
+  return (
+    <div className={`relative bg-[#1a1a1a] rounded-lg overflow-hidden ${className}`}>
+      {failed && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#1a1a1a]">
+          {fallbackUrl ? (
+            <img src={fallbackUrl} alt="Avatar" className="h-full object-contain" />
+          ) : (
+            <div className="text-gray-500 text-sm">Avatar unavailable</div>
+          )}
+        </div>
+      )}
+      {/* No loading screen: the canvas stays invisible until the first model is ready, then fades in. */}
+      <div
+        ref={containerRef}
+        className="w-full h-full transition-opacity duration-500 ease-out"
+        style={{ touchAction: "none", opacity: loading ? 0 : 1 }}
+      />
+    </div>
   );
-  return { pivot, size, radiusXZ };
-}
-
-export function createAvatarScene(model: AvatarModel): THREE.Scene {
-  const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x1a1a1a); // matches the page background
-  scene.add(new THREE.AmbientLight(0xffffff, 1.8));
-  const key = new THREE.DirectionalLight(0xffffff, 1.5);
-  key.position.set(2, 4, 3);
-  scene.add(key);
-  const fill = new THREE.DirectionalLight(0xffffff, 0.8);
-  fill.position.set(-3, 1, -2);
-  scene.add(fill);
-  const back = new THREE.DirectionalLight(0xffffff, 0.8); // so the back view isn't lit only by ambient
-  back.position.set(0, 2, -4);
-  scene.add(back);
-  scene.add(model.pivot);
-  return scene;
-}
-
-/** Camera distance at which the whole model (hair included) fits with `margin` to spare, from any orbit angle. */
-export function fitDistance(model: AvatarModel, fovDeg: number, aspect: number, margin = 1.18): number {
-  const tanV = Math.tan((fovDeg * DEG) / 2);
-  const tanH = tanV * aspect;
-  const halfH = model.size.y / 2;
-  // Nearest surface is up to radiusXZ closer than the pivot, so push back by that much.
-  const dV = (halfH * margin) / tanV + model.radiusXZ;
-  const dH = (model.radiusXZ * margin) / tanH + model.radiusXZ;
-  return Math.max(dV, dH);
-}
-
-/** theta: 0 = camera in front (+Z), +θ orbits toward the avatar's left (+X). phi: polar angle, 90° = level. */
-export function orbitCamera(camera: THREE.PerspectiveCamera, theta: number, phi: number, radius: number) {
-  camera.position.set(
-    radius * Math.sin(phi) * Math.sin(theta),
-    radius * Math.cos(phi),
-    radius * Math.sin(phi) * Math.cos(theta),
-  );
-  camera.lookAt(0, 0, 0);
 }
