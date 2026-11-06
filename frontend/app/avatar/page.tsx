@@ -1,622 +1,583 @@
-"use client";
+// Scene-building code for the custom (server-parsed) 3D avatar.
+// Shared by Avatar3DViewer (React) and the dev-only screenshot harness in
+// frontend/scripts/avatar-harness. Pure three.js — no React, no DOM except canvas/Image.
+//
+// COORDINATES: everything is built in Roblox's own right-handed frame (x = avatar's right,
+// y = up, front of the avatar = -Z), in studs. No axis negation anywhere: the finished
+// model is wrapped in a pivot rotated 180° about Y so its front faces the default +Z camera.
+// A Z-negation would mirror the model (wrong chirality: mirrored shirt text, swapped sides).
+import * as THREE from "three";
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import Link from "next/link";
-import { ChevronDown, Loader2 } from "lucide-react";
-import Footer from "../components/Footer";
-import Header from "../components/Header";
-import Sidebar from "../components/Sidebar";
-import UserAdBanner from "../components/UserAdBanner";
-import AvatarPreview from "../components/AvatarPreview";
-import { catalogApi, storage } from "@/lib/api";
+export const DEG = Math.PI / 180;
 
-interface CatalogItem {
-  id: string;
-  name: string;
-  category: string;
-  subcategory: string;
-  itemType: string;
-  thumbnailUrl: string;
-  robloxAssetId: string;
-  isAvailable: boolean;
-  isFeatured: boolean;
-  favoriteCount: number;
+// ─── Response types (GET /avatar/3d-custom-v2/:userId) ────────────────────
+export interface AccessoryItem {
+  itemType: "accessory";
+  positions: number[]; // handle-local studs (backend already normalises v1 meshes to studs)
+  normals: number[];
+  uvs: number[];
+  indices: number[];
+  scale: [number, number, number];   // SpecialMesh.Scale
+  offset: [number, number, number];  // SpecialMesh.Offset (studs, handle space, NOT scaled)
+  attachmentName: string | null;
+  accessoryCFrame?: number[];        // Attachment CFrame in Handle space: [x,y,z] or [x,y,z,r00..r22]
+  textureDataUrl: string | null;
+}
+export interface CustomAvatarData {
+  success: boolean;
+  skinColor: string;
+  items: Array<Record<string, unknown> | null>;
 }
 
-// An item from GET /catalog/inventory (the user's owned items)
-interface OwnedItem {
-  id: string;
-  name: string;
-  category: string;
-  subcategory: string;
-  itemType: string;
-  thumbnailUrl: string;
-  robloxAssetId: string;
+// ─── R15-ish body layout (studs; origin at the soles) ────────────────────
+// Parts are stacked without overlap so the classic 2-stud-tall torso/arm/leg template
+// can be split proportionally between the R15 pieces.
+const FOOT_H = 0.3, LOWER_LEG_H = 0.7, UPPER_LEG_H = 1.0;
+const LOWER_TORSO_H = 0.4, UPPER_TORSO_H = 1.6, HEAD_S = 1.2;
+const HAND_H = 0.3, LOWER_ARM_H = 0.7, UPPER_ARM_H = 1.0;
+const LEG_TOP = FOOT_H + LOWER_LEG_H + UPPER_LEG_H;     // 2.0
+const TORSO_TOP = LEG_TOP + LOWER_TORSO_H + UPPER_TORSO_H; // 4.0
+// The head is a rounded box: flat sides, top and front, corners rounded with radius HEAD_CORNER, built from
+// HEAD_SEGMENTS subdivisions per side. Sinking it into the torso tucks its rounded lower edge under the torso top
+// so no gap shows. Everything attached to the head (hair, hats, face accessories and the face decal) is
+// positioned from the head mesh, so it moves with it. Tune here.
+const HEAD_SINK = 0.12;
+const HEAD_CORNER = 0.28;
+const HEAD_SEGMENTS = 24;
+const DECAL_OFFSET = 0.004; // how far the face decal floats off the head surface
+const HEAD_CY = TORSO_TOP + HEAD_S / 2 - HEAD_SINK;       // 4.48
+
+type Seg = [number, number]; // vertical fraction of the classic 2-stud tall slot [top, bottom]
+type PartName =
+  | "Head" | "UpperTorso" | "LowerTorso"
+  | "LeftUpperArm" | "RightUpperArm" | "LeftLowerArm" | "RightLowerArm" | "LeftHand" | "RightHand"
+  | "LeftUpperLeg" | "RightUpperLeg" | "LeftLowerLeg" | "RightLowerLeg" | "LeftFoot" | "RightFoot";
+
+interface PartDef {
+  name: PartName; w: number; h: number; d: number; x: number; yTop: number;
+  kind: "head" | "torso" | "armR" | "armL" | "legR" | "legL"; seg: Seg;
 }
-
-interface AvatarState {
-  hair_item_id: string | null;
-  face_item_id: string | null;
-  head_item_id: string | null;
-  hat_item_id: string | null;
-  body_item_id: string | null;
-  shirt_item_id: string | null;
-  pants_item_id: string | null;
-  accessory_item_id: string | null;
-  roblox_user_id: string | null;
-  hair_thumbnail: string | null;
-  face_thumbnail: string | null;
-  head_thumbnail: string | null;
-  hat_thumbnail: string | null;
-  body_thumbnail: string | null;
-  shirt_thumbnail: string | null;
-  pants_thumbnail: string | null;
-  accessory_thumbnail: string | null;
-  hair_asset_id: string | null;
-  face_asset_id: string | null;
-  head_asset_id: string | null;
-  hat_asset_id: string | null;
-  body_asset_id: string | null;
-  shirt_asset_id: string | null;
-  pants_asset_id: string | null;
-  accessory_asset_id: string | null;
-  accessory_2_asset_id: string | null;
-  accessory_3_asset_id: string | null;
-  skin_color: string | null;
-}
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
-
-// Preset Roblox BrickColor skin tones — id is saved to avatar_state.skin_color
-const SKIN_TONES: { id: string; label: string; hex: string }[] = [
-  { id: "1", label: "Yellow", hex: "#F5C842" },
-  { id: "1003", label: "Light", hex: "#F5D0C5" },
-  { id: "36", label: "Light yellowish orange", hex: "#F3CF9B" },
-  { id: "1004", label: "Medium", hex: "#D5A66D" },
-  { id: "1005", label: "Dark", hex: "#A9744F" },
-  { id: "1006", label: "Darker", hex: "#7C4B2A" },
-  { id: "1007", label: "Darkest", hex: "#4A2C17" },
+// Roblox "Right" = +X. Right limbs are at +X. Limbs sit 0.04 studs clear of the torso/each other
+// (a visual gap only) so same-coloured clothing keeps readable edges.
+const PARTS: PartDef[] = [
+  { name: "Head",          w: 1.2, h: HEAD_S,       d: 1.2, x: 0,    yTop: TORSO_TOP + HEAD_S - HEAD_SINK, kind: "head",  seg: [0, 1] },
+  { name: "UpperTorso",    w: 2.0, h: UPPER_TORSO_H, d: 1.0, x: 0,    yTop: TORSO_TOP,          kind: "torso", seg: [0, 0.8] },
+  { name: "LowerTorso",    w: 2.0, h: LOWER_TORSO_H, d: 1.0, x: 0,    yTop: LEG_TOP + LOWER_TORSO_H, kind: "torso", seg: [0.8, 1] },
+  { name: "RightUpperArm", w: 1.0, h: UPPER_ARM_H,  d: 1.0, x: 1.54,  yTop: TORSO_TOP,          kind: "armR",  seg: [0, 0.5] },
+  { name: "RightLowerArm", w: 1.0, h: LOWER_ARM_H,  d: 1.0, x: 1.54,  yTop: TORSO_TOP - UPPER_ARM_H, kind: "armR", seg: [0.5, 0.85] },
+  { name: "RightHand",     w: 1.0, h: HAND_H,       d: 1.0, x: 1.54,  yTop: TORSO_TOP - UPPER_ARM_H - LOWER_ARM_H, kind: "armR", seg: [0.85, 1] },
+  { name: "LeftUpperArm",  w: 1.0, h: UPPER_ARM_H,  d: 1.0, x: -1.54, yTop: TORSO_TOP,          kind: "armL",  seg: [0, 0.5] },
+  { name: "LeftLowerArm",  w: 1.0, h: LOWER_ARM_H,  d: 1.0, x: -1.54, yTop: TORSO_TOP - UPPER_ARM_H, kind: "armL", seg: [0.5, 0.85] },
+  { name: "LeftHand",      w: 1.0, h: HAND_H,       d: 1.0, x: -1.54, yTop: TORSO_TOP - UPPER_ARM_H - LOWER_ARM_H, kind: "armL", seg: [0.85, 1] },
+  { name: "RightUpperLeg", w: 1.0, h: UPPER_LEG_H,  d: 1.0, x: 0.52,  yTop: LEG_TOP,            kind: "legR",  seg: [0, 0.5] },
+  { name: "RightLowerLeg", w: 1.0, h: LOWER_LEG_H,  d: 1.0, x: 0.52,  yTop: LEG_TOP - UPPER_LEG_H, kind: "legR", seg: [0.5, 0.85] },
+  { name: "RightFoot",     w: 1.0, h: FOOT_H,       d: 1.0, x: 0.52,  yTop: FOOT_H,             kind: "legR",  seg: [0.85, 1] },
+  { name: "LeftUpperLeg",  w: 1.0, h: UPPER_LEG_H,  d: 1.0, x: -0.52, yTop: LEG_TOP,            kind: "legL",  seg: [0, 0.5] },
+  { name: "LeftLowerLeg",  w: 1.0, h: LOWER_LEG_H,  d: 1.0, x: -0.52, yTop: LEG_TOP - UPPER_LEG_H, kind: "legL", seg: [0.5, 0.85] },
+  { name: "LeftFoot",      w: 1.0, h: FOOT_H,       d: 1.0, x: -0.52, yTop: FOOT_H,             kind: "legL",  seg: [0.85, 1] },
 ];
 
-// What each sub-tab shows from the user's inventory. An empty entry means every owned item.
-// Sub-tabs without an entry have nothing to show and are not offered.
-const TAB_TO_CATEGORY: Record<string, { category?: string; subcategory?: string }> = {
-  "Recently Added": {},
-  "Accessories": { category: "Accessories" },
-  "Clothing": { category: "Clothing" },
-  "Body Parts": { category: "Body" },
-  "Characters": { category: "Body", subcategory: "Full Bodies" },
-  "Shirts": { category: "Clothing", subcategory: "Classic Shirts" },
-  "Pants": { category: "Clothing", subcategory: "Classic Pants" },
-  "Neck": { category: "Accessories", subcategory: "Neck" },
-  "Hair": { category: "Body", subcategory: "Hair" },
-  "Classic Heads": { category: "Body", subcategory: "Classic Heads" },
-  "Classic Faces": { category: "Body", subcategory: "Classic Faces" },
-  "Full Bodies": { category: "Body", subcategory: "Full Bodies" },
+// Accessory attachment points: [body part, point in that part's local space (Roblox frame)].
+const ATTACHMENTS: Record<string, [PartName, [number, number, number]]> = {
+  HairAttachment:          ["Head", [0, 0.6, 0]],
+  HatAttachment:           ["Head", [0, 0.6, 0]],
+  FaceFrontAttachment:     ["Head", [0, 0, -0.6]],
+  FaceCenterAttachment:    ["Head", [0, 0, 0]],
+  NeckAttachment:          ["UpperTorso", [0, 0.8, 0]],
+  BodyFrontAttachment:     ["UpperTorso", [0, 0, -0.5]],
+  BodyBackAttachment:      ["UpperTorso", [0, 0, 0.5]],
+  LeftShoulderAttachment:  ["LeftUpperArm", [0, 0.4, 0]],
+  RightShoulderAttachment: ["RightUpperArm", [0, 0.4, 0]],
+  WaistFrontAttachment:    ["LowerTorso", [0, 0, -0.5]],
+  WaistBackAttachment:     ["LowerTorso", [0, 0, 0.5]],
+  WaistCenterAttachment:   ["LowerTorso", [0, 0, 0]],
 };
 
-const ITEMS_PER_PAGE = 24;
+// ─── Classic clothing template (585×559) ─────────────────────────────────
+// Verified by cropping the real shirt (asset 13707005008) — see scripts/avatar-harness/crop-template.mjs.
+// Rect = [x, y, w, h] in template pixels. Faces are named by Roblox surface (as seen from OUTSIDE).
+type Rect = [number, number, number, number];
+export const TW = 585, TH = 559;
+interface Slot { top: Rect; bottom: Rect; right: Rect; front: Rect; left: Rect; back: Rect }
+export const TEMPLATE: Record<"torso" | "armR" | "armL" | "legR" | "legL", Slot> = {
+  torso: { top: [231, 8, 128, 64],  bottom: [231, 204, 128, 64], right: [165, 74, 64, 128],  front: [231, 74, 128, 128], left: [361, 74, 64, 128],  back: [427, 74, 128, 128] },
+  armR:  { top: [217, 289, 64, 64], bottom: [217, 485, 64, 64],  right: [19, 355, 64, 128],  front: [85, 355, 64, 128],  left: [151, 355, 64, 128], back: [217, 355, 64, 128] },
+  armL:  { top: [308, 289, 64, 64], bottom: [308, 485, 64, 64],  right: [308, 355, 64, 128], front: [374, 355, 64, 128], left: [440, 355, 64, 128], back: [506, 355, 64, 128] },
+  legR:  { top: [217, 289, 64, 64], bottom: [217, 485, 64, 64],  right: [19, 355, 64, 128],  front: [85, 355, 64, 128],  left: [151, 355, 64, 128], back: [217, 355, 64, 128] },
+  legL:  { top: [308, 289, 64, 64], bottom: [308, 485, 64, 64],  right: [308, 355, 64, 128], front: [374, 355, 64, 128], left: [440, 355, 64, 128], back: [506, 355, 64, 128] },
+};
 
-const AvatarPage = () => {
-  const [searchQuery, setSearchQuery] = useState("");
-  // Filters the owned-items grid; separate from the header's searchQuery (players/groups/games).
-  const [itemSearch, setItemSearch] = useState("");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("Recent");
-  const [activeSubTab, setActiveSubTab] = useState("Recently Added");
-  const [isTabsSticky, setIsTabsSticky] = useState(false);
-  const [ownedItems, setOwnedItems] = useState<OwnedItem[]>([]);
-  const [inventoryError, setInventoryError] = useState(false);
-  const [equippedItems, setEquippedItems] = useState<Set<string>>(new Set());
-  const [ownedItemsLoaded, setOwnedItemsLoaded] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [avatarState, setAvatarState] = useState<AvatarState | null>(null);
-  const [avatarLoading, setAvatarLoading] = useState(true);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [userGender, setUserGender] = useState<string | null>(null);
-  const [updatingSkinColor, setUpdatingSkinColor] = useState(false);
-  // Bumped after the server confirms an equip/unequip/skin change so the 3D viewer refetches.
-  const [viewerRefreshKey, setViewerRefreshKey] = useState(0);
-  const [bodyType, setBodyType] = useState(0);
-  // Face section toggle: 3D "Face Accessories" (default, equippable) vs classic
-  // 2D "Classic Faces" (mostly unavailable, shown here despite that).
-  const [showClassicFaces, setShowClassicFaces] = useState(false);
-  const tabsRef = useRef<HTMLDivElement>(null);
-  const tabsOffsetRef = useRef<number>(0);
+// BoxGeometry face order is +X,-X,+Y,-Y,+Z,-Z. Roblox: +X=Right, -X=Left, -Z=Front, +Z=Back.
+const FACE_ORDER: Array<keyof Slot> = ["right", "left", "top", "bottom", "back", "front"];
 
-  const mainTabs = ["Recent", "Characters", "Clothing", "Accessories", "Head & Body"];
-
-  const subTabs: { [key: string]: string[] } = {
-    Recent: ["Recently Added", "Accessories", "Clothing", "Body Parts", "Characters"],
-    Characters: ["Full Bodies"],
-    Clothing: ["Shirts", "Pants"],
-    Accessories: ["Neck"],
-    "Head & Body": ["Hair", "Classic Heads", "Classic Faces"],
-  };
-
-  const fetchAvatarState = useCallback(async () => {
-    const token = storage.getAccessToken();
-    if (!token) { setAvatarLoading(false); return; }
-    try {
-      const res = await fetch(`${API_BASE}/avatar`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (data.success && data.data) {
-        const state = data.data.avatarState;
-        setAvatarState(state);
-        const equipped = new Set<string>(
-          data.data.equippedItems.map((i: CatalogItem) => i.id)
-        );
-        setEquippedItems(equipped);
-      }
-    } catch (err) {
-      console.error("Failed to fetch avatar state:", err);
-    } finally {
-      setAvatarLoading(false);
-    }
-
-    // Fetch gender from profile
-    try {
-      const token = storage.getAccessToken();
-      if (token) {
-        const profileRes = await fetch(`${API_BASE}/users/profile`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const profileData = await profileRes.json();
-        if (profileData.success && profileData.data?.user?.gender) {
-          setUserGender(profileData.data.user.gender);
-        }
-      }
-    } catch {}
-  }, []);
-
-  useEffect(() => {
-    fetchAvatarState();
-  }, [fetchAvatarState]);
-
-  useEffect(() => {
-    const token = storage.getAccessToken();
-    if (!token) return;
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      setCurrentUserId(payload.userId || null);
-    } catch {
-      // not logged in
-    }
-  }, []);
-
-  // Load the user's whole inventory once (paginate until exhausted, capped so a runaway inventory can't
-  // loop forever). The grid filters this list on the client; any failed request is surfaced with a retry.
-  const fetchOwnedItems = useCallback(async () => {
-    setOwnedItemsLoaded(false);
-    setInventoryError(false);
-    try {
-      const all: OwnedItem[] = [];
-      let page = 1;
-      let totalPages = 1;
-      do {
-        const response = await catalogApi.getUserInventory({ page, limit: 100 });
-        if (!response.success || !response.data) throw new Error("Inventory request failed");
-        const invData = response.data as { items: OwnedItem[]; pagination: { totalPages: number } };
-        all.push(...invData.items);
-        totalPages = invData.pagination.totalPages;
-        page++;
-      } while (page <= totalPages && page <= 20);
-      setOwnedItems(all);
-    } catch (err) {
-      console.error("Failed to fetch owned items:", err);
-      setInventoryError(true);
-    } finally {
-      setOwnedItemsLoaded(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchOwnedItems();
-  }, [fetchOwnedItems]);
-
-  // Back to the first page whenever the visible list changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [activeSubTab, showClassicFaces]);
-
-  const toggleEquip = async (item: OwnedItem) => {
-    const token = storage.getAccessToken();
-    if (!token) return;
-
-    const isEquipped = equippedItems.has(item.id);
-
-    if (isEquipped) {
-      try {
-        const res = await fetch(`${API_BASE}/avatar/unequip/${item.id}`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        if (data.success) {
-          setEquippedItems(prev => { const next = new Set(prev); next.delete(item.id); return next; });
-          setViewerRefreshKey(k => k + 1);
-          fetchAvatarState();
-        }
-      } catch (err) {
-        console.error("Failed to unequip:", err);
-      }
-      return;
-    }
-
-    let itemId = item.id;
-    const isRobloxItem = /^\d+$/.test(item.id);
-
-    if (isRobloxItem) {
-      try {
-        const importRes = await fetch(`${API_BASE}/catalog/roblox/import/${item.robloxAssetId || item.id}`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const importData = await importRes.json();
-        if (importData.success && importData.data?.id) {
-          itemId = importData.data.id;
-        } else {
-          console.error("Failed to import Roblox item");
-          return;
-        }
-      } catch (err) {
-        console.error("Failed to import Roblox item:", err);
-        return;
-      }
-    }
-
-    try {
-      const res = await fetch(`${API_BASE}/avatar/equip/${itemId}`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (data.success) {
-        setEquippedItems(prev => { const next = new Set(prev); next.add(item.id); return next; });
-        setViewerRefreshKey(k => k + 1);
-        fetchAvatarState();
-      }
-    } catch (err) {
-      console.error("Failed to equip:", err);
-    }
-  };
-
-  const handleSelectSkinColor = async (skinColor: string) => {
-    const token = storage.getAccessToken();
-    if (!token || updatingSkinColor) return;
-    setUpdatingSkinColor(true);
-    try {
-      const res = await fetch(`${API_BASE}/avatar/skin-color`, {
-        method: "PATCH",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ skinColor }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setViewerRefreshKey(k => k + 1);
-        await fetchAvatarState();
-      }
-    } catch (err) {
-      console.error("Failed to update skin color:", err);
-    } finally {
-      setUpdatingSkinColor(false);
-    }
-  };
-
-  useEffect(() => {
-    if (tabsRef.current) {
-      tabsOffsetRef.current = tabsRef.current.offsetTop;
-    }
-    const handleScroll = () => {
-      if (tabsOffsetRef.current > 0) {
-        setIsTabsSticky(window.scrollY > tabsOffsetRef.current - 70);
-      }
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  const isFemale = userGender === "female";
-
-  // Owned items for the active sub-tab, paginated on the client. Owned items always show (no availability filter).
-  const tabFilter = TAB_TO_CATEGORY[activeSubTab];
-  const categoryItems = ownedItems.filter((item) => {
-    if (!tabFilter) return false;
-    // Classic Faces: the toggle switches between 3D face accessories and the classic 2D faces
-    if (activeSubTab === "Classic Faces") {
-      return item.subcategory === (showClassicFaces ? "Classic Faces" : "Face Accessories");
-    }
-    // Hair is recognised by its subcategory alone ("Hair", "Hair Accessories", ...), as the equip slot mapping does,
-    // so hair stored under Body or Accessories both show here.
-    if (activeSubTab === "Hair") return /hair/i.test(item.subcategory || "");
-    return (!tabFilter.category || item.category === tabFilter.category) &&
-      (!tabFilter.subcategory || item.subcategory === tabFilter.subcategory);
+function setFaceUVs(geo: THREE.BufferGeometry, slot: Slot, seg: Seg) {
+  const uv = geo.getAttribute("uv") as THREE.BufferAttribute;
+  FACE_ORDER.forEach((face, f) => {
+    // Faces buried inside the body (where R15 pieces join) must not sample the template's top/bottom
+    // cells (e.g. the neck hole) or a hairline of that shows at the seam — use a plain side cell instead.
+    const internal = (face === "top" && seg[0] > 0) || (face === "bottom" && seg[1] < 1);
+    const [x, y, w, h] = slot[internal ? "front" : face];
+    const side = internal || (face !== "top" && face !== "bottom");
+    // Side faces: this part shows only a vertical slice of the 2-stud-tall classic slot.
+    const y0 = side ? y + h * seg[0] : y;
+    const y1 = side ? y + h * seg[1] : y + h;
+    const u0 = x / TW, u1 = (x + w) / TW, vTop = 1 - y0 / TH, vBot = 1 - y1 / TH;
+    const b = f * 4; // three BoxGeometry: verts are TL, TR, BL, BR of each face as seen from outside
+    uv.setXY(b + 0, u0, vTop);
+    uv.setXY(b + 1, u1, vTop);
+    uv.setXY(b + 2, u0, vBot);
+    uv.setXY(b + 3, u1, vBot);
   });
-  const itemSearchTerm = itemSearch.trim().toLowerCase();
-  const tabItems = itemSearchTerm
-    ? categoryItems.filter((item) => item.name.toLowerCase().includes(itemSearchTerm))
-    : categoryItems;
-  const totalPages = Math.max(1, Math.ceil(tabItems.length / ITEMS_PER_PAGE));
-  const pageItems = tabItems.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  uv.needsUpdate = true;
+}
 
-  return (
-    <div className="min-h-screen bg-white dark:bg-black flex flex-col">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} setSidebarOpen={setSidebarOpen} />
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("image load failed"));
+    img.src = src;
+  });
+}
 
-      <main className="flex-1 flex justify-center gap-4 px-4 py-6">
-        {/* Left Skyscraper Ad */}
-        <div className="hidden xl:block flex-shrink-0">
-          <UserAdBanner format="160x600" />
-        </div>
+/** Skin colour + clothing templates composited like Roblox does (transparent template pixels show what is underneath). */
+async function composeSheet(skin: string, layers: Array<string | undefined>): Promise<THREE.CanvasTexture> {
+  const c = document.createElement("canvas");
+  c.width = TW; c.height = TH;
+  const g = c.getContext("2d")!;
+  g.fillStyle = skin;
+  g.fillRect(0, 0, TW, TH);
+  for (const url of layers) {
+    if (!url) continue;
+    try { g.drawImage(await loadImage(url), 0, 0, TW, TH); } catch { /* skip bad template */ }
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  return tex;
+}
 
-        <div className="max-w-[1400px] w-full">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100">Avatar Editor</h1>
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Explore the catalog to find more clothes!</span>
-              <Link href="/catalog">
-                <button className="px-4 py-2 bg-gray-900 dark:bg-gray-100 hover:bg-gray-800 dark:hover:bg-gray-200 text-white dark:text-gray-900 font-semibold rounded transition-colors">
-                  Get More
-                </button>
-              </Link>
-            </div>
-          </div>
+/** Roblox-style head: a box with flat sides and rounded corners. Every vertex of a subdivided box is pushed to
+ *  `radius` from the inner (shrunken) box, so flat areas stay exactly flat and edges/corners become arcs/spheres. */
+function roundedHeadGeometry(size: number, radius: number, segments: number): THREE.BufferGeometry {
+  const geo = new THREE.BoxGeometry(size, size, size, segments, segments, segments);
+  const pos = geo.getAttribute("position") as THREE.BufferAttribute;
+  const nor = geo.getAttribute("normal") as THREE.BufferAttribute;
+  const inner = size / 2 - radius;
+  const v = new THREE.Vector3(), d = new THREE.Vector3();
+  for (let i = 0; i < pos.count; i++) {
+    v.fromBufferAttribute(pos, i);
+    d.set(
+      v.x - THREE.MathUtils.clamp(v.x, -inner, inner),
+      v.y - THREE.MathUtils.clamp(v.y, -inner, inner),
+      v.z - THREE.MathUtils.clamp(v.z, -inner, inner),
+    ).normalize(); // every box-surface vertex is at least `radius` from the inner box, so d is never zero
+    pos.setXYZ(
+      i,
+      THREE.MathUtils.clamp(v.x, -inner, inner) + d.x * radius,
+      THREE.MathUtils.clamp(v.y, -inner, inner) + d.y * radius,
+      THREE.MathUtils.clamp(v.z, -inner, inner) + d.z * radius,
+    );
+    nor.setXYZ(i, d.x, d.y, d.z);
+  }
+  return geo;
+}
 
-          <div className="flex gap-6">
-            {/* Left - Avatar Preview */}
-            <div className="w-[300px] flex-shrink-0 sticky top-24 self-start">
-              <div className="bg-[#1a1a1a] rounded-lg aspect-[3/4] flex items-end justify-center p-6 relative overflow-hidden">
-                {currentUserId ? (
-                  <AvatarPreview userId={currentUserId} refreshKey={viewerRefreshKey} variant="editor" className="absolute inset-0 w-full h-full" />
-                ) : avatarLoading ? (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-                  </div>
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    {(
-                      <div className="relative" style={{ width: 180, height: 270 }}>
-                        <svg width="180" height="270" viewBox="0 0 120 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          {/* Legs */}
-                          <rect x="32" y="108" width="25" height="70" rx="4" fill="#8B4513" />
-                          <rect x="63" y="108" width="25" height="70" rx="4" fill="#8B4513" />
-                          {/* Body */}
-                          <rect x="30" y="55" width="60" height="50" rx="4" fill={isFemale ? "#C4679A" : "#4A90A4"} />
-                          <rect x="30" y="65" width="60" height="6" fill={isFemale ? "#D4889B" : "#6BA8BC"} />
-                          <rect x="30" y="77" width="60" height="6" fill={isFemale ? "#D4889B" : "#6BA8BC"} />
-                          <rect x="30" y="89" width="60" height="6" fill={isFemale ? "#D4889B" : "#6BA8BC"} />
-                          {/* Arms */}
-                          <rect x="10" y="55" width="18" height="45" rx="4" fill="#F5D0C5" />
-                          <rect x="92" y="55" width="18" height="45" rx="4" fill="#F5D0C5" />
-                          {/* Head */}
-                          <rect x="35" y="2" width="50" height="50" rx="8" fill="#F5D0C5" />
-                          {/* Default hair */}
-                          {isFemale ? (
-                            <>
-                              <ellipse cx="60" cy="12" rx="28" ry="18" fill="#8B4513" />
-                              <rect x="32" y="10" width="10" height="40" rx="5" fill="#8B4513" />
-                              <rect x="78" y="10" width="10" height="40" rx="5" fill="#8B4513" />
-                              <ellipse cx="60" cy="3" rx="22" ry="14" fill="#8B4513" />
-                            </>
-                          ) : (
-                            <>
-                              <ellipse cx="60" cy="15" rx="30" ry="20" fill="#B85C38" />
-                              <ellipse cx="60" cy="5" rx="20" ry="12" fill="#B85C38" />
-                              <circle cx="75" cy="8" r="12" fill="#B85C38" />
-                            </>
-                          )}
-                          {/* Default face */}
-                          <circle cx="48" cy="30" r="3" fill="#393939" />
-                          <circle cx="72" cy="30" r="3" fill="#393939" />
-                          <path d="M52 40 Q60 48 68 40" stroke="#393939" strokeWidth="2" fill="none" />
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-                )}
-                {!currentUserId && (
-                  <div className="absolute bottom-4 right-4 bg-white dark:bg-[#1a1a1a] px-3 py-1 rounded font-semibold text-sm text-gray-900 dark:text-gray-100 z-20">
-                    3D
-                  </div>
-                )}
-              </div>
+/** Point on the front (+Z) of the rounded-box head, `offset` off its surface, for plane coordinates (x, y).
+ *  The flat part maps 1:1. Past the flat part the plane runs along the rounded corner by arc length, so the
+ *  decal follows the head with even sampling and never dips into it. */
+function headFrontPoint(x: number, y: number, offset: number): [number, number, number] {
+  const half = HEAD_S / 2;
+  const inner = half - HEAD_CORNER;
+  const ax = (Math.max(Math.abs(x) - inner, 0) / HEAD_CORNER) * (Math.PI / 2); // angle round the corner in x
+  const ay = (Math.max(Math.abs(y) - inner, 0) / HEAD_CORNER) * (Math.PI / 2); // angle round the corner in y
+  const nx = Math.sign(x) * Math.sin(ax) * Math.cos(ay);
+  const ny = Math.sign(y) * Math.sin(ay);
+  const nz = Math.cos(ax) * Math.cos(ay);
+  const r = HEAD_CORNER + offset;
+  return [
+    THREE.MathUtils.clamp(x, -inner, inner) + nx * r,
+    THREE.MathUtils.clamp(y, -inner, inner) + ny * r,
+    inner + nz * r,
+  ];
+}
 
-              {/* Skin Tone */}
-              <div className="mt-4 p-4 bg-gray-50 dark:bg-[#1a1a1a] rounded-lg border border-gray-200 dark:border-[#2a2a2a]">
-                <span className="text-sm font-medium text-gray-900 dark:text-gray-100 block mb-3">Skin Tone</span>
-                <div className="flex gap-2.5">
-                  {SKIN_TONES.map((tone) => {
-                    const isSelected = (avatarState?.skin_color || "1") === tone.id;
-                    return (
-                      <button
-                        key={tone.id}
-                        onClick={() => handleSelectSkinColor(tone.id)}
-                        disabled={updatingSkinColor}
-                        title={tone.label}
-                        aria-label={tone.label}
-                        className={`w-8 h-8 rounded-full transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                          isSelected
-                            ? "ring-2 ring-blue-500 ring-offset-2 ring-offset-gray-50 dark:ring-offset-gray-800"
-                            : "ring-1 ring-gray-300 dark:ring-gray-600 hover:ring-gray-400 dark:hover:ring-gray-500"
-                        }`}
-                        style={{ backgroundColor: tone.hex }}
-                      />
-                    );
-                  })}
-                </div>
-              </div>
+// ─── Hair fit ────────────────────────────────────────────────────────────
+// Hair meshes are authored as a shell standing off the head they were made for; on this head that leaves a visible
+// gap (0.05 to 0.25 studs at the back, depending on the hair). Hair-slot meshes are therefore pulled onto the head
+// after placement: the standoff each mesh actually has is measured, and the part of it near the head is shrunk.
+// The front is left alone so fringes keep clear of the face decal, the underside is left alone so hair hanging
+// below the head keeps its length, and meshes with a deliberately large standoff (afro, bun) are not touched.
+const HAIR_FIT_EDGE = 0.01;     // standoff kept between the fitted hair and the skin (the decal floats at 0.004)
+const HAIR_FIT_KEEP = 0.06;     // share of the standoff above the edge that is kept (the pull is local, see fitHairMesh)
+const HAIR_FIT_PASSES = 10;     // relaxation passes before giving up on a mesh
+const HAIR_FIT_MAX_GAP = 0.3;   // measured standoff above this is deliberate volume: no fit
+const HAIR_FIT_MIN_RAYS = 8;    // fewer hair hits than this over the back/sides: not a head-hugging mesh, no fit
+const HAIR_FIT_BLEND = 0.3;     // standoff range over which the fit fades out above the measured gap
 
-              <div className="mt-3 text-center">
-                <button className="text-sm text-gray-600 dark:text-gray-400 hover:underline">Avatar isn&apos;t loading correctly?</button>
-                <Link href="/avatar" className="text-sm text-blue-600 dark:text-blue-400 hover:underline ml-2">Redraw</Link>
-              </div>
-
-              {equippedItems.size > 0 && (
-                <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
-                  <p className="text-sm text-blue-700 dark:text-blue-400 font-medium">
-                    {equippedItems.size} item{equippedItems.size > 1 ? "s" : ""} equipped
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Right - Items Grid */}
-            <div className="flex-1">
-              <div ref={tabsRef} className={`${isTabsSticky ? "fixed top-[70px] left-0 right-0 z-40 bg-white dark:bg-black border-b border-gray-200 dark:border-gray-800 px-4" : ""}`}>
-                <div className={`${isTabsSticky ? "max-w-[1400px] mx-auto" : ""} flex gap-6 border-b border-gray-200 dark:border-gray-800`}>
-                  {mainTabs.map((tab) => (
-                    <button
-                      key={tab}
-                      onClick={() => {
-                        setActiveTab(tab);
-                        if (subTabs[tab]) setActiveSubTab(subTabs[tab][0]);
-                      }}
-                      className={`pb-3 text-sm font-semibold transition-colors relative group ${activeTab === tab ? "text-gray-900 dark:text-gray-100" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"}`}
-                    >
-                      {tab}
-                      <ChevronDown className={`w-4 h-4 inline ml-1 ${activeTab === tab ? "" : "opacity-50"}`} />
-                      {activeTab === tab && <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gray-900 dark:bg-gray-100" />}
-                      {activeTab !== tab && <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gray-400 dark:bg-gray-600 opacity-0 group-hover:opacity-100 transition-opacity" />}
-                    </button>
-                  ))}
-                </div>
-
-                {subTabs[activeTab] && (
-                  <div className="flex items-center justify-between mt-4">
-                    <div className="flex gap-4">
-                      {subTabs[activeTab].map((subTab) => (
-                        <button
-                          key={subTab}
-                          onClick={() => setActiveSubTab(subTab)}
-                          className={`text-sm transition-colors ${activeSubTab === subTab ? "text-blue-600 dark:text-blue-400 font-semibold" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"}`}
-                        >
-                          {subTab}
-                        </button>
-                      ))}
-                    </div>
-
-                    {activeSubTab === "Classic Faces" && (
-                      <button
-                        onClick={() => setShowClassicFaces((prev) => !prev)}
-                        className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
-                          showClassicFaces
-                            ? "bg-blue-600 border-blue-600 text-white"
-                            : "bg-white dark:bg-[#1a1a1a] border-gray-300 dark:border-[#2a2a2a] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                        }`}
-                      >
-                        Classic Faces
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {isTabsSticky && <div className="h-24"></div>}
-
-              {ownedItemsLoaded && !inventoryError && ownedItems.length > 0 && (
-                <input
-                  type="text"
-                  value={itemSearch}
-                  onChange={(e) => {
-                    setItemSearch(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  placeholder="Search your items"
-                  className="mt-4 w-full max-w-xs px-3 py-2 text-sm border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-gray-50 dark:bg-[#242424] text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              )}
-
-              {!ownedItemsLoaded ? (
-                <div className="flex items-center justify-center py-20">
-                  <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-                </div>
-              ) : inventoryError ? (
-                <div className="flex flex-col items-center justify-center py-20 gap-3">
-                  <p className="text-gray-500 dark:text-gray-400 text-sm">Couldn&apos;t load your inventory.</p>
-                  <button
-                    onClick={fetchOwnedItems}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded transition-colors"
-                  >
-                    Retry
-                  </button>
-                </div>
-              ) : ownedItems.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 gap-3">
-                  <p className="text-gray-500 dark:text-gray-400 text-sm">You don&apos;t own any catalog items yet.</p>
-                  <Link
-                    href="/catalog"
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded transition-colors"
-                  >
-                    Visit Catalog
-                  </Link>
-                </div>
-              ) : categoryItems.length > 0 && tabItems.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20">
-                  <p className="text-gray-500 dark:text-gray-400 text-sm">No items match</p>
-                </div>
-              ) : tabItems.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20">
-                  <p className="text-gray-500 dark:text-gray-400 text-sm">No owned items in this category.</p>
-                  <Link href="/catalog" className="mt-3 text-blue-600 dark:text-blue-400 text-sm hover:underline">Browse Catalog</Link>
-                </div>
-              ) : (
-                <>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mt-6">
-                    {pageItems.map((item) => (
-                      <div
-                        key={item.id}
-                        onClick={() => toggleEquip(item)}
-                        className="rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer relative"
-                      >
-                        {equippedItems.has(item.id) && (
-                          <div className="absolute top-2 right-2 w-6 h-6 bg-white dark:bg-[#242424] rounded flex items-center justify-center z-10 border border-gray-300 dark:border-[#2a2a2a]">
-                            <svg className="w-4 h-4 text-gray-900 dark:text-gray-100" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                          </div>
-                        )}
-                        <div className={`aspect-square rounded-lg overflow-hidden border-2 transition-colors ${equippedItems.has(item.id) ? "border-blue-500" : "border-gray-200 dark:border-[#2a2a2a]"} bg-gray-100 dark:bg-[#1a1a1a]`}>
-                          {item.thumbnailUrl ? (
-                            <img src={item.thumbnailUrl} alt={item.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-400">
-                              <span className="text-3xl">🎨</span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="pt-2">
-                          <p className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">{item.name}</p>
-                          <p className="text-[10px] text-gray-500 dark:text-gray-400">{item.subcategory || item.category}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {totalPages > 1 && (
-                    <div className="flex items-center justify-center gap-2 mt-8">
-                      <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage <= 1} className="px-4 py-2 bg-white dark:bg-[#1a1a1a] border border-gray-300 dark:border-[#2a2a2a] rounded text-sm disabled:opacity-50">Previous</button>
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Page {currentPage} of {totalPages}</span>
-                      <button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage >= totalPages} className="px-4 py-2 bg-white dark:bg-[#1a1a1a] border border-gray-300 dark:border-[#2a2a2a] rounded text-sm disabled:opacity-50">Next</button>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Right Skyscraper Ad */}
-        <div className="hidden xl:block flex-shrink-0">
-          <UserAdBanner format="160x600" />
-        </div>
-      </main>
-
-      <Footer />
-    </div>
-  );
+const smoothstep = (a: number, b: number, x: number) => {
+  const t = THREE.MathUtils.clamp((x - a) / (b - a), 0, 1);
+  return t * t * (3 - 2 * t);
 };
 
-export default AvatarPage;
+/** Signed distance from the head surface (negative inside) for a point in head-local space; `n` gets the outward normal. */
+function headSurfaceAt(x: number, y: number, z: number, n: THREE.Vector3): number {
+  const inner = HEAD_S / 2 - HEAD_CORNER;
+  const dx = x - THREE.MathUtils.clamp(x, -inner, inner);
+  const dy = y - THREE.MathUtils.clamp(y, -inner, inner);
+  const dz = z - THREE.MathUtils.clamp(z, -inner, inner);
+  const len = Math.hypot(dx, dy, dz);
+  if (len > 1e-6) {
+    n.set(dx / len, dy / len, dz / len);
+    return len - HEAD_CORNER;
+  }
+  // Inside the inner box: nearest flat face.
+  const ax = Math.abs(x), ay = Math.abs(y), az = Math.abs(z);
+  const m = Math.max(ax, ay, az);
+  n.set(m === ax ? Math.sign(x) : 0, m === ay ? Math.sign(y) : 0, m === az ? Math.sign(z) : 0);
+  return m - HEAD_S / 2;
+}
+
+/** Distance from the head centre to the head surface along a unit direction. */
+function headRadiusAlong(ux: number, uy: number, uz: number): number {
+  const n = new THREE.Vector3();
+  let lo = 0, hi = HEAD_S;
+  for (let i = 0; i < 30; i++) {
+    const mid = (lo + hi) / 2;
+    if (headSurfaceAt(ux * mid, uy * mid, uz * mid, n) < 0) lo = mid; else hi = mid;
+  }
+  return lo;
+}
+
+interface HeadRay { dir: THREE.Vector3; r: number }
+
+/** Rays from the head centre (azimuth 0 = straight back (+Z), 180 = front) with the head surface distance along each. */
+function headRays(azDegs: number[], elDegs: number[]): HeadRay[] {
+  const rays: HeadRay[] = [];
+  for (const azDeg of azDegs) {
+    for (const elDeg of elDegs) {
+      const a = azDeg * DEG, e = elDeg * DEG;
+      const dir = new THREE.Vector3(Math.sin(a) * Math.cos(e), Math.sin(e), Math.cos(a) * Math.cos(e));
+      rays.push({ dir, r: headRadiusAlong(dir.x, dir.y, dir.z) });
+    }
+  }
+  return rays;
+}
+
+const HAIR_MEASURE_RAYS = headRays([0, 25, -25, 50, -50, 75, -75, 100, -100], [-15, 0, 15, 30]);
+
+/** Distance along each ray (from the head centre) to the hair's first surface at or beyond the head surface; null where none. */
+function hairSurfaceBeyondHead(mesh: THREE.Mesh, rays: HeadRay[]): Array<number | null> {
+  mesh.updateMatrixWorld(true);
+  const rc = new THREE.Raycaster();
+  const origin = new THREE.Vector3();
+  return rays.map(({ dir, r }) => {
+    rc.set(origin, dir);
+    const hit = rc.intersectObject(mesh, false).find((h) => h.distance >= r);
+    return hit ? hit.distance : null;
+  });
+}
+
+const SAMPLE_DIVISIONS = 4; // 15 sample points per triangle
+
+/**
+ * For every triangle, how far its worst point (over a grid of points: corners, edges, inside) is above the lowest height the
+ * hair may have there: just clear of the skin so the head does not hide it, and in the face area also clear of the decal.
+ * Negative means the head hides the point or the hair touches the decal.
+ */
+function hairTriangleMargins(geo: THREE.BufferGeometry): Float32Array {
+  const pos = geo.getAttribute("position") as THREE.BufferAttribute;
+  const index = geo.getIndex();
+  const tris = (index ? index.count : pos.count) / 3;
+  const out = new Float32Array(tris);
+  const n = new THREE.Vector3();
+  const v = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
+  for (let t = 0; t < tris; t++) {
+    for (let c = 0; c < 3; c++) v[c].fromBufferAttribute(pos, index ? index.getX(t * 3 + c) : t * 3 + c);
+    let lowest = Infinity;
+    for (let i = 0; i <= SAMPLE_DIVISIONS; i++) {
+      for (let j = 0; j <= SAMPLE_DIVISIONS - i; j++) {
+        const a = i / SAMPLE_DIVISIONS, b = j / SAMPLE_DIVISIONS, c = 1 - a - b;
+        const s = headSurfaceAt(
+          v[0].x * a + v[1].x * b + v[2].x * c,
+          v[0].y * a + v[1].y * b + v[2].y * c,
+          v[0].z * a + v[1].z * b + v[2].z * c,
+          n,
+        );
+        lowest = Math.min(lowest, s - (-n.z > 0.3 ? DECAL_OFFSET * 2 : -0.002)); // front is -Z; the decal reaches about 57 degrees round
+      }
+    }
+    out[t] = lowest;
+  }
+  return out;
+}
+
+/**
+ * How far the hair's nearest surface beyond the head stands off it over the back and sides: the lower quartile of the
+ * gaps along rays from the head centre. Null when the mesh does not cover the back/sides (not head-hugging).
+ * `mesh` is in head-local space.
+ */
+function measureHairStandoff(mesh: THREE.Mesh): number | null {
+  const hits = hairSurfaceBeyondHead(mesh, HAIR_MEASURE_RAYS);
+  const gaps: number[] = [];
+  hits.forEach((d, i) => { if (d !== null) gaps.push(d - HAIR_MEASURE_RAYS[i].r); });
+  if (gaps.length < HAIR_FIT_MIN_RAYS) return null;
+  gaps.sort((p, q) => p - q);
+  return gaps[Math.floor(gaps.length * 0.25)];
+}
+
+/** Pull the hair's standoff toward the head surface (see the notes above). `pos` is in head-local space. */
+function fitHairToHead(pos: THREE.BufferAttribute, standoff: number, keep: Float32Array, groupOf: Int32Array) {
+  const n = new THREE.Vector3();
+  const full = standoff + 0.08;          // standoff up to here is pulled in completely
+  const none = full + HAIR_FIT_BLEND;    // above this the hair is left as it is
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+    const s = headSurfaceAt(x, y, z, n);
+    if (s <= HAIR_FIT_EDGE) continue;
+    const wFront = 1 - smoothstep(0.3, 0.65, -n.z);   // front is -Z: fringe/face area stays put
+    const wUnder = smoothstep(-0.75, -0.25, n.y);     // underside stays put: long hair keeps its length
+    const w = wFront * wUnder * (1 - smoothstep(full, none, s));
+    if (w <= 0) continue;
+    const fitted = HAIR_FIT_EDGE + (s - HAIR_FIT_EDGE) * (1 - w * (1 - keep[groupOf[i]]));
+    pos.setXYZ(i, x - n.x * (s - fitted), y - n.y * (s - fitted), z - n.z * (s - fitted));
+  }
+  pos.needsUpdate = true;
+}
+
+/**
+ * Fit a placed hair mesh (head-local space) onto the head in place. Starts with the full pull everywhere; a triangle that
+ * had room (see hairTriangleMargins) but now cuts into the head or reaches the face decal relaxes the pull at its corners,
+ * and the fit is redone until none does. Triangles that already crossed the head (the hair's own thickness walls) are
+ * expected to. Returns false (mesh untouched) when the mesh is not a head-hugging shell or never settles.
+ */
+function fitHairMesh(geo: THREE.BufferGeometry, mat: THREE.Material): boolean {
+  const standoff = measureHairStandoff(new THREE.Mesh(geo, mat));
+  if (standoff === null || standoff > HAIR_FIT_MAX_GAP) return false;
+
+  const pos = geo.getAttribute("position") as THREE.BufferAttribute;
+  const index = geo.getIndex();
+  const original = pos.array.slice();
+  const cornerOf = (t: number, c: number) => (index ? index.getX(t * 3 + c) : t * 3 + c);
+
+  // Corners sharing a position (non-indexed meshes repeat them) must move together: one pull setting per position.
+  const groupOf = new Int32Array(pos.count);
+  const groups = new Map<string, number>();
+  for (let i = 0; i < pos.count; i++) {
+    const key = `${pos.getX(i)},${pos.getY(i)},${pos.getZ(i)}`;
+    let g = groups.get(key);
+    if (g === undefined) { g = groups.size; groups.set(key, g); }
+    groupOf[i] = g;
+  }
+  const keep = new Float32Array(groups.size).fill(HAIR_FIT_KEEP);
+  const before = hairTriangleMargins(geo);
+
+  for (let pass = 0; pass < HAIR_FIT_PASSES; pass++) {
+    pos.array.set(original);
+    fitHairToHead(pos, Math.max(standoff, 0), keep, groupOf);
+    const after = hairTriangleMargins(geo);
+    let buried = false;
+    for (let t = 0; t < after.length; t++) {
+      // Room before: must still have it. Already crossing the head by a little (a thin spot of the shell): must not get worse.
+      const worse = before[t] >= 0 ? after[t] < 0 : before[t] > -0.06 && after[t] < before[t] - 0.004;
+      if (!worse) continue;
+      buried = true;
+      for (let c = 0; c < 3; c++) {
+        const g = groupOf[cornerOf(t, c)];
+        keep[g] += (1 - keep[g]) * 0.5; // halve the remaining pull at this corner
+      }
+    }
+    if (!buried) {
+      geo.computeBoundingSphere();
+      geo.computeBoundingBox();
+      return true;
+    }
+  }
+  pos.array.set(original);
+  pos.needsUpdate = true;
+  return false;
+}
+
+// ─── Accessories ─────────────────────────────────────────────────────────
+async function buildAccessory(item: AccessoryItem, parts: Map<PartName, THREE.Mesh>): Promise<THREE.Object3D> {
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(item.positions, 3));
+  geo.setAttribute("normal", new THREE.Float32BufferAttribute(item.normals, 3));
+  geo.setAttribute("uv", new THREE.Float32BufferAttribute(item.uvs, 2));
+  if (item.indices.length > 0) geo.setIndex(new THREE.Uint32BufferAttribute(item.indices, 1));
+
+  let mat: THREE.Material;
+  if (item.textureDataUrl) {
+    const tex = new THREE.Texture(await loadImage(item.textureDataUrl));
+    tex.colorSpace = THREE.SRGBColorSpace;
+    // Roblox mesh UVs have V measured from the bottom (OBJ convention); three's default flipY=true matches that.
+    tex.anisotropy = 4;
+    tex.needsUpdate = true;
+    mat = new THREE.MeshLambertMaterial({ map: tex, side: THREE.DoubleSide });
+  } else {
+    mat = new THREE.MeshLambertMaterial({ color: 0xcccccc, side: THREE.DoubleSide });
+  }
+
+  // SpecialMesh: vertex_in_handle = vertex * Scale + Offset
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.scale.fromArray(item.scale);
+  mesh.position.fromArray(item.offset);
+
+  // Handle world = AttachmentWorld * inverse(AttachmentCFrameInHandle)
+  const [partName, local] = ATTACHMENTS[item.attachmentName || ""] ?? ATTACHMENTS.HairAttachment;
+  const part = parts.get(partName)!;
+  const attachWorld = new THREE.Matrix4().makeTranslation(
+    part.position.x + local[0], part.position.y + local[1], part.position.z + local[2],
+  );
+  const cf = item.accessoryCFrame ?? [0, 0, 0];
+  const cfMat = new THREE.Matrix4().makeTranslation(cf[0], cf[1], cf[2]);
+  if (cf.length >= 12) {
+    cfMat.set(cf[3], cf[4], cf[5], cf[0], cf[6], cf[7], cf[8], cf[1], cf[9], cf[10], cf[11], cf[2], 0, 0, 0, 1);
+  }
+  const handle = new THREE.Group();
+  handle.add(mesh);
+  handle.matrixAutoUpdate = false;
+  handle.matrix.copy(attachWorld).multiply(cfMat.invert());
+
+  // Hair: measure how far the placed mesh stands off the head and, if it is a head-hugging shell, pull it onto the head.
+  // The fitted copy is baked into body space, so the mesh then carries no transform of its own.
+  if (item.attachmentName === "HairAttachment" && partName === "Head") {
+    mesh.updateMatrix();
+    const placed = geo.clone().applyMatrix4(new THREE.Matrix4().multiplyMatrices(handle.matrix, mesh.matrix));
+    const center = part.position;
+    placed.translate(-center.x, -center.y, -center.z); // head-local, so the head centre is the origin
+    if (fitHairMesh(placed, mat)) {
+      placed.translate(center.x, center.y, center.z);
+      mesh.geometry.dispose();
+      mesh.geometry = placed;
+      mesh.position.set(0, 0, 0);
+      mesh.scale.set(1, 1, 1);
+      handle.matrix.identity();
+    } else {
+      placed.dispose();
+    }
+  }
+  return handle;
+}
+
+// ─── Public API ──────────────────────────────────────────────────────────
+export interface AvatarModel {
+  /** Rotated so the avatar's front faces +Z; centred on the origin. Add this to a scene. */
+  pivot: THREE.Group;
+  /** Extents of everything (accessories included) for camera fitting. */
+  size: THREE.Vector3;
+  /** Largest horizontal distance from the vertical axis (for any orbit angle). */
+  radiusXZ: number;
+}
+
+export async function buildAvatar(data: CustomAvatarData): Promise<AvatarModel> {
+  const skin = data.skinColor || "#F5C842";
+  const items = (data.items || []).filter(Boolean) as Array<Record<string, any>>;
+  const shirt = items.find((i) => i.itemType === "shirt" && i.templateDataUrl)?.templateDataUrl as string | undefined;
+  const pants = items.find((i) => i.itemType === "pants" && i.templateDataUrl)?.templateDataUrl as string | undefined;
+
+  // Shirt covers torso + arms, pants cover torso + legs. Both templates reuse the same pixel slots
+  // for arms and legs, so they must NOT be composited onto the same limb.
+  const mats = {
+    torso: new THREE.MeshLambertMaterial({ map: await composeSheet(skin, [pants, shirt]) }),
+    arm: new THREE.MeshLambertMaterial({ map: await composeSheet(skin, [shirt]) }),
+    leg: new THREE.MeshLambertMaterial({ map: await composeSheet(skin, [pants]) }),
+  };
+  const headMat = new THREE.MeshLambertMaterial({ color: new THREE.Color(skin) });
+
+  const body = new THREE.Group();
+  const parts = new Map<PartName, THREE.Mesh>();
+  for (const p of PARTS) {
+    const geo = p.kind === "head" ? roundedHeadGeometry(p.w, HEAD_CORNER, HEAD_SEGMENTS) : new THREE.BoxGeometry(p.w, p.h, p.d);
+    if (p.kind !== "head") setFaceUVs(geo, TEMPLATE[p.kind], p.seg);
+    const mat = p.kind === "head" ? headMat : p.kind === "torso" ? mats.torso : p.kind.startsWith("arm") ? mats.arm : mats.leg;
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(p.x, p.yTop - p.h / 2, 0);
+    mesh.name = p.name;
+    body.add(mesh);
+    parts.set(p.name, mesh);
+  }
+
+  for (const item of items) {
+    if (item.itemType === "face_decal" && item.decalDataUrl) {
+      const tex = new THREE.Texture(await loadImage(item.decalDataUrl as string));
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.needsUpdate = true;
+      // The front of the head is flat with rounded edges, so a flat plane would float off the corners.
+      // Segment the plane and move each vertex onto the head surface (flat part 1:1, corners by arc length)
+      // with a small offset so the decal neither floats nor clips.
+      const geo = new THREE.PlaneGeometry(HEAD_S, HEAD_S, 24, 24);
+      const gp = geo.getAttribute("position") as THREE.BufferAttribute;
+      for (let i = 0; i < gp.count; i++) {
+        const [x, y, z] = headFrontPoint(gp.getX(i), gp.getY(i), DECAL_OFFSET);
+        gp.setXYZ(i, x, y, z);
+      }
+      gp.needsUpdate = true;
+      geo.computeVertexNormals();
+      const plane = new THREE.Mesh(
+        geo,
+        new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }),
+      );
+      plane.rotation.y = Math.PI; // the wrapped patch faces +Z by default; head front is -Z
+      parts.get("Head")!.add(plane);
+    } else if (item.itemType === "accessory" && item.positions) {
+      body.add(await buildAccessory(item as unknown as AccessoryItem, parts));
+    }
+  }
+
+  // Centre on the origin, then spin 180° about Y so the front (-Z) faces the +Z camera.
+  body.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(body);
+  const center = box.getCenter(new THREE.Vector3());
+  const size = box.getSize(new THREE.Vector3());
+  body.position.sub(center);
+  const pivot = new THREE.Group();
+  pivot.rotation.y = Math.PI;
+  pivot.add(body);
+
+  const radiusXZ = Math.max(
+    Math.hypot(box.min.x - center.x, box.min.z - center.z),
+    Math.hypot(box.max.x - center.x, box.max.z - center.z),
+    Math.hypot(box.min.x - center.x, box.max.z - center.z),
+    Math.hypot(box.max.x - center.x, box.min.z - center.z),
+  );
+  return { pivot, size, radiusXZ };
+}
+
+export function createAvatarScene(model: AvatarModel): THREE.Scene {
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x1a1a1a); // matches the page background
+  scene.add(new THREE.AmbientLight(0xffffff, 1.8));
+  const key = new THREE.DirectionalLight(0xffffff, 1.5);
+  key.position.set(2, 4, 3);
+  scene.add(key);
+  const fill = new THREE.DirectionalLight(0xffffff, 0.8);
+  fill.position.set(-3, 1, -2);
+  scene.add(fill);
+  const back = new THREE.DirectionalLight(0xffffff, 0.8); // so the back view isn't lit only by ambient
+  back.position.set(0, 2, -4);
+  scene.add(back);
+  scene.add(model.pivot);
+  return scene;
+}
+
+/** Camera distance at which the whole model (hair included) fits with `margin` to spare, from any orbit angle. */
+export function fitDistance(model: AvatarModel, fovDeg: number, aspect: number, margin = 1.18): number {
+  const tanV = Math.tan((fovDeg * DEG) / 2);
+  const tanH = tanV * aspect;
+  const halfH = model.size.y / 2;
+  // Nearest surface is up to radiusXZ closer than the pivot, so push back by that much.
+  const dV = (halfH * margin) / tanV + model.radiusXZ;
+  const dH = (model.radiusXZ * margin) / tanH + model.radiusXZ;
+  return Math.max(dV, dH);
+}
+
+/** theta: 0 = camera in front (+Z), +θ orbits toward the avatar's left (+X). phi: polar angle, 90° = level. */
+export function orbitCamera(camera: THREE.PerspectiveCamera, theta: number, phi: number, radius: number) {
+  camera.position.set(
+    radius * Math.sin(phi) * Math.sin(theta),
+    radius * Math.cos(phi),
+    radius * Math.sin(phi) * Math.cos(theta),
+  );
+  camera.lookAt(0, 0, 0);
+}
