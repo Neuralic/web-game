@@ -32,14 +32,13 @@ const InventoryPage = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
 
+  // label shown on the chip -> catalog_items.category it filters on (hair, faces and heads are all "Body")
   const categories = [
-    "All",
-    "Accessories",
-    "Clothing",
-    "Body Parts",
-    "Gear",
-    "Emotes",
-    "Faces",
+    { label: "All", value: "All" },
+    { label: "Accessories", value: "Accessories" },
+    { label: "Clothing", value: "Clothing" },
+    { label: "Body Parts", value: "Body" },
+    { label: "Emotes", value: "Animations" },
   ];
 
   // Debounce search
@@ -125,15 +124,15 @@ const InventoryPage = () => {
               <div className="flex items-center gap-2 flex-wrap">
                 {categories.map((cat) => (
                   <button
-                    key={cat}
-                    onClick={() => setCategoryFilter(cat)}
+                    key={cat.value}
+                    onClick={() => setCategoryFilter(cat.value)}
                     className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                      categoryFilter === cat
+                      categoryFilter === cat.value
                         ? "bg-blue-600 text-white"
                         : "bg-gray-200 dark:bg-[#242424] text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
                     }`}
                   >
-                    {cat}
+                    {cat.label}
                   </button>
                 ))}
               </div>
