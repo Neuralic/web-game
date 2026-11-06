@@ -2236,7 +2236,10 @@ export const catalogApi = {
         createdAt: string;
         updatedAt: string;
       };
-    }>(`/catalog/items/${id}`);
+    }>(`/catalog/items/${id}`, {
+      // Sent when logged in so an owner can open an item that is hidden from the catalog.
+      headers: storage.getAccessToken() ? { Authorization: `Bearer ${storage.getAccessToken()}` } : {},
+    });
   },
 
   getCategories: async () => {
