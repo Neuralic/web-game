@@ -328,6 +328,9 @@ const AvatarPage = () => {
     if (activeSubTab === "Classic Faces") {
       return item.subcategory === (showClassicFaces ? "Classic Faces" : "Face Accessories");
     }
+    // Hair is recognised by its subcategory alone ("Hair", "Hair Accessories", ...), as the equip slot mapping does,
+    // so hair stored under Body or Accessories both show here.
+    if (activeSubTab === "Hair") return /hair/i.test(item.subcategory || "");
     return (!tabFilter.category || item.category === tabFilter.category) &&
       (!tabFilter.subcategory || item.subcategory === tabFilter.subcategory);
   });
