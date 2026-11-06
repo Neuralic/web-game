@@ -202,8 +202,239 @@ function headFrontPoint(x: number, y: number, offset: number): [number, number, 
   ];
 }
 
+// ─── Hair fit ────────────────────────────────────────────────────────────
+// Hair meshes are authored as a shell standing off the head they were made for; on this head that leaves a visible
+// gap (0.05 to 0.25 studs at the back, depending on the hair). Hair-slot meshes are therefore pulled onto the head
+// after placement: the standoff each mesh actually has is measured, and the part of it near the head is shrunk.
+// The front is left alone so fringes keep clear of the face decal, the underside is left alone so hair hanging
+// below the head keeps its length, and meshes with a deliberately large standoff (afro, bun) are not touched.
+const HAIR_FIT_EDGE = 0.01;     // standoff kept between the fitted hair and the skin (the decal floats at 0.004)
+const HAIR_FIT_KEEP = 0.06;     // share of the standoff above the edge that is kept (the pull is local, see fitHairMesh)
+const HAIR_FIT_PASSES = 10;     // relaxation passes before giving up on a mesh
+const HAIR_FIT_MAX_GAP = 0.3;   // measured standoff above this is deliberate volume: no fit
+const HAIR_FIT_MIN_RAYS = 8;    // fewer hair hits than this over the back/sides: not a head-hugging mesh, no fit
+const HAIR_FIT_BLEND = 0.3;     // standoff range over which the fit fades out above the measured gap
+
+const smoothstep = (a: number, b: number, x: number) => {
+  const t = THREE.MathUtils.clamp((x - a) / (b - a), 0, 1);
+  return t * t * (3 - 2 * t);
+};
+
+/** Signed distance from the head surface (negative inside) for a point in head-local space; `n` gets the outward normal. */
+function headSurfaceAt(x: number, y: number, z: number, n: THREE.Vector3): number {
+  const inner = HEAD_S / 2 - HEAD_CORNER;
+  const dx = x - THREE.MathUtils.clamp(x, -inner, inner);
+  const dy = y - THREE.MathUtils.clamp(y, -inner, inner);
+  const dz = z - THREE.MathUtils.clamp(z, -inner, inner);
+  const len = Math.hypot(dx, dy, dz);
+  if (len > 1e-6) {
+    n.set(dx / len, dy / len, dz / len);
+    return len - HEAD_CORNER;
+  }
+  // Inside the inner box: nearest flat face.
+  const ax = Math.abs(x), ay = Math.abs(y), az = Math.abs(z);
+  const m = Math.max(ax, ay, az);
+  n.set(m === ax ? Math.sign(x) : 0, m === ay ? Math.sign(y) : 0, m === az ? Math.sign(z) : 0);
+  return m - HEAD_S / 2;
+}
+
+/** Distance from the head centre to the head surface along a unit direction. */
+function headRadiusAlong(ux: number, uy: number, uz: number): number {
+  const n = new THREE.Vector3();
+  let lo = 0, hi = HEAD_S;
+  for (let i = 0; i < 30; i++) {
+    const mid = (lo + hi) / 2;
+    if (headSurfaceAt(ux * mid, uy * mid, uz * mid, n) < 0) lo = mid; else hi = mid;
+  }
+  return lo;
+}
+
+interface HeadRay { dir: THREE.Vector3; r: number }
+
+/** Rays from the head centre (azimuth 0 = straight back (+Z), 180 = front) with the head surface distance along each. */
+function headRays(azDegs: number[], elDegs: number[]): HeadRay[] {
+  const rays: HeadRay[] = [];
+  for (const azDeg of azDegs) {
+    for (const elDeg of elDegs) {
+      const a = azDeg * DEG, e = elDeg * DEG;
+      const dir = new THREE.Vector3(Math.sin(a) * Math.cos(e), Math.sin(e), Math.cos(a) * Math.cos(e));
+      rays.push({ dir, r: headRadiusAlong(dir.x, dir.y, dir.z) });
+    }
+  }
+  return rays;
+}
+
+const HAIR_MEASURE_RAYS = headRays([0, 25, -25, 50, -50, 75, -75, 100, -100], [-15, 0, 15, 30]);
+
+/** Distance along each ray (from the head centre) to the hair's first surface at or beyond the head surface; null where none. */
+function hairSurfaceBeyondHead(mesh: THREE.Mesh, rays: HeadRay[]): Array<number | null> {
+  mesh.updateMatrixWorld(true);
+  const rc = new THREE.Raycaster();
+  const origin = new THREE.Vector3();
+  return rays.map(({ dir, r }) => {
+    rc.set(origin, dir);
+    const hit = rc.intersectObject(mesh, false).find((h) => h.distance >= r);
+    return hit ? hit.distance : null;
+  });
+}
+
+const SAMPLE_DIVISIONS = 4; // 15 sample points per triangle
+
+/**
+ * For every triangle, how far its worst point (over a grid of points: corners, edges, inside) is above the lowest height the
+ * hair may have there: just clear of the skin so the head does not hide it, and in the face area also clear of the decal.
+ * Negative means the head hides the point or the hair touches the decal.
+ */
+function hairTriangleMargins(geo: THREE.BufferGeometry): Float32Array {
+  const pos = geo.getAttribute("position") as THREE.BufferAttribute;
+  const index = geo.getIndex();
+  const tris = (index ? index.count : pos.count) / 3;
+  const out = new Float32Array(tris);
+  const n = new THREE.Vector3();
+  const v = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
+  for (let t = 0; t < tris; t++) {
+    for (let c = 0; c < 3; c++) v[c].fromBufferAttribute(pos, index ? index.getX(t * 3 + c) : t * 3 + c);
+    let lowest = Infinity;
+    for (let i = 0; i <= SAMPLE_DIVISIONS; i++) {
+      for (let j = 0; j <= SAMPLE_DIVISIONS - i; j++) {
+        const a = i / SAMPLE_DIVISIONS, b = j / SAMPLE_DIVISIONS, c = 1 - a - b;
+        const s = headSurfaceAt(
+          v[0].x * a + v[1].x * b + v[2].x * c,
+          v[0].y * a + v[1].y * b + v[2].y * c,
+          v[0].z * a + v[1].z * b + v[2].z * c,
+          n,
+        );
+        lowest = Math.min(lowest, s - (-n.z > 0.3 ? DECAL_OFFSET * 2 : -0.002)); // front is -Z; the decal reaches about 57 degrees round
+      }
+    }
+    out[t] = lowest;
+  }
+  return out;
+}
+
+/**
+ * How far the hair's nearest surface beyond the head stands off it over the back and sides: the lower quartile of the
+ * gaps along rays from the head centre. Null when the mesh does not cover the back/sides (not head-hugging).
+ * `mesh` is in head-local space.
+ */
+function measureHairStandoff(mesh: THREE.Mesh): number | null {
+  const hits = hairSurfaceBeyondHead(mesh, HAIR_MEASURE_RAYS);
+  const gaps: number[] = [];
+  hits.forEach((d, i) => { if (d !== null) gaps.push(d - HAIR_MEASURE_RAYS[i].r); });
+  if (gaps.length < HAIR_FIT_MIN_RAYS) return null;
+  gaps.sort((p, q) => p - q);
+  return gaps[Math.floor(gaps.length * 0.25)];
+}
+
+/** Pull the hair's standoff toward the head surface (see the notes above). `pos` is in head-local space. */
+function fitHairToHead(pos: THREE.BufferAttribute, standoff: number, keep: Float32Array, groupOf: Int32Array) {
+  const n = new THREE.Vector3();
+  const full = standoff + 0.08;          // standoff up to here is pulled in completely
+  const none = full + HAIR_FIT_BLEND;    // above this the hair is left as it is
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+    const s = headSurfaceAt(x, y, z, n);
+    if (s <= HAIR_FIT_EDGE) continue;
+    const wFront = 1 - smoothstep(0.3, 0.65, -n.z);   // front is -Z: fringe/face area stays put
+    const wUnder = smoothstep(-0.75, -0.25, n.y);     // underside stays put: long hair keeps its length
+    const w = wFront * wUnder * (1 - smoothstep(full, none, s));
+    if (w <= 0) continue;
+    const fitted = HAIR_FIT_EDGE + (s - HAIR_FIT_EDGE) * (1 - w * (1 - keep[groupOf[i]]));
+    pos.setXYZ(i, x - n.x * (s - fitted), y - n.y * (s - fitted), z - n.z * (s - fitted));
+  }
+  pos.needsUpdate = true;
+}
+
+/**
+ * Fit a placed hair mesh (head-local space) onto the head in place. Starts with the full pull everywhere; a triangle that
+ * had room (see hairTriangleMargins) but now cuts into the head or reaches the face decal relaxes the pull at its corners,
+ * and the fit is redone until none does. Triangles that already crossed the head (the hair's own thickness walls) are
+ * expected to. Returns false (mesh untouched) when the mesh is not a head-hugging shell or never settles.
+ */
+function fitHairMesh(geo: THREE.BufferGeometry, mat: THREE.Material): boolean {
+  const standoff = measureHairStandoff(new THREE.Mesh(geo, mat));
+  if (standoff === null || standoff > HAIR_FIT_MAX_GAP) return false;
+
+  const pos = geo.getAttribute("position") as THREE.BufferAttribute;
+  const index = geo.getIndex();
+  const original = pos.array.slice();
+  const cornerOf = (t: number, c: number) => (index ? index.getX(t * 3 + c) : t * 3 + c);
+
+  // Corners sharing a position (non-indexed meshes repeat them) must move together: one pull setting per position.
+  const groupOf = new Int32Array(pos.count);
+  const groups = new Map<string, number>();
+  for (let i = 0; i < pos.count; i++) {
+    const key = `${pos.getX(i)},${pos.getY(i)},${pos.getZ(i)}`;
+    let g = groups.get(key);
+    if (g === undefined) { g = groups.size; groups.set(key, g); }
+    groupOf[i] = g;
+  }
+  const keep = new Float32Array(groups.size).fill(HAIR_FIT_KEEP);
+  const before = hairTriangleMargins(geo);
+
+  for (let pass = 0; pass < HAIR_FIT_PASSES; pass++) {
+    pos.array.set(original);
+    fitHairToHead(pos, Math.max(standoff, 0), keep, groupOf);
+    const after = hairTriangleMargins(geo);
+    let buried = false;
+    for (let t = 0; t < after.length; t++) {
+      // Room before: must still have it. Already crossing the head by a little (a thin spot of the shell): must not get worse.
+      const worse = before[t] >= 0 ? after[t] < 0 : before[t] > -0.06 && after[t] < before[t] - 0.004;
+      if (!worse) continue;
+      buried = true;
+      for (let c = 0; c < 3; c++) {
+        const g = groupOf[cornerOf(t, c)];
+        keep[g] += (1 - keep[g]) * 0.5; // halve the remaining pull at this corner
+      }
+    }
+    if (!buried) {
+      geo.computeBoundingSphere();
+      geo.computeBoundingBox();
+      return true;
+    }
+  }
+  pos.array.set(original);
+  pos.needsUpdate = true;
+  return false;
+}
+
+// ─── Face window ─────────────────────────────────────────────────────────
+// A fringe that hangs over the face hides the classic face decal (the decal is just a layer on the skin). So when the avatar
+// wears a face, hair is not drawn inside a window over the face area: a rounded oval (head-local x/y, front half of the head
+// only) covering eyes, brows and mouth. The hair keeps its own shape above and beside the window, the decal stays a plain
+// layer on the skin, and the cut edge is anti-aliased with alpha-to-coverage. The test uses the hair's head-local
+// position, so the face stays clear from every viewing angle, not just straight on.
+const FACE_WINDOW_CY = -0.06;   // window centre height (head centre = 0)
+const FACE_WINDOW_RX = 0.52;    // half width
+const FACE_WINDOW_RY = 0.42;    // half height: -0.48 (below the mouth) up to 0.36 (above the brows)
+const FACE_WINDOW_POWER = 2.5;  // 2 = ellipse; higher squares the corners so brows and cheek marks at the edge stay clear
+const FACE_WINDOW_FRONT = 0.3;  // only hair this far in front of the head centre is cut; hair behind it is never touched
+
+function clearFaceWindow(mat: THREE.MeshLambertMaterial, headCenter: THREE.Vector3) {
+  mat.alphaTest = 0.5;
+  mat.alphaToCoverage = true;
+  mat.onBeforeCompile = (shader) => {
+    shader.uniforms.uHeadCenter = { value: headCenter.clone() };
+    shader.vertexShader = shader.vertexShader
+      .replace("void main() {", "uniform vec3 uHeadCenter;\nvarying vec3 vHeadPos;\nvoid main() {")
+      .replace("#include <begin_vertex>", "#include <begin_vertex>\n\tvHeadPos = position - uHeadCenter;");
+    shader.fragmentShader = shader.fragmentShader
+      .replace("void main() {", "varying vec3 vHeadPos;\nvoid main() {")
+      .replace(
+        "#include <alphatest_fragment>",
+        `{
+	// distance-like value: 1 on the window edge, below 1 inside it
+	float e = pow(pow(abs(vHeadPos.x) / ${FACE_WINDOW_RX.toFixed(3)}, ${FACE_WINDOW_POWER.toFixed(2)}) + pow(abs(vHeadPos.y - (${FACE_WINDOW_CY.toFixed(3)})) / ${FACE_WINDOW_RY.toFixed(3)}, ${FACE_WINDOW_POWER.toFixed(2)}), ${(1 / FACE_WINDOW_POWER).toFixed(4)});
+	float k = (e - 1.0) / max(fwidth(e), 1e-4);
+	diffuseColor.a = vHeadPos.z < -${FACE_WINDOW_FRONT.toFixed(2)} ? clamp(0.5 + 0.5 * k, 0.0, 1.0) : 1.0;
+}
+#include <alphatest_fragment>`,
+      );
+  };
+}
+
 // ─── Accessories ─────────────────────────────────────────────────────────
-async function buildAccessory(item: AccessoryItem, parts: Map<PartName, THREE.Mesh>): Promise<THREE.Object3D> {
+async function buildAccessory(item: AccessoryItem, parts: Map<PartName, THREE.Mesh>, hasFace: boolean): Promise<THREE.Object3D> {
   const geo = new THREE.BufferGeometry();
   geo.setAttribute("position", new THREE.Float32BufferAttribute(item.positions, 3));
   geo.setAttribute("normal", new THREE.Float32BufferAttribute(item.normals, 3));
@@ -242,6 +473,24 @@ async function buildAccessory(item: AccessoryItem, parts: Map<PartName, THREE.Me
   handle.add(mesh);
   handle.matrixAutoUpdate = false;
   handle.matrix.copy(attachWorld).multiply(cfMat.invert());
+
+  // Hair: bake the placed mesh into body space (the mesh then carries no transform of its own), measure how far it stands off
+  // the head and, if it is a head-hugging shell, pull it onto the head. With a face on, the hair also leaves the face window
+  // clear (see clearFaceWindow).
+  if (item.attachmentName === "HairAttachment" && partName === "Head") {
+    mesh.updateMatrix();
+    const placed = geo.clone().applyMatrix4(new THREE.Matrix4().multiplyMatrices(handle.matrix, mesh.matrix));
+    const center = part.position;
+    placed.translate(-center.x, -center.y, -center.z); // head-local, so the head centre is the origin
+    fitHairMesh(placed, mat); // leaves the mesh as placed when it is not a head-hugging shell
+    placed.translate(center.x, center.y, center.z);
+    mesh.geometry.dispose();
+    mesh.geometry = placed;
+    mesh.position.set(0, 0, 0);
+    mesh.scale.set(1, 1, 1);
+    handle.matrix.identity();
+    if (hasFace) clearFaceWindow(mat as THREE.MeshLambertMaterial, center);
+  }
   return handle;
 }
 
@@ -283,6 +532,7 @@ export async function buildAvatar(data: CustomAvatarData): Promise<AvatarModel> 
     parts.set(p.name, mesh);
   }
 
+  const hasFace = items.some((i) => i.itemType === "face_decal" && i.decalDataUrl);
   for (const item of items) {
     if (item.itemType === "face_decal" && item.decalDataUrl) {
       const tex = new THREE.Texture(await loadImage(item.decalDataUrl as string));
@@ -306,7 +556,7 @@ export async function buildAvatar(data: CustomAvatarData): Promise<AvatarModel> 
       plane.rotation.y = Math.PI; // the wrapped patch faces +Z by default; head front is -Z
       parts.get("Head")!.add(plane);
     } else if (item.itemType === "accessory" && item.positions) {
-      body.add(await buildAccessory(item as unknown as AccessoryItem, parts));
+      body.add(await buildAccessory(item as unknown as AccessoryItem, parts, hasFace));
     }
   }
 
