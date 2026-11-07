@@ -275,6 +275,7 @@ export default function Avatar3DViewer({
         // Always the custom, server-parsed outfit (/avatar/3d-custom-v2), including users with a linked Roblox account.
 
         const query = new URLSearchParams();
+        query.set("packed", "1"); // compact meshes: keeps heavy outfits under the server's response size cap
         if (fresh) query.set("fresh", "1");
         if (tryOnItemId) query.set("try", tryOnItemId);
         const qs = query.toString();
@@ -284,6 +285,9 @@ export default function Avatar3DViewer({
         const customData = await customRes.json() as CustomAvatarData & { tryOn?: TryOnResult };
         if (!customData.success) throw new Error("No avatar data");
         if (stale()) return;
+        if (customData.omitted?.length) {
+          console.warn("Avatar3DViewer: the server left items out:", customData.omitted.map((o) => `${o.slot} (${o.reason})`).join(", "));
+        }
         if (tryOnItemId && customData.tryOn) onTryOnResultRef.current?.(customData.tryOn);
 
         const model = await buildAvatar(customData);
