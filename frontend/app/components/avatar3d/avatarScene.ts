@@ -7,16 +7,19 @@
 // model is wrapped in a pivot rotated 180° about Y so its front faces the default +Z camera.
 // A Z-negation would mirror the model (wrong chirality: mirrored shirt text, swapped sides).
 import * as THREE from "three";
+import { unpackMesh, type PackedMesh } from "./packedMesh";
 
 export const DEG = Math.PI / 180;
 
 // ─── Response types (GET /avatar/3d-custom-v2/:userId) ────────────────────
 export interface AccessoryItem {
   itemType: "accessory";
-  positions: number[]; // handle-local studs (backend already normalises v1 meshes to studs)
-  normals: number[];
-  uvs: number[];
-  indices: number[];
+  // The mesh arrives either as plain arrays or, when the request had ?packed=1, as one compact `mesh` object.
+  positions?: number[]; // handle-local studs (backend already normalises v1 meshes to studs)
+  normals?: number[];
+  uvs?: number[];
+  indices?: number[];
+  mesh?: PackedMesh;
   scale: [number, number, number];   // SpecialMesh.Scale
   offset: [number, number, number];  // SpecialMesh.Offset (studs, handle space, NOT scaled)
   attachmentName: string | null;
@@ -27,6 +30,8 @@ export interface CustomAvatarData {
   success: boolean;
   skinColor: string;
   items: Array<Record<string, unknown> | null>;
+  /** Slots the server had to leave out (the response would have been too large). Normally absent. */
+  omitted?: Array<{ slot: string; reason: string }>;
 }
 
 // ─── R15-ish body layout (studs; origin at the soles) ────────────────────
@@ -435,11 +440,12 @@ function clearFaceWindow(mat: THREE.MeshLambertMaterial, headCenter: THREE.Vecto
 
 // ─── Accessories ─────────────────────────────────────────────────────────
 async function buildAccessory(item: AccessoryItem, parts: Map<PartName, THREE.Mesh>, hasFace: boolean): Promise<THREE.Object3D> {
+  const m = item.mesh ? unpackMesh(item.mesh) : { positions: item.positions ?? [], normals: item.normals ?? [], uvs: item.uvs ?? [], indices: item.indices ?? [] };
   const geo = new THREE.BufferGeometry();
-  geo.setAttribute("position", new THREE.Float32BufferAttribute(item.positions, 3));
-  geo.setAttribute("normal", new THREE.Float32BufferAttribute(item.normals, 3));
-  geo.setAttribute("uv", new THREE.Float32BufferAttribute(item.uvs, 2));
-  if (item.indices.length > 0) geo.setIndex(new THREE.Uint32BufferAttribute(item.indices, 1));
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(m.positions, 3));
+  geo.setAttribute("normal", new THREE.Float32BufferAttribute(m.normals, 3));
+  geo.setAttribute("uv", new THREE.Float32BufferAttribute(m.uvs, 2));
+  if (m.indices.length > 0) geo.setIndex(new THREE.Uint32BufferAttribute(m.indices, 1));
 
   let mat: THREE.Material;
   if (item.textureDataUrl) {
@@ -555,7 +561,7 @@ export async function buildAvatar(data: CustomAvatarData): Promise<AvatarModel> 
       );
       plane.rotation.y = Math.PI; // the wrapped patch faces +Z by default; head front is -Z
       parts.get("Head")!.add(plane);
-    } else if (item.itemType === "accessory" && item.positions) {
+    } else if (item.itemType === "accessory" && (item.positions || item.mesh)) {
       body.add(await buildAccessory(item as unknown as AccessoryItem, parts, hasFace));
     }
   }
