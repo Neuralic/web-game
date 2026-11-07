@@ -17,6 +17,8 @@ interface InventoryItem {
   itemType: string;
   thumbnailUrl: string;
   robloxAssetId: string;
+  // Layered clothing (decided on the server from the item's Roblox asset type): cannot be worn, so it is not listed
+  isLayered?: boolean;
   acquired_at: string;
 }
 
@@ -65,8 +67,8 @@ const InventoryPage = () => {
           if (item.category === 'Backgrounds' || item.subcategory === 'Backgrounds') return false;
           if (item.name?.toLowerCase().includes('background')) return false;
           if (item.thumbnailUrl?.toLowerCase().includes('background')) return false;
-          // Layered clothing (large robloxAssetId) can't be equipped on R15.
-          if (item.robloxAssetId && Number(item.robloxAssetId) > 100000000000) return false;
+          // Layered clothing can't be equipped on R15. The server decides what is layered (by Roblox asset type), not the id size.
+          if (item.isLayered) return false;
           return true;
         });
         setItems(filteredItems);
