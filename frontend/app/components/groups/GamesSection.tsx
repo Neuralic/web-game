@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight, Loader2, ThumbsUp, Users } from "lucide-react";
 import Link from "next/link";
+import PlayButton from "../PlayButton";
 
 interface Game {
   id: string;
@@ -13,6 +14,7 @@ interface Game {
   likes: number;
   dislikes: number;
   currentPlayers: number;
+  placeId?: string | number | null;
 }
 
 interface GamesSectionProps {
@@ -80,8 +82,8 @@ export default function GamesSection({ groupId }: GamesSectionProps) {
             {games.map((game) => {
               const likePct = likePercentage(game);
               return (
+                <div key={game.id}>
                 <Link
-                  key={game.id}
                   href={`/games/${game.id}`}
                   className="group block"
                 >
@@ -112,6 +114,8 @@ export default function GamesSection({ groupId }: GamesSectionProps) {
                     </div>
                   </div>
                 </Link>
+                <PlayButton game={game} className="mt-2" />
+                </div>
               );
             })}
         </div>
