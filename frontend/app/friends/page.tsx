@@ -9,7 +9,28 @@ import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
 import { friendsApi, usersApi } from "@/lib/api";
 import UserAvatar from "../components/UserAvatar";
-import { useRealtime } from "@/contexts/RealtimeContext";
+import UserPresenceBadge from "../components/UserPresenceBadge";
+import InGameLabel from "../components/InGameLabel";
+import { useUserPresence } from "@/hooks/useUserPresence";
+
+// Presence of one card's user, read live from the shared presence map (see hooks/useUserPresence.ts).
+// A user in a game shows that game's icon on the avatar (UserPresenceBadge) and "Playing <game>" (the name links to the game).
+function CardPresenceDot({ userId }: { userId: string }) {
+  const { presenceStatus } = useUserPresence(userId);
+  const color = presenceStatus === "in-game" ? "bg-green-500" : presenceStatus === "online" ? "bg-blue-500" : "bg-gray-400";
+  return <div className={`w-2 h-2 rounded-full ${color}`} />;
+}
+
+function CardPresenceText({ userId }: { userId: string }) {
+  const presence = useUserPresence(userId);
+  if (presence.presenceStatus === "in-game") {
+    return <InGameLabel gameId={presence.currentGameId} fallbackTitle={presence.currentGame} className="text-sm font-medium text-green-600 dark:text-green-400 max-w-full" />;
+  }
+  if (presence.presenceStatus === "online") {
+    return <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Online</p>;
+  }
+  return <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Offline</p>;
+}
 
 function FriendsPageContent() {
   const searchParams = useSearchParams();
@@ -21,7 +42,6 @@ function FriendsPageContent() {
   const [connectionSearch, setConnectionSearch] = useState("");
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const { presenceMap } = useRealtime();
 
   const [friends, setFriends] = useState<any[]>([]);
   const [following, setFollowing] = useState<any[]>([]);                                                                                                                                                                                                                                                                          
@@ -47,17 +67,12 @@ function FriendsPageContent() {
             ? await friendsApi.getUserFriends(userId)
             : await friendsApi.getFriends();
           if (response.success && response.data) {
-            const realFriends = (response.data.friends || []).map((friend: any) => {
-              const presence = presenceMap.get(friend.id);
-              const status = presence?.presenceStatus || 'offline';
-              return {
-                id: friend.id,
-                name: friend.display_name || friend.username,
-                username: `@${friend.username}`,
-                status: status === 'online' ? 'Online' : status === 'in-game' ? 'Playing' : 'Offline',
-                statusType: status,
-              };
-            });
+            // Presence (online / in-game) is resolved per card when rendering, so it stays live without refetching the list
+            const realFriends = (response.data.friends || []).map((friend: any) => ({
+              id: friend.id,
+              name: friend.display_name || friend.username,
+              username: `@${friend.username}`,
+            }));
             setFriends(realFriends);
           } else {
             setFriends([]);
@@ -67,18 +82,12 @@ function FriendsPageContent() {
             ? await usersApi.getUserFollowing(userId)
             : await usersApi.getFollowing();
           if (response.success && response.data) {
-            const realFollowing = ((response.data as any).following || []).map((user: any) => {
-              const presence = presenceMap.get(user.id);
-              const status = presence?.presenceStatus || 'offline';
-              return {
-                id: user.id,
-                name: user.display_name || user.username,
-                username: `@${user.username}`,
-                status: status === 'online' ? 'Online' : status === 'in-game' ? 'Playing' : 'Offline',
-                statusType: status,
-                isVerified: user.is_verified,
-              };
-            });
+            const realFollowing = ((response.data as any).following || []).map((user: any) => ({
+              id: user.id,
+              name: user.display_name || user.username,
+              username: `@${user.username}`,
+              isVerified: user.is_verified,
+            }));
             setFollowing(realFollowing);
           } else {
             setFollowing([]);
@@ -88,18 +97,12 @@ function FriendsPageContent() {
             ? await usersApi.getUserFollowers(userId)
             : await usersApi.getFollowers();
           if (response.success && response.data) {
-            const realFollowers = ((response.data as any).followers || []).map((user: any) => {
-              const presence = presenceMap.get(user.id);
-              const status = presence?.presenceStatus || 'offline';
-              return {
-                id: user.id,
-                name: user.display_name || user.username,
-                username: `@${user.username}`,
-                status: status === 'online' ? 'Online' : status === 'in-game' ? 'Playing' : 'Offline',
-                statusType: status,
-                isVerified: user.is_verified,
-              };
-            });
+            const realFollowers = ((response.data as any).followers || []).map((user: any) => ({
+              id: user.id,
+              name: user.display_name || user.username,
+              username: `@${user.username}`,
+              isVerified: user.is_verified,
+            }));
             setFollowers(realFollowers);
           } else {
             setFollowers([]);
@@ -133,7 +136,7 @@ function FriendsPageContent() {
     };
 
     fetchData();
-  }, [activeTab, presenceMap]);
+  }, [activeTab, userId]);
 
   const handleAcceptRequest = async (requestId: string) => {
     try {
@@ -157,17 +160,11 @@ function FriendsPageContent() {
         }
 
         if (friendsResponse.success && friendsResponse.data) {
-          const realFriends = (friendsResponse.data.friends || []).map((friend: any) => {
-            const presence = presenceMap.get(friend.id);
-            const status = presence?.presenceStatus || 'offline';
-            return {
-              id: friend.id,
-              name: friend.display_name || friend.username,
-              username: `@${friend.username}`,
-              status: status === 'online' ? 'Online' : status === 'in-game' ? 'Playing' : 'Offline',
-              statusType: status,
-            };
-          });
+          const realFriends = (friendsResponse.data.friends || []).map((friend: any) => ({
+            id: friend.id,
+            name: friend.display_name || friend.username,
+            username: `@${friend.username}`,
+          }));
           setFriends(realFriends);
         }
       }
@@ -310,39 +307,12 @@ function FriendsPageContent() {
                 >
                   <div className="relative inline-block">
                     <UserAvatar userId={user.id} username={user.name} size={96} headshot />
-                    {user.statusType && user.statusType !== "offline" && (
-                      <div
-                        className={`absolute w-6 h-6 rounded-full border-2 border-white dark:border-gray-900 flex items-center justify-center ${
-                          user.statusType === "online-game"
-                            ? "bg-green-500"
-                            : user.statusType === "online"
-                              ? "bg-blue-500"
-                              : user.statusType === "studio"
-                                ? "bg-orange-500"
-                                : "bg-gray-400"
-                        }`}
-                        style={{ bottom: "2px", right: "2px" }}
-                      >
-                        <svg className="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
-                        </svg>
-                      </div>
-                    )}
+                    <UserPresenceBadge userId={user.id} />
                   </div>
                 </Link>
 
                 <div className="flex items-center gap-2 mb-1">
-                  <div
-                    className={`w-2 h-2 rounded-full ${
-                      user.statusType === "online-game"
-                        ? "bg-green-500"
-                        : user.statusType === "online"
-                          ? "bg-blue-500"
-                          : user.statusType === "studio"
-                            ? "bg-orange-500"
-                            : "bg-gray-400"
-                    }`}
-                  />
+                  <CardPresenceDot userId={user.id} />
                   <Link
                     href={`/profile/${user.username.replace('@', '')}`}
                     className="font-bold text-gray-900 dark:text-gray-100 hover:underline cursor-pointer"
@@ -351,19 +321,7 @@ function FriendsPageContent() {
                   </Link>
                 </div>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{user.username}</p>
-                <p
-                  className={`text-sm font-medium ${
-                    user.statusType === "online-game"
-                      ? "text-green-600 dark:text-green-400"
-                      : user.statusType === "online"
-                        ? "text-blue-600 dark:text-blue-400"
-                        : user.statusType === "studio"
-                          ? "text-orange-600 dark:text-orange-400"
-                          : "text-gray-500 dark:text-gray-400"
-                  }`}
-                >
-                  {user.status}
-                </p>
+                <CardPresenceText userId={user.id} />
 
                 {/* Action buttons for Requests */}
                 {activeTab === "Requests" && (
