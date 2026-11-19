@@ -10,6 +10,8 @@ import {
   ExternalLink,
   Monitor,
   LayoutGrid,
+  Heart,
+  History,
 } from "lucide-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faGamepad } from "@fortawesome/free-solid-svg-icons";
@@ -19,6 +21,9 @@ import Header from "../../components/Header";
 import VerifiedBadge from "../../components/VerifiedBadge";
 import UserAvatar from "../../components/UserAvatar";
 import PresenceBadge from "../../components/PresenceBadge";
+import UserPresenceBadge from "../../components/UserPresenceBadge";
+import InGameLabel from "../../components/InGameLabel";
+import GameGridCard from "../../components/GameGridCard";
 import AvatarPreview from "../../components/AvatarPreview";
 import { useAvatarRender, subscribeAvatarChanged } from "../../components/useAvatarRender";
 import UserAdBanner from "../../components/UserAdBanner";
@@ -28,7 +33,6 @@ import { usersApi, friendsApi, groupsApi, storage } from "@/lib/api";
 import { openChatWithUser } from "@/app/components/ChatWidget";
 import { useParams, useRouter } from "next/navigation";
 import { useUserPresence } from "@/hooks/useUserPresence";
-import { useRealtime } from "@/contexts/RealtimeContext";
 import { supabase } from "@/lib/supabase";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
@@ -70,6 +74,7 @@ interface UserGame {
   thumbnailUrl?: string | null;
   visits: number;
   currentPlayers?: number;
+  placeId?: string | number | null;
 }
 
 interface AvatarStateData {
@@ -207,7 +212,6 @@ const ProfilePage = () => {
   const [postingWallReply, setPostingWallReply] = useState<Record<string, boolean>>({});
 
   const realtimePresence = useUserPresence(profileUser?.id);
-  const { presenceMap } = useRealtime();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -345,6 +349,9 @@ const ProfilePage = () => {
   const tabs = ["About", "Creations", "Wall"];
   const [favoriteGames, setFavoriteGames] = useState<UserGame[]>([]);
   const [loadingFavorites, setLoadingFavorites] = useState(true);
+  // Recently Played is only loaded and shown on your own profile (as on Roblox, other people's play history is not public)
+  const [recentlyPlayed, setRecentlyPlayed] = useState<UserGame[]>([]);
+  const [loadingRecentlyPlayed, setLoadingRecentlyPlayed] = useState(false);
 
   useEffect(() => {
     const fetchFriends = async () => {
@@ -559,6 +566,29 @@ const ProfilePage = () => {
 
     fetchFavoriteGames();
   }, [profileUser?.id]);
+
+  useEffect(() => {
+    if (!profileUser?.id || !isOwnProfile) {
+      setRecentlyPlayed([]);
+      return;
+    }
+    let ignore = false;
+    const fetchRecentlyPlayed = async () => {
+      setLoadingRecentlyPlayed(true);
+      try {
+        const res = await fetch(`${API_BASE}/games/recently-played/${profileUser.id}`);
+        const data = await res.json();
+        if (!ignore && data.success && data.data?.games) setRecentlyPlayed(data.data.games);
+      } catch (error) {
+        console.error('Error fetching recently played games:', error);
+      } finally {
+        if (!ignore) setLoadingRecentlyPlayed(false);
+      }
+    };
+
+    fetchRecentlyPlayed();
+    return () => { ignore = true; };
+  }, [profileUser?.id, isOwnProfile]);
 
   useEffect(() => {
     const fetchWallPosts = async () => {
@@ -980,7 +1010,13 @@ const ProfilePage = () => {
               <div className="relative">
                 {/* Profile pic — always R15 via UserAvatar */}
                 <ProfileHeadshot userId={profileUser?.id || ""} username={displayName || username} />
-                <PresenceBadge status={getPresenceStatus()?.status} size={28} title={getPresenceStatus()?.label} />
+                <PresenceBadge
+                  status={getPresenceStatus()?.status}
+                  size={28}
+                  title={getPresenceStatus()?.label}
+                  gameId={realtimePresence?.currentGameId}
+                  gameTitle={realtimePresence?.currentGame || profileUser?.current_game}
+                />
               </div>
 
               <div className="flex-1">
@@ -997,7 +1033,14 @@ const ProfilePage = () => {
                       )}
                     </h1>
                     <p className="text-sm text-gray-600 dark:text-gray-400">@{username || "user"}</p>
-                    {statusMessage && <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 italic">"{statusMessage}"</p>}
+                    {getPresenceStatus()?.status === "in-game" && (
+                      <InGameLabel
+                        gameId={realtimePresence?.currentGameId}
+                        fallbackTitle={realtimePresence?.currentGame || profileUser?.current_game}
+                        className="text-sm text-green-600 dark:text-green-400 mt-0.5"
+                      />
+                    )}
+                    {statusMessage &&<p className="text-sm text-gray-600 dark:text-gray-400 mt-1 italic">"{statusMessage}"</p>}
                   </div>
 
                   <div className="flex items-center gap-2">
@@ -1200,7 +1243,7 @@ const ProfilePage = () => {
                       <Link key={connection.id} href={`/profile/${connection.username}`} className="flex flex-col items-center cursor-pointer group">
                         <div className="relative">
                           <UserAvatar userId={connection.id} username={connection.name} size={80} headshot />
-                          <PresenceBadge status={presenceMap.get(connection.id)?.presenceStatus} size={20} />
+                          <UserPresenceBadge userId={connection.id} size={20} />
                         </div>
                         <p className="mt-2 text-xs text-gray-900 dark:text-gray-100">{connection.name}</p>
                       </Link>
@@ -1301,8 +1344,13 @@ const ProfilePage = () => {
 
                 <div className="py-6 border-b border-gray-200 dark:border-gray-800">
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">⭐ Favorite Games</h2>
-                    <button className="flex items-center gap-1 text-sm text-gray-900 dark:text-gray-100 hover:underline">Favorites<ChevronRight className="w-4 h-4" /></button>
+                    <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                      <Heart className="w-5 h-5 text-red-500 fill-red-500" />
+                      Favorite Games
+                    </h2>
+                    {isOwnProfile && (
+                      <Link href="/favorites" className="flex items-center gap-1 text-sm text-gray-900 dark:text-gray-100 hover:underline">See All<ChevronRight className="w-4 h-4" /></Link>
+                    )}
                   </div>
                   {loadingFavorites ? (
                     <div className="flex justify-center py-8">
@@ -1313,23 +1361,36 @@ const ProfilePage = () => {
                   ) : (
                     <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
                       {favoriteGames.map((game) => (
-                        <Link key={game.id} href={`/games/${game.id}`} className="cursor-pointer group block">
-                          <div className="aspect-[4/3] rounded-lg overflow-hidden bg-gray-100 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] group-hover:border-gray-400 dark:group-hover:border-gray-500 transition-colors">
-                            {game.thumbnailUrl ? (
-                              <img src={game.thumbnailUrl} alt={game.title} className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full bg-gradient-to-b from-blue-200 to-green-200 dark:from-blue-900 dark:to-green-900 flex items-center justify-center">
-                                <span className="text-xl font-bold text-gray-700 dark:text-gray-300">ADVENTUREBLOX</span>
-                              </div>
-                            )}
-                          </div>
-                          <h3 className="mt-2 text-sm font-bold text-gray-900 dark:text-gray-100 truncate">{game.title}</h3>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">{game.visits?.toLocaleString() || 0} visits</p>
-                        </Link>
+                        <GameGridCard key={game.id} game={game} />
                       ))}
                     </div>
                   )}
                 </div>
+
+                {isOwnProfile && (
+                  <div className="py-6 border-b border-gray-200 dark:border-gray-800">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                        <History className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                        Recently Played
+                      </h2>
+                      <Link href="/continue" className="flex items-center gap-1 text-sm text-gray-900 dark:text-gray-100 hover:underline">See All<ChevronRight className="w-4 h-4" /></Link>
+                    </div>
+                    {loadingRecentlyPlayed ? (
+                      <div className="flex justify-center py-8">
+                        <div className="w-6 h-6 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    ) : recentlyPlayed.length === 0 ? (
+                      <p className="text-sm text-gray-500 dark:text-gray-400 py-4">No recently played games yet.</p>
+                    ) : (
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+                        {recentlyPlayed.slice(0, 4).map((game) => (
+                          <GameGridCard key={game.id} game={game} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div className="py-6 border-b border-gray-200 dark:border-gray-800">
                   <div className="flex items-center justify-between mb-4">
