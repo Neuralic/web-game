@@ -5,6 +5,7 @@ import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
 import Footer from "../components/Footer";
 import UserAdBanner from "../components/UserAdBanner";
+import PlayButton from "../components/PlayButton";
 
 interface Game {
   id: string;
@@ -19,6 +20,7 @@ interface Game {
   currentPlayers: number;
   is_sponsored?: boolean;
   sponsor_bid?: number;
+  placeId?: string | number | null;
   createdAt: string;
 }
 
@@ -92,7 +94,7 @@ const GamesPage = () => {
           </div>
         </Link>
 
-        <a href={`roblox://experiences/start?placeId=${game.id}`} className="block text-center bg-green-500 hover:bg-green-600 text-white text-sm font-bold py-2 rounded-lg transition-colors">Play</a>
+        <PlayButton game={game} />
       </div>
     );
   };
