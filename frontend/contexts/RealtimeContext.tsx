@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
-import { initializePresence, disconnectPresence, cleanupRealtimeChannels, refreshPresenceHeartbeat, PresenceData } from '@/lib/realtime';
+import { initializePresence, disconnectPresence, cleanupRealtimeChannels, refreshPresenceHeartbeat, hasActivePlayingGame, PresenceData } from '@/lib/realtime';
 import { isAuthenticated } from '@/lib/auth';
 import { storage } from '@/lib/api';
 
@@ -59,6 +59,12 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
     const startHeartbeat = () => {
       stopHeartbeat();
       heartbeat = setInterval(() => {
+        // A backgrounded tab is only kept alive for someone who pressed Play; once that has expired it goes offline as usual.
+        if (document.visibilityState === 'hidden' && !hasActivePlayingGame()) {
+          stopHeartbeat();
+          disconnectPresence();
+          return;
+        }
         refreshPresenceHeartbeat().catch(() => {});
       }, PRESENCE_HEARTBEAT_MS);
     };
@@ -79,6 +85,8 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
     // Mark offline when tab is hidden / closed
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
+        // Someone who just pressed Play is in the Roblox app with this tab in the background: keep showing them as in-game.
+        if (hasActivePlayingGame()) return;
         stopHeartbeat();
         disconnectPresence();
       } else if (document.visibilityState === 'visible') {
