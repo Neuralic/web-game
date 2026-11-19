@@ -11,6 +11,7 @@ import UserAvatar from "../../components/UserAvatar";
 import VerifiedBadge from "../../components/VerifiedBadge";
 import UserAdBanner from "../../components/UserAdBanner";
 import { storage } from "@/lib/api";
+import { isMobileBrowser, onGameLaunched } from "@/lib/gameLaunch";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
@@ -178,14 +179,9 @@ const GameDetailPage = () => {
       return;
     }
 
-    if (!gameId) return;
-    const token = storage.getAccessToken();
-    if (!token) return;
-
-    fetch(`${API_BASE}/games/${gameId}/play`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-    }).catch((error) => console.error("Failed to record game play:", error));
+    if (!gameId || !game) return;
+    // Records the play (Recently Played) and shows the user as in-game with this game's icon
+    onGameLaunched({ id: gameId, title: game.title });
   };
 
   useEffect(() => {
@@ -823,6 +819,7 @@ const GameDetailPage = () => {
                         </p>
                         <a
                           href={`roblox://experiences/start?placeId=${game.placeId}&gameInstanceId=${server.id}`}
+                          onClick={() => { if (!isMobileBrowser()) onGameLaunched({ id: game.id, title: game.title }); }}
                           className="mt-2 px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors text-center"
                         >
                           Join
