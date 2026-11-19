@@ -34,11 +34,17 @@ function MemberCard({ member }: { member: Member }) {
     <a href={`/profile/${member.username}`} className="group flex flex-col items-center">
       <div className="relative">
         <UserAvatar userId={member.user_id} username={member.display_name || member.username} size={110} headshot />
-        <PresenceBadge status={presence.presenceStatus} size={24} />
+        <PresenceBadge status={presence.presenceStatus} size={24} gameId={presence.currentGameId} gameTitle={presence.currentGame} />
       </div>
       <p className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-1 truncate w-[110px] text-center">
         {member.display_name || member.username}
       </p>
+      {presence.presenceStatus === "in-game" && (
+        // plain text here: the whole card is a link to the profile, and a link can't contain another link
+        <p className="text-[11px] text-green-600 dark:text-green-400 truncate w-[110px] text-center" title={presence.currentGame || undefined}>
+          Playing{presence.currentGame ? ` ${presence.currentGame}` : ""}
+        </p>
+      )}
     </a>
   );
 }
