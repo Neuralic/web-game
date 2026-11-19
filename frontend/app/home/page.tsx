@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ChevronRight, Plus, Loader2, ImagePlus, X } from "lucide-react";
+import { ChevronRight, Plus, Loader2, ImagePlus, X, Heart, History } from "lucide-react";
 import Footer from "../components/Footer";
 import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
@@ -11,6 +11,9 @@ import ProtectedRoute from "../components/ProtectedRoute";
 import UserAvatar from "../components/UserAvatar";
 import { usersApi, friendsApi, feedApi, uploadApi, storage } from "@/lib/api";
 import { useRealtime } from "@/contexts/RealtimeContext";
+import { resolvePresence } from "@/hooks/useUserPresence";
+import PlayButton from "../components/PlayButton";
+import PresenceBadge from "../components/PresenceBadge";
 import UserAdBanner from "../components/UserAdBanner";
 import AnnouncementBanner from "../components/AnnouncementBanner";
 
@@ -35,7 +38,7 @@ const GameCard = ({ game }: { game: any }) => (
       </div>
     </Link>
 
-    <a href={`roblox://experiences/start?placeId=${game.id}`} className="block text-center bg-green-500 hover:bg-green-600 text-white text-sm font-bold py-2 rounded-lg transition-colors">Play</a>
+    <PlayButton game={game} />
   </div>
 );
 
@@ -240,9 +243,7 @@ const HomePage = () => {
                 </Link>
 
                 {friends.map((friend) => {
-                  const presence = presenceMap.get(friend.id);
-                  const status = presence?.presenceStatus || 'offline';
-                  const isOnline = status === 'online' || status === 'in-game';
+                  const presence = resolvePresence(presenceMap, friend.id);
 
                   return (
                     <Link
@@ -252,13 +253,13 @@ const HomePage = () => {
                     >
                       <div className="relative">
                         <UserAvatar userId={friend.id} username={friend.name} size={80} headshot />
-                        {isOnline && (
-                          <div
-                            className="absolute w-5 h-5 bg-green-500 rounded-full border-2 border-white dark:border-gray-900"
-                            style={{ bottom: "-2.5px", right: "-2.5px" }}
-                            title={status === 'in-game' ? 'Playing' : 'Online'}
-                          />
-                        )}
+                        <PresenceBadge
+                          status={presence.presenceStatus}
+                          size={22}
+                          gameId={presence.currentGameId}
+                          gameTitle={presence.currentGame}
+                          title={presence.presenceStatus === "online" ? "Online" : undefined}
+                        />
                       </div>
                       <p className="text-xs font-semibold text-gray-900 dark:text-gray-100">{friend.name}</p>
                     </Link>
@@ -270,7 +271,10 @@ const HomePage = () => {
             {/* Recently Played Section */}
             <section className="mb-10">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Recently Played</h2>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                  <History className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                  Recently Played
+                </h2>
                 <Link href="/continue" className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-full transition-colors">See All</Link>
               </div>
               {loadingRecentlyPlayed ? (
@@ -291,7 +295,10 @@ const HomePage = () => {
             {/* My Favorites Section */}
             <section className="mb-10">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">My Favorites</h2>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                  <Heart className="w-5 h-5 text-red-500 fill-red-500" />
+                  Favorite Games
+                </h2>
                 <Link href="/favorites" className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-full transition-colors">See All</Link>
               </div>
               {loadingFavorites ? (
