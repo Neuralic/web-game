@@ -18,7 +18,10 @@ export interface PresenceData {
   userId: string;
   username: string;
   presenceStatus: 'online' | 'offline' | 'in-game';
+  /** Title of the game the user is in (display fallback; the game's icon and name come from currentGameId). */
   currentGame?: string;
+  /** Id of the game the user is in (games.id). Only an id travels in presence: viewers look the icon up themselves. */
+  currentGameId?: string;
   lastOnline: string;
 }
 
@@ -27,7 +30,71 @@ let presenceChannel: RealtimeChannel | null = null;
 let messageChannels: Map<string, RealtimeChannel> = new Map();
 let typingChannels: Map<string, RealtimeChannel> = new Map();
 // What this client last tracked, so the heartbeat can re-track it with a fresh lastOnline.
-let trackedPresence: { userId: string; username: string; presenceStatus: string; currentGame?: string | null } | null = null;
+let trackedPresence: { userId: string; username: string; presenceStatus: string; currentGame?: string | null; currentGameId?: string | null } | null = null;
+
+// ─── The game the user is playing ───────────────────────────────────────────
+// Play launches the Roblox app through a roblox:// link, and nothing tells us when they quit it. So pressing Play marks the
+// user "in game" until they press Play on another game or PLAYING_GAME_MAX_MS passes. It is kept in localStorage (with the
+// user's id) so every tab, a refresh and a backgrounded tab agree, and so the heartbeat keeps reporting it.
+const PLAYING_GAME_KEY = 'ab_playing_game';
+const PLAYING_GAME_MAX_MS = 2 * 60 * 60 * 1000;
+
+interface PlayingGame { userId: string; id: string; title: string; startedAt: number }
+
+function currentUserId(): { userId: string; username: string } | null {
+  try {
+    const token = storage.getAccessToken();
+    if (!token) return null;
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.userId ? { userId: String(payload.userId), username: String(payload.username ?? '') } : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The game the signed-in user pressed Play on, if that was recent enough; otherwise null. */
+export const getActivePlayingGame = (): { id: string; title: string } | null => {
+  try {
+    if (typeof window === 'undefined') return null;
+    const raw = window.localStorage.getItem(PLAYING_GAME_KEY);
+    const me = currentUserId();
+    if (!raw || !me) return null;
+    const game = JSON.parse(raw) as PlayingGame;
+    if (game.userId !== me.userId || !game.id || Date.now() - game.startedAt > PLAYING_GAME_MAX_MS) return null;
+    return { id: game.id, title: game.title };
+  } catch {
+    return null;
+  }
+};
+
+export const hasActivePlayingGame = (): boolean => getActivePlayingGame() !== null;
+
+/** What this client should currently be reporting: in-game while a Play is active, otherwise plain online. */
+const desiredPresence = (userId: string, username: string): NonNullable<typeof trackedPresence> => {
+  const playing = getActivePlayingGame();
+  return playing
+    ? { userId, username, presenceStatus: 'in-game', currentGame: playing.title, currentGameId: playing.id }
+    : { userId, username, presenceStatus: 'online' };
+};
+
+/**
+ * Call when the user presses Play on a game: they show as "in game" (with that game's icon) to everyone who sees the
+ * presence map, immediately if the realtime channel is up, otherwise as soon as it connects.
+ */
+export const startPlayingGame = async (game: { id: string; title: string }) => {
+  try {
+    const me = currentUserId();
+    if (!me || !game.id) return;
+    const entry: PlayingGame = { userId: me.userId, id: String(game.id), title: game.title || '', startedAt: Date.now() };
+    window.localStorage.setItem(PLAYING_GAME_KEY, JSON.stringify(entry));
+    if (!presenceChannel) return; // picked up by initializePresence
+    trackedPresence = desiredPresence(me.userId, me.username);
+    await presenceChannel.track({ ...trackedPresence, lastOnline: new Date().toISOString() });
+    await updatePresenceInDatabase(me.userId, 'in-game', entry.title);
+  } catch (error) {
+    console.error('Error marking user as playing:', error);
+  }
+};
 
 /**
  * Initialize presence tracking with Supabase Realtime
@@ -48,6 +115,7 @@ const buildPresenceMap = (state: RealtimePresenceState): Map<string, PresenceDat
           username: p.username,
           presenceStatus: p.presenceStatus || 'online',
           currentGame: p.currentGame,
+          currentGameId: p.currentGameId,
           lastOnline: p.lastOnline,
         });
       }
@@ -92,12 +160,17 @@ export const initializePresence = async (
     })
     .subscribe(async (status: string) => {
       if (status === 'SUBSCRIBED') {
-        trackedPresence = { userId, username, presenceStatus: 'online' };
+        // Online, or in-game again if the user pressed Play recently (a hidden tab or a refresh must not reset that)
+        trackedPresence = desiredPresence(userId, username);
         await presenceChannel!.track({
           ...trackedPresence,
           lastOnline: new Date().toISOString(),
         });
-        await updatePresenceInDatabase(userId, 'online');
+        await updatePresenceInDatabase(
+          userId,
+          trackedPresence.presenceStatus as 'online' | 'in-game',
+          trackedPresence.currentGame ?? undefined
+        );
       }
     });
 
@@ -121,7 +194,7 @@ export const updatePresenceStatus = async (
   const userId = payload.userId;
   const username = payload.username;
 
-  trackedPresence = { userId, username, presenceStatus: status, currentGame: currentGame || null };
+  trackedPresence = { userId, username, presenceStatus: status, currentGame: currentGame || null, currentGameId: null };
   await presenceChannel.track({
     ...trackedPresence,
     lastOnline: new Date().toISOString(),
@@ -137,6 +210,13 @@ export const updatePresenceStatus = async (
  */
 export const refreshPresenceHeartbeat = async () => {
   if (!presenceChannel || !trackedPresence) return;
+  // Re-derive the state each beat: a Play started in another tab shows up here, and an expired one reverts to online.
+  const next = desiredPresence(trackedPresence.userId, trackedPresence.username);
+  const changed = next.presenceStatus !== trackedPresence.presenceStatus || next.currentGameId !== trackedPresence.currentGameId;
+  trackedPresence = next;
+  if (changed) {
+    await updatePresenceInDatabase(next.userId, next.presenceStatus as 'online' | 'in-game', next.currentGame ?? undefined);
+  }
   await presenceChannel.track({
     ...trackedPresence,
     lastOnline: new Date().toISOString(),
