@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import Footer from "../components/Footer";
+import GameGridCard from "../components/GameGridCard";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
 import { usersApi } from "@/lib/api";
@@ -77,19 +77,7 @@ const ContinuePage = () => {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
             {recentlyPlayed.map((game) => (
-              <Link key={game.id} href={`/games/${game.id}`} className="cursor-pointer group block">
-                <div className="aspect-[4/3] rounded-lg overflow-hidden bg-gray-100 dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] group-hover:border-gray-400 dark:group-hover:border-gray-500 transition-colors">
-                  {game.thumbnailUrl ? (
-                    <img src={game.thumbnailUrl} alt={game.title} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-b from-blue-200 to-green-200 dark:from-blue-900 dark:to-green-900 flex items-center justify-center">
-                      <span className="text-xl font-bold text-gray-700 dark:text-gray-300">ADVENTUREBLOX</span>
-                    </div>
-                  )}
-                </div>
-                <h3 className="mt-2 text-sm font-bold text-gray-900 dark:text-gray-100 truncate">{game.title}</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{game.visits?.toLocaleString() || 0} visits</p>
-              </Link>
+              <GameGridCard key={game.id} game={game} />
             ))}
           </div>
         )}
