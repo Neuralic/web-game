@@ -462,23 +462,25 @@ export const sendChatMessage = async (
 /**
  * Mark messages as read via backend REST API (bypasses RLS)
  */
-export const markMessagesAsRead = async (senderId: string): Promise<void> => {
+export const markMessagesAsRead = async (senderId: string): Promise<boolean> => {
   try {
     const token = storage.getAccessToken();
-    if (!token) return;
+    if (!token) return false;
 
     const API_BASE_URL =
       process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
 
-    await fetch(`${API_BASE_URL}/messages/${senderId}/read-all`, {
+    const res = await fetch(`${API_BASE_URL}/messages/${senderId}/read-all`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
     });
+    return res.ok;
   } catch (error) {
     console.error('Error marking messages as read:', error);
+    return false;
   }
 };
 
