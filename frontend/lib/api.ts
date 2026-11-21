@@ -2005,6 +2005,24 @@ export const messagesApi = {
     });
   },
 
+  // Unread message count per sender
+  getUnreadCounts: async (): Promise<ApiResponse<{ counts: { sender_id: string; count: number }[] }>> => {
+    const token = storage.getAccessToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "No authentication token found",
+      };
+    }
+
+    return apiCall("/messages/unread-counts", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
   // Get messages with a specific user
   getMessages: async (userId: string, limit = 50, offset = 0): Promise<ApiResponse<{ messages: unknown[] }>> => {
     const token = storage.getAccessToken();
@@ -2248,10 +2266,11 @@ export const catalogApi = {
     }>("/catalog/categories");
   },
 
-  getSubcategories: async (category: string) => {
+  // `available` mirrors the item list's filter ("true" | "false" | "all"); the counts then match what the list shows.
+  getSubcategories: async (category: string, available?: "true" | "false" | "all") => {
     return apiCall<{
       subcategories: Array<{ subcategory: string; itemCount: string }>;
-    }>(`/catalog/subcategories/${encodeURIComponent(category)}`);
+    }>(`/catalog/subcategories/${encodeURIComponent(category)}${available ? `?available=${available}` : ""}`);
   },
 getUserInventory: async (params: {
     category?: string;
