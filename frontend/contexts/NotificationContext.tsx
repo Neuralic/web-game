@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { notificationsApi } from '@/lib/api';
 import { isAuthenticated } from '@/lib/auth';
-import { supabase } from '@/lib/supabase';
+import { isConversationViewed } from '@/lib/chatUnread';
 
 interface Notification {
   id: string;
@@ -109,7 +109,6 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     };
     setToasts(prev => [...prev, toast]);
 
-    // Auto-dismiss after 5 seconds
     setTimeout(() => {
       dismissToast(toast.id);
     }, 5000);
@@ -118,8 +117,14 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   // Initial load
   useEffect(() => {
     if (!isAuthenticated()) return;
-
     refreshNotifications();
+  }, []);
+
+  // Reading a chat clears that chat's message notifications on the server: reload the bell's count and list
+  useEffect(() => {
+    const onChatRead = () => { refreshNotifications(); };
+    window.addEventListener('ab:chat-read', onChatRead);
+    return () => window.removeEventListener('ab:chat-read', onChatRead);
   }, []);
 
   // Real-time subscription for new notifications
@@ -137,62 +142,73 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       return;
     }
 
-    const channel = supabase
-      .channel(`notifications:${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `userId=eq.${userId}`,
-        },
-        async (event: any) => {
-          const raw = event.new;
+    // TEMP: Wrap supabase in try/catch for local testing — RESTORE BEFORE PUSHING TO REPO
+    let channel: any = null;
+    try {
+      const { supabase } = require('@/lib/supabase');
+      channel = supabase
+        .channel(`notifications:${userId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `userId=eq.${userId}`,
+          },
+          async (event: any) => {
+            const raw = event.new;
 
-          // Build a minimal notification first so count/bell updates instantly
-          const minimal: Notification = {
-            id: raw.id,
-            type: raw.type,
-            content: raw.content,
-            is_read: raw.isRead ?? false,
-            created_at: raw.createdAt,
-            related_user_id: raw.relatedUserId,
-            related_item_id: raw.relatedItemId,
-          };
-
-          setNotifications(prev => [minimal, ...prev]);
-          setUnreadCount(prev => prev + 1);
-
-          // Fetch the full notification with joined user data so the toast
-          // shows the sender's name and avatar
-          try {
-            const full = await notificationsApi.getNotifications();
-            if (full.success && full.data?.notifications) {
-              const enriched = full.data.notifications.find(
-                (n: Notification) => n.id === raw.id
-              );
-              if (enriched) {
-                setNotifications(prev =>
-                  prev.map(n => (n.id === raw.id ? enriched : n))
-                );
-                showToast(enriched);
-                return;
-              }
+            // A message from the person whose chat is open and in front is already being read:
+            // no bell count, no toast (and mark it read so it can't linger as unread)
+            if ((raw.type === 'message' || raw.type === 'new_message') && isConversationViewed(raw.relatedUserId)) {
+              notificationsApi.markAsRead(raw.id).catch(() => {});
+              return;
             }
-          } catch {
-            // fallback: show toast with minimal data
-          }
 
-          showToast(minimal);
-        }
-      )
-      .subscribe((status: string) => {
-        console.log('🔔 Notification channel status:', status);
-      });
+            const minimal: Notification = {
+              id: raw.id,
+              type: raw.type,
+              content: raw.content,
+              is_read: raw.isRead ?? false,
+              created_at: raw.createdAt,
+              related_user_id: raw.relatedUserId,
+              related_item_id: raw.relatedItemId,
+            };
+
+            setNotifications(prev => [minimal, ...prev]);
+            setUnreadCount(prev => prev + 1);
+
+            try {
+              const full = await notificationsApi.getNotifications();
+              if (full.success && full.data?.notifications) {
+                const enriched = full.data.notifications.find(
+                  (n: Notification) => n.id === raw.id
+                );
+                if (enriched) {
+                  setNotifications(prev =>
+                    prev.map(n => (n.id === raw.id ? enriched : n))
+                  );
+                  showToast(enriched);
+                  return;
+                }
+              }
+            } catch {
+              // fallback
+            }
+
+            showToast(minimal);
+          }
+        )
+        .subscribe((status: string) => {
+          console.log('🔔 Notification channel status:', status);
+        });
+    } catch (err) {
+      console.warn('Supabase not available, real-time notifications disabled for local testing');
+    }
 
     return () => {
-      channel.unsubscribe();
+      if (channel) channel.unsubscribe();
     };
   }, []);
 
