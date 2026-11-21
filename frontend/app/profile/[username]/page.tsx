@@ -29,7 +29,7 @@ import { useAvatarRender, subscribeAvatarChanged } from "../../components/useAva
 import UserAdBanner from "../../components/UserAdBanner";
 import ReportModal from "@/components/modals/ReportModal";
 import SuccessModal from "@/components/modals/SuccessModal";
-import { usersApi, friendsApi, groupsApi, storage } from "@/lib/api";
+import { usersApi, friendsApi, groupsApi, storage, type UserStats } from "@/lib/api";
 import { openChatWithUser } from "@/app/components/ChatWidget";
 import { useParams, useRouter } from "next/navigation";
 import { useUserPresence } from "@/hooks/useUserPresence";
@@ -352,6 +352,24 @@ const ProfilePage = () => {
   // Recently Played is only loaded and shown on your own profile (as on Roblox, other people's play history is not public)
   const [recentlyPlayed, setRecentlyPlayed] = useState<UserGame[]>([]);
   const [loadingRecentlyPlayed, setLoadingRecentlyPlayed] = useState(false);
+
+  // Statistics section: all numbers come from one server query (GET /users/:id/stats). Kept with the id they belong to,
+  // so moving between profiles never shows the previous person's numbers.
+  const [statsData, setStatsData] = useState<{ userId: string; stats: UserStats | null } | null>(null);
+  const statsReady = !!profileUser?.id && statsData?.userId === profileUser.id;
+  const stats = statsReady ? statsData!.stats : null;
+  const statsFailed = statsReady && statsData!.stats === null;
+
+  useEffect(() => {
+    const userId: string | undefined = profileUser?.id;
+    if (!userId) return;
+    let cancelled = false;
+    usersApi.getUserStats(userId).then((res) => {
+      if (cancelled) return;
+      setStatsData({ userId, stats: res.success && res.data ? res.data.stats : null });
+    });
+    return () => { cancelled = true; };
+  }, [profileUser?.id]);
 
   useEffect(() => {
     const fetchFriends = async () => {
@@ -1428,40 +1446,68 @@ const ProfilePage = () => {
 
                 <div className="py-6">
                   <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Statistics</h2>
-                  <div className="flex justify-between items-start">
-                    <div className="text-center flex-1">
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Join Date</p>
-                      <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{formatDate(profileUser?.created_at)}</p>
-                    </div>
-                    <div className="text-center flex-1">
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Last Online</p>
-                      <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
-                        {(() => {
-                          const lastOnline = realtimePresence?.lastOnline || profileUser?.last_online;
-                          const status = realtimePresence?.presenceStatus || profileUser?.presence_status;
-                          const isRecentlyActive = lastOnline && (new Date().getTime() - new Date(lastOnline).getTime()) < 5 * 60 * 1000;
-                          if ((status === 'online' || status === 'in-game') && isRecentlyActive) return 'Now';
-                          return formatLastOnline(lastOnline);
-                        })()}
-                      </p>
-                    </div>
-                    <div className="text-center flex-1">
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Place Visits</p>
-                      <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{profileUser?.place_visits || 0}</p>
-                    </div>
-                    <div className="text-center flex-1">
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Profile Views</p>
-                      <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{profileUser?.profile_views || 0}</p>
-                    </div>
-                    <div className="text-center flex-1">
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Games Played</p>
-                      <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{profileUser?.games_played || 0}</p>
-                    </div>
-                    <div className="text-center flex-1">
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Playtime</p>
-                      <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{profileUser?.playtime || 0}m</p>
-                    </div>
-                  </div>
+                  {(() => {
+                    const fmt = (n: number) => n.toLocaleString("en-US");
+                    const friendsHref = isOwnProfile ? "/friends" : `/friends?userId=${profileUser?.id}`;
+                    const lastOnline = realtimePresence?.lastOnline || profileUser?.last_online;
+                    const status = realtimePresence?.presenceStatus || profileUser?.presence_status;
+                    const isRecentlyActive = lastOnline && (new Date().getTime() - new Date(lastOnline).getTime()) < 5 * 60 * 1000;
+                    const lastOnlineText = (status === 'online' || status === 'in-game') && isRecentlyActive ? 'Now' : formatLastOnline(lastOnline);
+
+                    // value: null while the numbers are loading (shows a skeleton); a tile is left out when it has no real value to show
+                    const tiles: { label: string; value: string | null; href?: string }[] = [
+                      { label: "Join Date", value: formatDate(profileUser?.created_at) },
+                      { label: "Last Online", value: lastOnlineText },
+                    ];
+                    if (!statsFailed) {
+                      tiles.push(
+                        { label: "Place Visits", value: stats ? fmt(stats.place_visits) : null },
+                        { label: "Friends", value: stats ? fmt(stats.friends_count) : null, href: friendsHref },
+                        { label: "Followers", value: stats ? fmt(stats.follower_count) : null, href: isOwnProfile ? "/friends?tab=Followers" : `/friends?userId=${profileUser?.id}&tab=Followers` },
+                        { label: "Following", value: stats ? fmt(stats.following_count) : null, href: isOwnProfile ? "/friends?tab=Following" : `/friends?userId=${profileUser?.id}&tab=Following` },
+                        { label: "Favorites", value: stats ? fmt(stats.favorites_count) : null },
+                      );
+                      // items owned follows the owner's inventory privacy setting: no tile when it is hidden from this viewer
+                      if (!stats || stats.items_owned !== null) {
+                        tiles.push({ label: "Items Owned", value: stats ? fmt(stats.items_owned as number) : null });
+                      }
+                      tiles.push(
+                        { label: "Games Played", value: stats ? fmt(stats.games_played) : null },
+                        { label: "Profile Views", value: stats ? fmt(stats.profile_views) : null },
+                      );
+                    }
+
+                    const tileClass = "rounded-lg border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#1a1a1a] px-3 py-3 text-center min-w-0";
+                    const content = (t: { label: string; value: string | null }) => (
+                      <>
+                        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">{t.label}</p>
+                        {t.value === null ? (
+                          <div className="h-5 w-12 mx-auto rounded bg-gray-200 dark:bg-[#2a2a2a] animate-pulse" aria-label="Loading" />
+                        ) : (
+                          <p className="text-[15px] sm:text-base font-semibold text-gray-900 dark:text-gray-100 tabular-nums break-words">{t.value}</p>
+                        )}
+                      </>
+                    );
+
+                    return (
+                      <>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                          {tiles.map((t) =>
+                            t.href ? (
+                              <Link key={t.label} href={t.href} className={`${tileClass} hover:bg-gray-50 dark:hover:bg-[#242424] transition-colors`}>
+                                {content(t)}
+                              </Link>
+                            ) : (
+                              <div key={t.label} className={tileClass}>{content(t)}</div>
+                            )
+                          )}
+                        </div>
+                        {statsFailed && (
+                          <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">Some statistics couldn&apos;t be loaded right now.</p>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             ) : activeTab === "Creations" ? (
