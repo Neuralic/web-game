@@ -6,8 +6,9 @@ import UserAvatar from "./UserAvatar";
 import { MessageSquare, X, Send } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { messagesApi, friendsApi } from "@/lib/api";
-import { sendChatMessage, subscribeToMessages, unsubscribeFromMessages, markMessagesAsRead, subscribeToTyping, unsubscribeFromTyping, broadcastTyping } from "@/lib/realtime";
-import { supabase } from "@/lib/supabase";
+import { sendChatMessage, subscribeToMessages, unsubscribeFromMessages, subscribeToTyping, unsubscribeFromTyping, broadcastTyping } from "@/lib/realtime";
+import { startChatUnread, stopChatUnread, registerConversationViewing, useChatUnread } from "@/lib/chatUnread";
+import ChatSoundToggle from "./ChatSoundToggle";
 import { useRealtime } from "@/contexts/RealtimeContext";
 import type { ChatMessage } from "@/lib/realtime";
 
@@ -27,7 +28,6 @@ interface Conversation {
   presence_status?: string;
   last_message?: string;
   last_message_time?: string;
-  unread_count?: number;
 }
 
 interface ChatWindow {
@@ -49,6 +49,10 @@ export const openChatWithUser = (userId: string, username: string, displayName?:
   }
 };
 
+const CHAT_WINDOW_WIDTH = 384; // w-96
+const GAP = 16;
+const PANEL_COLUMN = 16 + CHAT_WINDOW_WIDTH + GAP; // right-4 + panel width + gap
+
 export default function ChatWidget() {
   const pathname = usePathname();
   const hiddenPaths = ['/messages', '/login', '/signup', '/continue'];
@@ -69,6 +73,10 @@ export default function ChatWidget() {
   const messagesEndRef = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const openChatsRef = useRef<ChatWindow[]>([]);
   openChatsRef.current = openChats;
+  // Unread counts come from the shared store (also used by the Messages page and the header bell), never from this list
+  const { counts: unreadCounts, total: totalUnread } = useChatUnread();
+  // How many chat windows fit side by side; older ones stay open but are not drawn until brought back to the front
+  const [windowCapacity, setWindowCapacity] = useState(2);
 
   // Decode current user ID once
   useEffect(() => {
@@ -83,25 +91,20 @@ export default function ChatWidget() {
   // Register global chat opener
   useEffect(() => {
     globalOpenChat = (userId: string, username: string, displayName?: string, avatarUrl?: string) => {
-      if (!openChats.find(chat => chat.id === userId)) {
-        const newChat: ChatWindow = {
-          id: userId,
-          name: displayName || username,
-          avatar: avatarUrl || `https://robohash.org/${username}?set=set3`,
-          username: `@${username}`,
-          messages: [],
-          isLoadingMessages: false,
-        };
-        setOpenChats(prev => [...prev, newChat]);
-        loadMessages(userId);
-      }
-      setActivePanel(null);
+      showChat({
+        id: userId,
+        name: displayName || username,
+        avatar: avatarUrl || `https://robohash.org/${username}?set=set3`,
+        username: `@${username}`,
+        messages: [],
+        isLoadingMessages: false,
+      });
     };
 
     return () => {
       globalOpenChat = null;
     };
-  }, [openChats]);
+  }, []);
 
   // Load friends and conversations on mount
   useEffect(() => {
@@ -109,66 +112,61 @@ export default function ChatWidget() {
     loadConversations();
   }, []);
 
-  // Global incoming-message listener — keeps unread counts and conversation
-  // list up-to-date WITHOUT a full API re-fetch every time
+  // Unread counts + the new-message sound: one shared listener for the whole app (see lib/chatUnread.ts)
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
-    if (!token) return;
-    let userId: string;
-    try {
-      userId = JSON.parse(atob(token.split('.')[1])).userId;
-    } catch {
-      return;
-    }
-
-    const channel = supabase
-      .channel(`chat-widget-incoming:${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `receiverId=eq.${userId}`,
-        },
-        (event: any) => {
-          const msg = event.new;
-          const senderId: string = msg.senderId;
-
-          // If the sender's chat window is already open, the per-chat
-          // subscribeToMessages handler adds the bubble — just mark read
-          const isOpen = openChatsRef.current.some(c => c.id === senderId);
-
-          // Always update the conversations list in-memory
-          setConversations(prev => {
-            const existing = prev.find(c => c.id === senderId);
-            if (existing) {
-              return prev.map(c =>
-                c.id === senderId
-                  ? {
-                      ...c,
-                      last_message: msg.content,
-                      last_message_time: msg.createdAt,
-                      unread_count: isOpen ? 0 : (c.unread_count || 0) + 1,
-                    }
-                  : c
-              ).sort((a, b) =>
-                new Date(b.last_message_time || 0).getTime() -
-                new Date(a.last_message_time || 0).getTime()
-              );
-            }
-            // New conversation — fetch to get user info
-            loadConversations();
-            return prev;
-          });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    startChatUnread();
+    return () => stopChatUnread();
   }, []);
+
+  // Keeps the conversation list preview/order current from incoming messages without a full re-fetch
+  // (the unread numbers themselves come from the shared store)
+  useEffect(() => {
+    const userId = currentUserIdRef.current;
+    if (!userId) return;
+    const handler = (e: Event) => {
+      const msg = (e as CustomEvent<{ senderId: string; content: string; createdAt: string }>).detail;
+      setConversations(prev => {
+        if (!prev.some(c => c.id === msg.senderId)) {
+          loadConversations(); // new conversation: fetch to get the user's info
+          return prev;
+        }
+        return prev
+          .map(c => (c.id === msg.senderId ? { ...c, last_message: msg.content, last_message_time: msg.createdAt } : c))
+          .sort((a, b) => new Date(b.last_message_time || 0).getTime() - new Date(a.last_message_time || 0).getTime());
+      });
+    };
+    window.addEventListener('ab:chat-incoming', handler);
+    return () => window.removeEventListener('ab:chat-incoming', handler);
+  }, []);
+
+  // How many windows fit: full-width single window on phones, otherwise as many as the screen holds
+  useEffect(() => {
+    const update = () => {
+      const width = window.innerWidth;
+      setWindowCapacity(
+        width < 640 ? 1 : Math.max(1, Math.floor((width - PANEL_COLUMN) / (CHAT_WINDOW_WIDTH + GAP)))
+      );
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
+  const visibleChats = openChats.slice(-windowCapacity);
+  const visibleChatKey = visibleChats.map(c => c.id).join(',');
+
+  // A conversation counts as "being read" while its window is drawn (and the tab is in front): opening it clears its
+  // unread count, and messages arriving meanwhile are read on arrival, with no badge and no sound
+  useEffect(() => {
+    const unregister = visibleChats.map(c => registerConversationViewing(c.id));
+    return () => unregister.forEach(fn => fn());
+  }, [visibleChatKey]);
+
+  // Keep the newest message in view when the chat is opened, a message is sent, or one arrives
+  const messageCountKey = visibleChats.map(c => `${c.id}:${c.messages.length}`).join(',');
+  useEffect(() => {
+    visibleChats.forEach(c => messagesEndRef.current[c.id]?.scrollIntoView({ block: 'end' }));
+  }, [messageCountKey]);
 
   // Subscribe to messages + typing for open chats
   useEffect(() => {
@@ -180,18 +178,7 @@ export default function ChatWidget() {
         setOpenChats(prev => prev.map(c =>
           c.id === chat.id ? { ...c, messages: [...c.messages.filter(m => m.id !== message.id), message] } : c
         ));
-        // Update conversation preview in-memory, clear unread since window is open
-        setConversations(prev => prev.map(c =>
-          c.id === chat.id
-            ? { ...c, last_message: message.content, last_message_time: message.created_at, unread_count: 0 }
-            : c
-        ));
-        markMessagesAsRead(message.sender_id);
-        // Scroll to bottom
-        setTimeout(() => {
-          const el = messagesEndRef.current[chat.id];
-          el?.scrollIntoView({ behavior: 'smooth' });
-        }, 50);
+        // Read/unread is decided by the shared store (open + tab in front = read on arrival), not here
       });
 
       subscribeToTyping(userId, chat.id, (isTyping) => {
@@ -211,7 +198,7 @@ export default function ChatWidget() {
         unsubscribeFromTyping(userId, chat.id);
       });
     };
-  }, [openChats.map(c => c.id).join(',')]);
+  }, [openChats.map(c => c.id).sort().join(',')]);
 
   const loadFriends = async () => {
     const response = await friendsApi.getFriends();
@@ -239,9 +226,7 @@ export default function ChatWidget() {
           ? { ...chat, messages: response.data!.messages as ChatMessage[], isLoadingMessages: false }
           : chat
       ));
-
-      // Mark as read
-      markMessagesAsRead(userId);
+      // The server marks the conversation read when its messages are fetched; the shared store clears the badge
     }
   };
 
@@ -256,43 +241,42 @@ export default function ChatWidget() {
     contact.display_name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const openChatWindow = (conv: Conversation) => {
-    if (!openChats.find(chat => chat.id === conv.id)) {
-      const newChat: ChatWindow = {
-        id: conv.id,
-        name: conv.display_name || conv.username,
-        avatar: conv.avatar_url || `https://robohash.org/${conv.username}?set=set3`,
-        username: `@${conv.username}`,
-        messages: [],
-        isLoadingMessages: false,
-      };
-      setOpenChats([...openChats, newChat]);
-      loadMessages(conv.id);
+  // Opens a chat window, or brings an already-open one to the front (the newest windows are the ones drawn)
+  const showChat = (chat: ChatWindow) => {
+    const existing = openChatsRef.current.find(c => c.id === chat.id);
+    if (existing) {
+      setOpenChats(prev => [...prev.filter(c => c.id !== chat.id), prev.find(c => c.id === chat.id) ?? existing]);
+    } else {
+      setOpenChats(prev => [...prev, chat]);
+      loadMessages(chat.id);
     }
-    // Clear unread badge immediately
-    setConversations(prev => prev.map(c => c.id === conv.id ? { ...c, unread_count: 0 } : c));
-    markMessagesAsRead(conv.id);
     setActivePanel(null);
+  };
+
+  const openChatWindow = (conv: Conversation) => {
+    showChat({
+      id: conv.id,
+      name: conv.display_name || conv.username,
+      avatar: conv.avatar_url || `https://robohash.org/${conv.username}?set=set3`,
+      username: `@${conv.username}`,
+      messages: [],
+      isLoadingMessages: false,
+    });
   };
 
   const openChatWindowFromFriend = (friend: Friend) => {
-    if (!openChats.find(chat => chat.id === friend.id)) {
-      const newChat: ChatWindow = {
-        id: friend.id,
-        name: friend.display_name || friend.username,
-        avatar: friend.avatar_url || `https://robohash.org/${friend.username}?set=set3`,
-        username: `@${friend.username}`,
-        messages: [],
-        isLoadingMessages: false,
-      };
-      setOpenChats([...openChats, newChat]);
-      loadMessages(friend.id);
-    }
-    setActivePanel(null);
+    showChat({
+      id: friend.id,
+      name: friend.display_name || friend.username,
+      avatar: friend.avatar_url || `https://robohash.org/${friend.username}?set=set3`,
+      username: `@${friend.username}`,
+      messages: [],
+      isLoadingMessages: false,
+    });
   };
 
   const closeChatWindow = (chatId: string) => {
-    setOpenChats(openChats.filter(chat => chat.id !== chatId));
+    setOpenChats(prev => prev.filter(chat => chat.id !== chatId));
     delete messageInputs[chatId];
   };
 
@@ -362,16 +346,14 @@ export default function ChatWidget() {
     return presence?.presenceStatus || 'offline';
   };
 
-  const totalUnread = conversations.reduce((sum, c) => sum + (c.unread_count || 0), 0);
-  const CHAT_WINDOW_WIDTH = 320; // w-80
-  const GAP = 16;
-  const PANEL_COLUMN = 16 + CHAT_WINDOW_WIDTH + GAP; // right-4 + panel width + gap
-
   return (
     <>
-      {/* Unified Chat/Party Panel */}
+      {/* Unified Chat/Party Panel — full width on phones */}
       {activePanel !== null && (
-        <div className="fixed bottom-11 right-4 w-80 max-h-[600px] bg-[#1a1a1a] rounded-t-lg shadow-2xl border border-[#2a2a2a] flex flex-col z-50">
+        <div
+          className="fixed bottom-11 right-0 sm:right-4 w-full sm:w-96 bg-[#1a1a1a] rounded-t-lg shadow-2xl border border-[#2a2a2a] flex flex-col z-50"
+          style={{ maxHeight: 'min(640px, calc(100dvh - 4.5rem))' }}
+        >
           {/* Header with tabs */}
           <div className="flex items-center px-3 py-2.5 bg-[#1a1a1a] border-b border-[#2a2a2a] rounded-t-lg gap-3">
             <button
@@ -387,6 +369,7 @@ export default function ChatWidget() {
               Party
             </button>
             <div className="flex-1" />
+            <ChatSoundToggle className="hover:bg-[#2a2a2a]" />
             <button
               onClick={() => setActivePanel(null)}
               className="p-1 hover:bg-[#2a2a2a] rounded transition-colors"
@@ -429,9 +412,9 @@ export default function ChatWidget() {
                           {getPresenceStatus(contact.id) !== 'offline' && (
                             <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-[#1a1a1a]"></div>
                           )}
-                          {isConversation && (contact.unread_count || 0) > 0 && (
-                            <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
-                              {contact.unread_count}
+                          {(unreadCounts[contact.id] || 0) > 0 && (
+                            <div className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center font-bold">
+                              {unreadCounts[contact.id] > 99 ? '99+' : unreadCounts[contact.id]}
                             </div>
                           )}
                         </div>
@@ -477,19 +460,23 @@ export default function ChatWidget() {
         </div>
       )}
 
-      {/* Individual Chat Windows — stack left starting past the panel column */}
-      {openChats.map((chat, index) => (
+      {/* Individual Chat Windows — stack left starting past the panel column; one full-width window on phones */}
+      {visibleChats.map((chat, index) => (
         <div
           key={chat.id}
-          className="fixed bottom-11 w-80 h-96 bg-[#1a1a1a] rounded-t-lg shadow-2xl border border-[#2a2a2a] flex flex-col z-50"
-          style={{ right: `${PANEL_COLUMN + index * (CHAT_WINDOW_WIDTH + GAP)}px` }}
+          className="fixed bottom-11 right-0 sm:right-[var(--chat-right)] w-full sm:w-96 bg-[#1a1a1a] rounded-t-lg shadow-2xl border border-[#2a2a2a] flex flex-col z-50"
+          style={{
+            height: 'min(560px, calc(100dvh - 4.5rem))',
+            '--chat-right': `${PANEL_COLUMN + index * (CHAT_WINDOW_WIDTH + GAP)}px`,
+          } as React.CSSProperties}
         >
           {/* Chat Header */}
-          <div className="flex items-center gap-2.5 px-3 py-2 bg-[#1a1a1a] border-b border-[#2a2a2a] rounded-t-lg">
-            <UserAvatar userId={chat.id} username={chat.displayName || chat.name} size={28} headshot />
-            <h3 className="flex-1 font-bold text-sm text-white truncate">
+          <div className="flex items-center gap-2.5 px-3 py-2.5 bg-[#1a1a1a] border-b border-[#2a2a2a] rounded-t-lg">
+            <UserAvatar userId={chat.id} username={chat.displayName || chat.name} size={32} headshot />
+            <h3 className="flex-1 font-bold text-[15px] text-white truncate">
               {chat.name}
             </h3>
+            <ChatSoundToggle className="hover:bg-[#2a2a2a]" />
             <button
               onClick={() => closeChatWindow(chat.id)}
               className="p-1 hover:bg-[#2a2a2a] rounded transition-colors"
@@ -499,7 +486,7 @@ export default function ChatWidget() {
           </div>
 
           {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-2.5 bg-[#0a0a0a]">
+          <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3 bg-[#0a0a0a]">
             {chat.isLoadingMessages ? (
               <div className="text-center py-8 text-gray-500 text-sm">
                 Loading messages...
@@ -532,13 +519,13 @@ export default function ChatWidget() {
                       className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
                     >
                       <div
-                        className={`max-w-[70%] rounded-lg px-3 py-2 ${
+                        className={`max-w-[80%] rounded-lg px-3.5 py-2 ${
                           isCurrentUser
                             ? 'bg-blue-600 text-white'
                             : 'bg-[#2a2a2a] text-white'
                         }`}
                       >
-                        <p className="text-sm break-words">{msg.content}</p>
+                        <p className="text-[15px] leading-snug break-words">{msg.content}</p>
                         <p
                           className={`text-xs mt-1 ${
                             isCurrentUser ? 'text-blue-100' : 'text-gray-400'
@@ -565,7 +552,7 @@ export default function ChatWidget() {
           </div>
 
           {/* Message Input */}
-          <div className="p-2.5 bg-[#1a1a1a] border-t border-[#2a2a2a]">
+          <div className="p-3 bg-[#1a1a1a] border-t border-[#2a2a2a]">
             {messageErrors[chat.id] && (
               <p className="text-xs text-red-500 mb-1.5">{messageErrors[chat.id]}</p>
             )}
@@ -576,11 +563,11 @@ export default function ChatWidget() {
                 value={messageInputs[chat.id] || ""}
                 onChange={(e) => handleInputChange(chat.id, e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSendMessage(chat.id)}
-                className="flex-1 bg-[#0a0a0a] border border-[#2a2a2a] rounded px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="flex-1 bg-[#0a0a0a] border border-[#2a2a2a] rounded px-3 py-2.5 text-[15px] text-white placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
               <button
                 onClick={() => handleSendMessage(chat.id)}
-                className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                className="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
               >
                 <Send className="w-4 h-4" />
               </button>
