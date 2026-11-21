@@ -15,8 +15,9 @@ import {
   subscribeToTyping,
   unsubscribeFromTyping,
   broadcastTyping,
-  markMessagesAsRead,
 } from "@/lib/realtime";
+import { registerConversationViewing, useChatUnread } from "@/lib/chatUnread";
+import ChatSoundToggle from "../components/ChatSoundToggle";
 import { useUserPresence } from "@/hooks/useUserPresence";
 
 interface Conversation {
@@ -109,6 +110,8 @@ const MessagesPage = () => {
   const typingBroadcastRef = useRef<NodeJS.Timeout | null>(null);
   const currentUserIdRef = useRef<string | null>(null);
   const activeConvRef = useRef<Conversation | null>(null);
+  // Unread counts come from the shared store (same numbers as the chat widget and the header bell)
+  const { counts: unreadCounts } = useChatUnread();
 
   // Upload image to Supabase storage and return public URL
   const uploadChatImage = async (file: File): Promise<string | null> => {
@@ -240,6 +243,13 @@ const MessagesPage = () => {
     fetchConversations();
   }, [refreshConversations]);
 
+  // The open thread counts as "being read" (while this tab is in front): opening it clears its badge, and messages
+  // arriving in it are read on arrival, with no badge and no sound
+  useEffect(() => {
+    if (!activeConversation) return;
+    return registerConversationViewing(activeConversation.id);
+  }, [activeConversation?.id]);
+
   // Fetch messages + subscribe to realtime when active conversation changes
   useEffect(() => {
     if (!activeConversation) return;
@@ -261,8 +271,7 @@ const MessagesPage = () => {
       } finally {
         setLoadingMessages(false);
       }
-      // Mark as read
-      markMessagesAsRead(activeConversation.id);
+      // (the server marks the thread read when its messages are fetched)
     };
 
     fetchMessages();
@@ -274,10 +283,8 @@ const MessagesPage = () => {
         if (prev.some((m) => m.id === newMsg.id)) return prev;
         return [...prev, newMsg as unknown as Message];
       });
-      // Update conversation list preview
+      // Update conversation list preview (read state is handled by the shared unread store)
       refreshConversations();
-      // Mark as read immediately since we're in the conversation
-      markMessagesAsRead(activeConversation.id);
     });
 
     // Subscribe to typing indicators
@@ -456,13 +463,16 @@ const MessagesPage = () => {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             Messages
           </h1>
-          <button
-            onClick={() => { setShowCompose(true); setActiveConversation(null); }}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors text-sm"
-          >
-            <PenSquare className="w-4 h-4" />
-            New Message
-          </button>
+          <div className="flex items-center gap-2">
+            <ChatSoundToggle className="hover:bg-gray-200 dark:hover:bg-[#2a2a2a]" />
+            <button
+              onClick={() => { setShowCompose(true); setActiveConversation(null); }}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors text-sm"
+            >
+              <PenSquare className="w-4 h-4" />
+              New Message
+            </button>
+          </div>
         </div>
 
         <div className="flex gap-0 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded-lg overflow-hidden flex-1 min-h-0">
@@ -497,7 +507,7 @@ const MessagesPage = () => {
                       <ConvPresenceDot userId={conv.id} />
                       <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <span className={`text-sm truncate ${conv.unread_count && conv.unread_count > 0 ? "font-bold text-gray-900 dark:text-gray-100" : "font-medium text-gray-700 dark:text-gray-300"}`}>
+                        <span className={`text-sm truncate ${(unreadCounts[conv.id] || 0) > 0 ? "font-bold text-gray-900 dark:text-gray-100" : "font-medium text-gray-700 dark:text-gray-300"}`}>
                           {conv.display_name || conv.username}
                         </span>
                         {conv.last_message_time && (
@@ -507,14 +517,14 @@ const MessagesPage = () => {
                         )}
                       </div>
                       {conv.last_message && (
-                        <p className={`text-xs truncate mt-0.5 ${conv.unread_count && conv.unread_count > 0 ? "text-gray-700 dark:text-gray-300 font-medium" : "text-gray-500 dark:text-gray-400"}`}>
+                        <p className={`text-xs truncate mt-0.5 ${(unreadCounts[conv.id] || 0) > 0 ? "text-gray-700 dark:text-gray-300 font-medium" : "text-gray-500 dark:text-gray-400"}`}>
                           {conv.is_sender ? "You: " : ""}{conv.last_message}
                         </p>
                       )}
                     </div>
-                    {conv.unread_count && conv.unread_count > 0 && (
-                      <span className="w-5 h-5 bg-blue-600 text-white text-xs font-bold rounded-full flex items-center justify-center flex-shrink-0">
-                        {conv.unread_count > 9 ? "9+" : conv.unread_count}
+                    {(unreadCounts[conv.id] || 0) > 0 && (
+                      <span className="min-w-[20px] h-5 px-1 bg-blue-600 text-white text-xs font-bold rounded-full flex items-center justify-center flex-shrink-0">
+                        {unreadCounts[conv.id] > 99 ? "99+" : unreadCounts[conv.id]}
                       </span>
                     )}
                   </button>
