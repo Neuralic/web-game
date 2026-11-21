@@ -11,6 +11,18 @@ interface ApiResponse<T = unknown> {
   errors?: Array<{ msg?: string; message?: string }>;
 }
 
+// Profile Statistics (GET /users/:userId/stats)
+export interface UserStats {
+  friends_count: number;
+  follower_count: number;
+  following_count: number;
+  place_visits: number;
+  favorites_count: number;
+  games_played: number;
+  profile_views: number;
+  items_owned: number | null; // null when the owner hides their inventory from this viewer
+}
+
 // Auth types
 interface SignupData {
   username: string;
@@ -189,6 +201,17 @@ export const usersApi = {
   ): Promise<ApiResponse<unknown>> => {
     return apiCall(`/users/${username}`, {
       method: "GET",
+    });
+  },
+
+  // Numbers for the profile's Statistics section (token is optional: it lets the owner/friends see their inventory count)
+  getUserStats: async (
+    userId: string,
+  ): Promise<ApiResponse<{ stats: UserStats }>> => {
+    const token = storage.getAccessToken();
+    return apiCall(`/users/${userId}/stats`, {
+      method: "GET",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
   },
 
