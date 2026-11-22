@@ -12,7 +12,8 @@ const SUCCESS_TTL_MS = 10 * 60 * 1000;
 const NULL_TTL_MS = 45 * 1000;
 export const AVATAR_RETRY_DELAY_MS = 45 * 1000;
 
-const results = new Map<string, { url: string | null; at: number }>();
+// `headUrl` is our own head/bust image (made from the 3D scene); only present when the backend serves our images.
+const results = new Map<string, { url: string | null; headUrl: string | null; at: number }>();
 const inflight = new Map<string, Promise<string | null>>();
 const retried = new Set<string>();
 
@@ -31,10 +32,10 @@ export function fetchAvatarRender(userId: string): Promise<string | null> {
   if (!pending) {
     pending = fetch(`${API_BASE}/avatar/render/${userId}`)
       .then((r) => r.json())
-      .then((d) => (d?.imageUrl as string | undefined) || null)
-      .catch(() => null)
-      .then((url) => {
-        results.set(userId, { url, at: Date.now() });
+      .then((d) => ({ url: (d?.imageUrl as string | undefined) || null, headUrl: (d?.headUrl as string | undefined) || null }))
+      .catch(() => ({ url: null, headUrl: null }))
+      .then(({ url, headUrl }) => {
+        results.set(userId, { url, headUrl: url ? headUrl : null, at: Date.now() });
         inflight.delete(userId);
         return url;
       });
@@ -110,9 +111,18 @@ export function useAvatarRender(userId: string): string | null {
   return useAvatarRenderState(userId).imageUrl;
 }
 
-/** Same as useAvatarRender, plus `loading` (true until the first request for this user settles). */
-export function useAvatarRenderState(userId: string): { imageUrl: string | null; loading: boolean } {
+function peekHead(userId: string): string | null {
+  const hit = results.get(userId);
+  return hit?.url && hit.headUrl && Date.now() - hit.at < SUCCESS_TTL_MS ? hit.headUrl : null;
+}
+
+/**
+ * Same as useAvatarRender, plus `loading` (true until the first request for this user settles) and `headUrl`: our own
+ * head/bust image when there is one (headshots use it as is; otherwise they zoom into the full-body image).
+ */
+export function useAvatarRenderState(userId: string): { imageUrl: string | null; headUrl: string | null; loading: boolean } {
   const [imageUrl, setImageUrl] = useState<string | null>(() => (userId ? peek(userId) : null));
+  const [headUrl, setHeadUrl] = useState<string | null>(() => (userId ? peekHead(userId) : null));
   const [loading, setLoading] = useState<boolean>(() => !!userId && !peek(userId));
 
   useEffect(() => {
@@ -123,7 +133,10 @@ export function useAvatarRenderState(userId: string): { imageUrl: string | null;
     // Refetch requested by invalidateAvatarRender (outfit changed).
     const refetch = () => {
       fetchAvatarRender(userId).then((url) => {
-        if (!cancelled && url) setImageUrl(url);
+        if (!cancelled && url) {
+          setImageUrl(url);
+          setHeadUrl(peekHead(userId));
+        }
       });
     };
     let set = listeners.get(userId);
@@ -133,6 +146,7 @@ export function useAvatarRenderState(userId: string): { imageUrl: string | null;
     fetchAvatarRender(userId).then((url) => {
       if (cancelled) return;
       setImageUrl(url);
+      setHeadUrl(peekHead(userId));
       setLoading(false);
       if (url) return;
       // One delayed retry per user (shared across components). Marked used only when it actually fires,
@@ -147,7 +161,12 @@ export function useAvatarRenderState(userId: string): { imageUrl: string | null;
           // another component already used this user's retry: just adopt its (in-flight or finished) result
           next = inflight.get(userId) ?? Promise.resolve(peek(userId));
         }
-        next.then((retryUrl) => { if (!cancelled && retryUrl) setImageUrl(retryUrl); });
+        next.then((retryUrl) => {
+          if (!cancelled && retryUrl) {
+            setImageUrl(retryUrl);
+            setHeadUrl(peekHead(userId));
+          }
+        });
       }, AVATAR_RETRY_DELAY_MS);
     });
 
@@ -158,5 +177,5 @@ export function useAvatarRenderState(userId: string): { imageUrl: string | null;
     };
   }, [userId]);
 
-  return { imageUrl, loading };
+  return { imageUrl, headUrl, loading };
 }
