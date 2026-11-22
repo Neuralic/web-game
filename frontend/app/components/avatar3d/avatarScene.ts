@@ -508,6 +508,24 @@ export interface AvatarModel {
   size: THREE.Vector3;
   /** Largest horizontal distance from the vertical axis (for any orbit angle). */
   radiusXZ: number;
+  /** Where the head is in scene space (the model is centred, so this is relative to the origin), for the head/bust shot.
+   *  `top`/`bottom`/`halfWidth` include everything worn on the head (hair, hats, ears, face accessories). */
+  head: { center: THREE.Vector3; size: number; top: number; bottom: number; halfWidth: number };
+}
+
+/** Free GPU resources (geometries, materials, textures) of everything in a scene. */
+export function disposeScene(scene: THREE.Scene) {
+  scene.traverse((obj) => {
+    const mesh = obj as THREE.Mesh;
+    mesh.geometry?.dispose();
+    const mats = Array.isArray(mesh.material) ? mesh.material : mesh.material ? [mesh.material] : [];
+    for (const mat of mats) {
+      for (const value of Object.values(mat)) {
+        if (value instanceof THREE.Texture) value.dispose();
+      }
+      mat.dispose();
+    }
+  });
 }
 
 export async function buildAvatar(data: CustomAvatarData): Promise<AvatarModel> {
@@ -539,6 +557,7 @@ export async function buildAvatar(data: CustomAvatarData): Promise<AvatarModel> 
   }
 
   const hasFace = items.some((i) => i.itemType === "face_decal" && i.decalDataUrl);
+  const headGear: THREE.Object3D[] = []; // accessories attached to the head, to frame the head/bust shot around them
   for (const item of items) {
     if (item.itemType === "face_decal" && item.decalDataUrl) {
       const tex = new THREE.Texture(await loadImage(item.decalDataUrl as string));
@@ -562,7 +581,9 @@ export async function buildAvatar(data: CustomAvatarData): Promise<AvatarModel> 
       plane.rotation.y = Math.PI; // the wrapped patch faces +Z by default; head front is -Z
       parts.get("Head")!.add(plane);
     } else if (item.itemType === "accessory" && (item.positions || item.mesh)) {
-      body.add(await buildAccessory(item as unknown as AccessoryItem, parts, hasFace));
+      const handle = await buildAccessory(item as unknown as AccessoryItem, parts, hasFace);
+      body.add(handle);
+      if ((ATTACHMENTS[(item.attachmentName as string) || ""] ?? ATTACHMENTS.HairAttachment)[0] === "Head") headGear.push(handle);
     }
   }
 
@@ -582,7 +603,19 @@ export async function buildAvatar(data: CustomAvatarData): Promise<AvatarModel> 
     Math.hypot(box.min.x - center.x, box.max.z - center.z),
     Math.hypot(box.max.x - center.x, box.min.z - center.z),
   );
-  return { pivot, size, radiusXZ };
+  pivot.updateMatrixWorld(true);
+  const headBox = new THREE.Box3().setFromObject(parts.get("Head")!);
+  const gearBox = headBox.clone();
+  for (const gear of headGear) gearBox.union(new THREE.Box3().setFromObject(gear));
+  const headCenter = headBox.getCenter(new THREE.Vector3());
+  const head = {
+    center: headCenter,
+    size: headBox.getSize(new THREE.Vector3()).y,
+    top: gearBox.max.y,
+    bottom: gearBox.min.y,
+    halfWidth: Math.max(Math.abs(gearBox.max.x - headCenter.x), Math.abs(gearBox.min.x - headCenter.x)),
+  };
+  return { pivot, size, radiusXZ, head };
 }
 
 export function createAvatarScene(model: AvatarModel): THREE.Scene {
