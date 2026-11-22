@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import {
-  buildAvatar, createAvatarScene, fitDistance, orbitCamera, DEG,
+  buildAvatar, createAvatarScene, disposeScene, fitDistance, orbitCamera, DEG,
   type AvatarModel, type CustomAvatarData,
 } from "./avatar3d/avatarScene";
 
@@ -29,21 +29,6 @@ const DAMPING = 0.08;
 const AUTO_ROTATE_RAD_PER_SEC = 1.5; // time-based, so the spin is the same on 60/120/144 Hz screens
 const AUTO_ROTATE_RESUME_MS = 1500;  // auto-spin resumes this long after the last interaction
 const MAX_FRAME_DT_S = 0.1;          // don't jump if the tab was in the background
-
-/** Free GPU resources (geometries, materials, textures) of everything in a scene. */
-function disposeScene(scene: THREE.Scene) {
-  scene.traverse((obj) => {
-    const mesh = obj as THREE.Mesh;
-    mesh.geometry?.dispose();
-    const mats = Array.isArray(mesh.material) ? mesh.material : mesh.material ? [mesh.material] : [];
-    for (const mat of mats) {
-      for (const value of Object.values(mat)) {
-        if (value instanceof THREE.Texture) value.dispose();
-      }
-      mat.dispose();
-    }
-  });
-}
 
 export default function Avatar3DViewer({
   userId, className = "", refreshKey = 0, tryOnItemId, onSnapshot, onTryOnResult,
