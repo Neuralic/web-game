@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useAvatarRender } from "./useAvatarRender";
+import { useAvatarRenderState } from "./useAvatarRender";
 
 interface UserAvatarProps {
   userId: string;
@@ -12,7 +12,7 @@ interface UserAvatarProps {
 }
 
 export default function UserAvatar({ userId, username, size = 96, className = "", headshot = false }: UserAvatarProps) {
-  const imageUrl = useAvatarRender(userId);
+  const { imageUrl, headUrl } = useAvatarRenderState(userId);
   const [loaded, setLoaded] = useState(false);
 
   const style = { width: size, height: size };
@@ -31,6 +31,19 @@ export default function UserAvatar({ userId, username, size = 96, className = ""
     );
   }
 
+  // Our own head/bust image (rendered from the 3D scene, every item included) is used as it is.
+  if (headshot && headUrl) {
+    return (
+      <div
+        style={style}
+        className={`rounded-full overflow-hidden bg-gray-200 dark:bg-[#242424] flex-shrink-0 ${className}`}
+      >
+        <img src={headUrl} alt={username || "User avatar"} className="w-full h-full object-cover" onLoad={() => setLoaded(true)} />
+      </div>
+    );
+  }
+
+  // Roblox's render (fallback): a headshot is the full-body image zoomed in on the head.
   if (headshot) {
     return (
       <div
