@@ -5,6 +5,7 @@ import { RealtimeProvider } from "@/contexts/RealtimeContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import GlobalChatWidget from "./components/GlobalChatWidgetLoader";
 import NotificationToast from "./components/NotificationToast";
+import AvatarThumbnailSync from "./components/GlobalAvatarThumbnailSync";
 
 export const metadata: Metadata = {
   title: "AdventureBlox",
@@ -35,6 +36,7 @@ export default function RootLayout({
             <NotificationProvider>
               {children}
               <GlobalChatWidget />
+              <AvatarThumbnailSync />
               <NotificationToast />
             </NotificationProvider>
           </RealtimeProvider>
