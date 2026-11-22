@@ -25,7 +25,7 @@ import UserPresenceBadge from "../../components/UserPresenceBadge";
 import InGameLabel from "../../components/InGameLabel";
 import GameGridCard from "../../components/GameGridCard";
 import AvatarPreview from "../../components/AvatarPreview";
-import { useAvatarRender, subscribeAvatarChanged } from "../../components/useAvatarRender";
+import { useAvatarRenderState, subscribeAvatarChanged } from "../../components/useAvatarRender";
 import UserAdBanner from "../../components/UserAdBanner";
 import ReportModal from "@/components/modals/ReportModal";
 import SuccessModal from "@/components/modals/SuccessModal";
@@ -108,7 +108,7 @@ interface AvatarStateData {
 
 
 function ProfileHeadshot({ userId, username }: { userId: string; username: string }) {
-  const imageUrl = useAvatarRender(userId);
+  const { imageUrl, headUrl } = useAvatarRenderState(userId);
 
   const initials = (username || "?")[0].toUpperCase();
 
@@ -127,12 +127,17 @@ function ProfileHeadshot({ userId, username }: { userId: string; username: strin
       rel="noopener noreferrer"
       className="block w-36 h-36 rounded-full overflow-hidden flex-shrink-0 border-2 border-gray-200 dark:border-[#2a2a2a] bg-gray-100 dark:bg-[#1a1a1a]"
     >
-      <img
-        src={imageUrl}
-        alt={username}
-        className="w-full object-cover object-top"
-        style={{ height: '240%', marginTop: '-15%' }}
-      />
+      {headUrl ? (
+        // our own head/bust image (rendered from the 3D scene, every item included), used as it is
+        <img src={headUrl} alt={username} className="w-full h-full object-cover" />
+      ) : (
+        <img
+          src={imageUrl}
+          alt={username}
+          className="w-full object-cover object-top"
+          style={{ height: '240%', marginTop: '-15%' }}
+        />
+      )}
     </a>
   );
 }
