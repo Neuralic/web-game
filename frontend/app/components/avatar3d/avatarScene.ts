@@ -42,15 +42,19 @@ const LOWER_TORSO_H = 0.4, UPPER_TORSO_H = 1.6, HEAD_S = 1.2;
 const HAND_H = 0.3, LOWER_ARM_H = 0.7, UPPER_ARM_H = 1.0;
 const LEG_TOP = FOOT_H + LOWER_LEG_H + UPPER_LEG_H;     // 2.0
 const TORSO_TOP = LEG_TOP + LOWER_TORSO_H + UPPER_TORSO_H; // 4.0
-// The head is a rounded box: flat sides, top and front, corners rounded with radius HEAD_CORNER, built from
-// HEAD_SEGMENTS subdivisions per side. Sinking it into the torso tucks its rounded lower edge under the torso top
-// so no gap shows. Everything attached to the head (hair, hats, face accessories and the face decal) is
-// positioned from the head mesh, so it moves with it. Tune here.
-const HEAD_SINK = 0.12;
-const HEAD_CORNER = 0.28;
-const HEAD_SEGMENTS = 24;
+// The head is Roblox's classic head: a vertical cylinder HEAD_S (1.2 studs) across and HEAD_S tall whose top and bottom
+// rims are rounded with radius HEAD_RIM. Hair, hats and face accessories are authored around that shape, against the
+// default head's attachments: Hair/Hat at (0, 0.6, 0) and FaceFront at (0, 0, -0.6) from the head centre, and the head's
+// NeckRigAttachment at (0, -0.5, 0), so the head centre sits 0.5 above the top of the 1.6-tall UpperTorso (HEAD_SINK = 0.1).
+// (A rounded box of the same size reached 0.73 studs out at its corners, poking through hair and glasses arms.)
+// Everything attached to the head (hair, hats, face accessories and the face decal) is positioned from the head mesh,
+// so it moves with it. Tune here.
+const HEAD_R = HEAD_S / 2;
+const HEAD_RIM = 0.26;
+const HEAD_SINK = 0.1;
+const HEAD_SEGMENTS = 48;   // around the cylinder
+const HEAD_RIM_STEPS = 10;  // along each rounded rim
 const DECAL_OFFSET = 0.004; // how far the face decal floats off the head surface
-const HEAD_CY = TORSO_TOP + HEAD_S / 2 - HEAD_SINK;       // 4.48
 
 type Seg = [number, number]; // vertical fraction of the classic 2-stud tall slot [top, bottom]
 type PartName =
@@ -65,7 +69,7 @@ interface PartDef {
 // Roblox "Right" = +X. Right limbs are at +X. Limbs sit 0.04 studs clear of the torso/each other
 // (a visual gap only) so same-coloured clothing keeps readable edges.
 const PARTS: PartDef[] = [
-  { name: "Head",          w: 1.2, h: HEAD_S,       d: 1.2, x: 0,    yTop: TORSO_TOP + HEAD_S - HEAD_SINK, kind: "head",  seg: [0, 1] },
+  { name: "Head",          w: HEAD_S, h: HEAD_S,    d: HEAD_S, x: 0,  yTop: TORSO_TOP + HEAD_S - HEAD_SINK, kind: "head",  seg: [0, 1] },
   { name: "UpperTorso",    w: 2.0, h: UPPER_TORSO_H, d: 1.0, x: 0,    yTop: TORSO_TOP,          kind: "torso", seg: [0, 0.8] },
   { name: "LowerTorso",    w: 2.0, h: LOWER_TORSO_H, d: 1.0, x: 0,    yTop: LEG_TOP + LOWER_TORSO_H, kind: "torso", seg: [0.8, 1] },
   { name: "RightUpperArm", w: 1.0, h: UPPER_ARM_H,  d: 1.0, x: 1.54,  yTop: TORSO_TOP,          kind: "armR",  seg: [0, 0.5] },
@@ -162,49 +166,42 @@ async function composeSheet(skin: string, layers: Array<string | undefined>): Pr
   return tex;
 }
 
-/** Roblox-style head: a box with flat sides and rounded corners. Every vertex of a subdivided box is pushed to
- *  `radius` from the inner (shrunken) box, so flat areas stay exactly flat and edges/corners become arcs/spheres. */
-function roundedHeadGeometry(size: number, radius: number, segments: number): THREE.BufferGeometry {
-  const geo = new THREE.BoxGeometry(size, size, size, segments, segments, segments);
+const HEAD_CORE_R = HEAD_R - HEAD_RIM;     // radius of the flat top / bottom disc
+const HEAD_CORE_Y = HEAD_S / 2 - HEAD_RIM; // half height of the straight cylinder wall
+
+/** Roblox classic head: the profile (bottom pole, rounded bottom rim, straight wall, rounded top rim, top pole) turned
+ *  round the vertical axis. Normals come from the exact surface (headSurfaceAt), so the shading is smooth everywhere. */
+function classicHeadGeometry(): THREE.BufferGeometry {
+  const profile: THREE.Vector2[] = [new THREE.Vector2(0, -HEAD_S / 2)];
+  for (let i = 0; i <= HEAD_RIM_STEPS; i++) {
+    const a = -Math.PI / 2 + (i / HEAD_RIM_STEPS) * (Math.PI / 2);
+    profile.push(new THREE.Vector2(HEAD_CORE_R + HEAD_RIM * Math.cos(a), -HEAD_CORE_Y + HEAD_RIM * Math.sin(a)));
+  }
+  for (let i = 0; i <= HEAD_RIM_STEPS; i++) {
+    const a = (i / HEAD_RIM_STEPS) * (Math.PI / 2);
+    profile.push(new THREE.Vector2(HEAD_CORE_R + HEAD_RIM * Math.cos(a), HEAD_CORE_Y + HEAD_RIM * Math.sin(a)));
+  }
+  profile.push(new THREE.Vector2(0, HEAD_S / 2));
+  const geo = new THREE.LatheGeometry(profile, HEAD_SEGMENTS);
   const pos = geo.getAttribute("position") as THREE.BufferAttribute;
   const nor = geo.getAttribute("normal") as THREE.BufferAttribute;
-  const inner = size / 2 - radius;
-  const v = new THREE.Vector3(), d = new THREE.Vector3();
+  const n = new THREE.Vector3();
   for (let i = 0; i < pos.count; i++) {
-    v.fromBufferAttribute(pos, i);
-    d.set(
-      v.x - THREE.MathUtils.clamp(v.x, -inner, inner),
-      v.y - THREE.MathUtils.clamp(v.y, -inner, inner),
-      v.z - THREE.MathUtils.clamp(v.z, -inner, inner),
-    ).normalize(); // every box-surface vertex is at least `radius` from the inner box, so d is never zero
-    pos.setXYZ(
-      i,
-      THREE.MathUtils.clamp(v.x, -inner, inner) + d.x * radius,
-      THREE.MathUtils.clamp(v.y, -inner, inner) + d.y * radius,
-      THREE.MathUtils.clamp(v.z, -inner, inner) + d.z * radius,
-    );
-    nor.setXYZ(i, d.x, d.y, d.z);
+    headSurfaceAt(pos.getX(i), pos.getY(i), pos.getZ(i), n);
+    nor.setXYZ(i, n.x, n.y, n.z);
   }
   return geo;
 }
 
-/** Point on the front (+Z) of the rounded-box head, `offset` off its surface, for plane coordinates (x, y).
- *  The flat part maps 1:1. Past the flat part the plane runs along the rounded corner by arc length, so the
- *  decal follows the head with even sampling and never dips into it. */
+/** Point on the front (+Z) of the head, `offset` off its surface, for plane coordinates (x, y). Both run along the surface
+ *  by arc length: x round the cylinder (the 1.2-wide decal wraps ±57°, as Roblox's face does), y straight up the wall and
+ *  then over the rounded rim. So the decal follows the head with even sampling and never dips into it. */
 function headFrontPoint(x: number, y: number, offset: number): [number, number, number] {
-  const half = HEAD_S / 2;
-  const inner = half - HEAD_CORNER;
-  const ax = (Math.max(Math.abs(x) - inner, 0) / HEAD_CORNER) * (Math.PI / 2); // angle round the corner in x
-  const ay = (Math.max(Math.abs(y) - inner, 0) / HEAD_CORNER) * (Math.PI / 2); // angle round the corner in y
-  const nx = Math.sign(x) * Math.sin(ax) * Math.cos(ay);
-  const ny = Math.sign(y) * Math.sin(ay);
-  const nz = Math.cos(ax) * Math.cos(ay);
-  const r = HEAD_CORNER + offset;
-  return [
-    THREE.MathUtils.clamp(x, -inner, inner) + nx * r,
-    THREE.MathUtils.clamp(y, -inner, inner) + ny * r,
-    inner + nz * r,
-  ];
+  const phi = x / HEAD_R;
+  const ay = Math.min(Math.max(Math.abs(y) - HEAD_CORE_Y, 0) / HEAD_RIM, 1) * (Math.PI / 2); // angle over the rim
+  const ring = HEAD_CORE_R + (HEAD_RIM + offset) * Math.cos(ay);
+  const py = Math.sign(y) * (Math.min(Math.abs(y), HEAD_CORE_Y) + (HEAD_RIM + offset) * Math.sin(ay));
+  return [ring * Math.sin(phi), py, ring * Math.cos(phi)];
 }
 
 // ─── Hair fit ────────────────────────────────────────────────────────────
@@ -227,20 +224,21 @@ const smoothstep = (a: number, b: number, x: number) => {
 
 /** Signed distance from the head surface (negative inside) for a point in head-local space; `n` gets the outward normal. */
 function headSurfaceAt(x: number, y: number, z: number, n: THREE.Vector3): number {
-  const inner = HEAD_S / 2 - HEAD_CORNER;
-  const dx = x - THREE.MathUtils.clamp(x, -inner, inner);
-  const dy = y - THREE.MathUtils.clamp(y, -inner, inner);
-  const dz = z - THREE.MathUtils.clamp(z, -inner, inner);
-  const len = Math.hypot(dx, dy, dz);
-  if (len > 1e-6) {
-    n.set(dx / len, dy / len, dz / len);
-    return len - HEAD_CORNER;
+  // Rounded cylinder: a 2D rounded rectangle in (distance from the axis, height), turned round the axis.
+  const rho = Math.hypot(x, z);
+  const ux = rho > 1e-6 ? x / rho : 0, uz = rho > 1e-6 ? z / rho : -1; // outward horizontal direction (front on the axis)
+  const dr = rho - HEAD_CORE_R;
+  const dy = Math.abs(y) - HEAD_CORE_Y;
+  const sy = y < 0 ? -1 : 1;
+  if (dr > 0 || dy > 0) {
+    const qr = Math.max(dr, 0), qy = Math.max(dy, 0);
+    const len = Math.hypot(qr, qy);
+    n.set((ux * qr) / len, (sy * qy) / len, (uz * qr) / len);
+    return len - HEAD_RIM;
   }
-  // Inside the inner box: nearest flat face.
-  const ax = Math.abs(x), ay = Math.abs(y), az = Math.abs(z);
-  const m = Math.max(ax, ay, az);
-  n.set(m === ax ? Math.sign(x) : 0, m === ay ? Math.sign(y) : 0, m === az ? Math.sign(z) : 0);
-  return m - HEAD_S / 2;
+  // Inside the core: nearest of the wall and the top/bottom.
+  if (dr > dy) n.set(ux, 0, uz); else n.set(0, sy, 0);
+  return Math.max(dr, dy) - HEAD_RIM;
 }
 
 /** Distance from the head centre to the head surface along a unit direction. */
@@ -546,7 +544,7 @@ export async function buildAvatar(data: CustomAvatarData): Promise<AvatarModel> 
   const body = new THREE.Group();
   const parts = new Map<PartName, THREE.Mesh>();
   for (const p of PARTS) {
-    const geo = p.kind === "head" ? roundedHeadGeometry(p.w, HEAD_CORNER, HEAD_SEGMENTS) : new THREE.BoxGeometry(p.w, p.h, p.d);
+    const geo = p.kind === "head" ? classicHeadGeometry() : new THREE.BoxGeometry(p.w, p.h, p.d);
     if (p.kind !== "head") setFaceUVs(geo, TEMPLATE[p.kind], p.seg);
     const mat = p.kind === "head" ? headMat : p.kind === "torso" ? mats.torso : p.kind.startsWith("arm") ? mats.arm : mats.leg;
     const mesh = new THREE.Mesh(geo, mat);
@@ -563,8 +561,8 @@ export async function buildAvatar(data: CustomAvatarData): Promise<AvatarModel> 
       const tex = new THREE.Texture(await loadImage(item.decalDataUrl as string));
       tex.colorSpace = THREE.SRGBColorSpace;
       tex.needsUpdate = true;
-      // The front of the head is flat with rounded edges, so a flat plane would float off the corners.
-      // Segment the plane and move each vertex onto the head surface (flat part 1:1, corners by arc length)
+      // The head is round, so a flat plane would float off it. Segment the plane and move each vertex onto the head
+      // surface (round the cylinder and over the rims by arc length, see headFrontPoint)
       // with a small offset so the decal neither floats nor clips.
       const geo = new THREE.PlaneGeometry(HEAD_S, HEAD_S, 24, 24);
       const gp = geo.getAttribute("position") as THREE.BufferAttribute;
