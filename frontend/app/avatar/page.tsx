@@ -32,37 +32,16 @@ interface OwnedItem {
   itemType: string;
   thumbnailUrl: string;
   robloxAssetId: string;
+  // The avatar slot the item is worn in (hat, ears, headphones, back, front, shoulder, waist, accessory_2 = neck, ...),
+  // decided by the server with the same rule the equip route uses. The Accessories tabs filter on it.
+  slot?: string | null;
 }
 
+// A row of avatar_state plus `<slot>_thumbnail` / `<slot>_name` / `<slot>_asset_id` per slot (see lib/avatarSlots.ts).
 interface AvatarState {
-  hair_item_id: string | null;
-  face_item_id: string | null;
-  head_item_id: string | null;
-  hat_item_id: string | null;
-  body_item_id: string | null;
-  shirt_item_id: string | null;
-  pants_item_id: string | null;
-  accessory_item_id: string | null;
-  roblox_user_id: string | null;
-  hair_thumbnail: string | null;
-  face_thumbnail: string | null;
-  head_thumbnail: string | null;
-  hat_thumbnail: string | null;
-  body_thumbnail: string | null;
-  shirt_thumbnail: string | null;
-  pants_thumbnail: string | null;
-  accessory_thumbnail: string | null;
-  hair_asset_id: string | null;
-  face_asset_id: string | null;
-  head_asset_id: string | null;
-  hat_asset_id: string | null;
-  body_asset_id: string | null;
-  shirt_asset_id: string | null;
-  pants_asset_id: string | null;
-  accessory_asset_id: string | null;
-  accessory_2_asset_id: string | null;
-  accessory_3_asset_id: string | null;
   skin_color: string | null;
+  roblox_user_id: string | null;
+  [column: string]: string | null | undefined;
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
@@ -80,7 +59,9 @@ const SKIN_TONES: { id: string; label: string; hex: string }[] = [
 
 // What each sub-tab shows from the user's inventory. An empty entry means every owned item.
 // Sub-tabs without an entry have nothing to show and are not offered.
-const TAB_TO_CATEGORY: Record<string, { category?: string; subcategory?: string }> = {
+// `slot` tabs list what goes in one avatar slot (the server's rule, so "Hats" does not include ears or headphones, which
+// have their own tabs and their own slots: an avatar can wear a hat, ears, headphones, a back item, a front item, ... together).
+const TAB_TO_CATEGORY: Record<string, { category?: string; subcategory?: string; slot?: string }> = {
   "Recently Added": {},
   "Accessories": { category: "Accessories" },
   "Clothing": { category: "Clothing" },
@@ -88,6 +69,13 @@ const TAB_TO_CATEGORY: Record<string, { category?: string; subcategory?: string 
   "Characters": { category: "Body", subcategory: "Full Bodies" },
   "Shirts": { category: "Clothing", subcategory: "Classic Shirts" },
   "Pants": { category: "Clothing", subcategory: "Classic Pants" },
+  "Hats": { slot: "hat" },
+  "Ears": { slot: "ears" },
+  "Headphones": { slot: "headphones" },
+  "Back": { slot: "back" },
+  "Front": { slot: "front" },
+  "Shoulder": { slot: "shoulder" },
+  "Waist": { slot: "waist" },
   "Neck": { category: "Accessories", subcategory: "Neck" },
   "Hair": { category: "Body", subcategory: "Hair" },
   "Classic Heads": { category: "Body", subcategory: "Classic Heads" },
@@ -130,7 +118,7 @@ const AvatarPage = () => {
     Recent: ["Recently Added", "Accessories", "Clothing", "Body Parts", "Characters"],
     Characters: ["Full Bodies"],
     Clothing: ["Shirts", "Pants"],
-    Accessories: ["Neck"],
+    Accessories: ["Hats", "Ears", "Headphones", "Back", "Front", "Shoulder", "Waist", "Neck"],
     "Head & Body": ["Hair", "Classic Heads", "Classic Faces"],
   };
 
@@ -331,6 +319,7 @@ const AvatarPage = () => {
     // Hair is recognised by its subcategory alone ("Hair", "Hair Accessories", ...), as the equip slot mapping does,
     // so hair stored under Body or Accessories both show here.
     if (activeSubTab === "Hair") return /hair/i.test(item.subcategory || "");
+    if (tabFilter.slot) return item.slot === tabFilter.slot;
     return (!tabFilter.category || item.category === tabFilter.category) &&
       (!tabFilter.subcategory || item.subcategory === tabFilter.subcategory);
   });
