@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { invalidateAvatarRender, subscribeAvatarChanged } from "./useAvatarRender";
+import { AVATAR_SCENE_VERSION } from "./avatar3d/sceneVersion";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
@@ -71,6 +72,9 @@ async function sync(force: boolean): Promise<void> {
       if (!statusRes.ok) return;
       const status = (await statusRes.json())?.data;
       if (!status?.supported || !status.hasOutfit || status.current) return;
+      // The server expects images of a different scene version: this page's bundle is out of date (or the server is). The
+      // upload would be refused, so don't render; a reload picks up the current bundle.
+      if (status.version !== undefined && status.version !== AVATAR_SCENE_VERSION) return;
       if (tooManyTries(who.userId, status.outfitHash)) return;
       noteTry(who.userId, status.outfitHash);
 
@@ -85,6 +89,7 @@ async function sync(force: boolean): Promise<void> {
 
       const form = new FormData();
       form.append("outfitHash", status.outfitHash);
+      form.append("sceneVersion", String(AVATAR_SCENE_VERSION));
       form.append("full", images.full, images.full.type === "image/webp" ? "full.webp" : "full.png");
       form.append("head", images.head, images.head.type === "image/webp" ? "head.webp" : "head.png");
       const upload = await fetch(`${API_BASE}/avatar/thumbnails`, { method: "POST", headers, body: form });
