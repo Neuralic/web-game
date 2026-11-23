@@ -34,6 +34,7 @@ import { openChatWithUser } from "@/app/components/ChatWidget";
 import { useParams, useRouter } from "next/navigation";
 import { useUserPresence } from "@/hooks/useUserPresence";
 import { supabase } from "@/lib/supabase";
+import { wornSlots } from "@/lib/avatarSlots";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
@@ -77,33 +78,12 @@ interface UserGame {
   placeId?: string | number | null;
 }
 
+// A row of avatar_state plus `<slot>_thumbnail` / `<slot>_name` / `<slot>_asset_id` for every slot (see lib/avatarSlots.ts, wornSlots).
+// The `<slot>_item_id` columns are catalog_items ids, used to link tiles to /catalog/<id>. Slots the database does not have
+// yet (before the accessory-slot migration) are simply absent.
 interface AvatarStateData {
   roblox_user_id: string | null;
-  hair_thumbnail: string | null;
-  face_thumbnail: string | null;
-  head_thumbnail: string | null;
-  hat_thumbnail: string | null;
-  body_thumbnail: string | null;
-  shirt_thumbnail: string | null;
-  pants_thumbnail: string | null;
-  accessory_thumbnail: string | null;
-  hair_asset_id: string | null;
-  face_asset_id: string | null;
-  head_asset_id: string | null;
-  hat_asset_id: string | null;
-  body_asset_id: string | null;
-  shirt_asset_id: string | null;
-  pants_asset_id: string | null;
-  accessory_asset_id: string | null;
-  // catalog_items ids (av.* from the avatar endpoints) — used to link tiles to /catalog/<id>
-  hair_item_id?: string | null;
-  face_item_id?: string | null;
-  head_item_id?: string | null;
-  hat_item_id?: string | null;
-  body_item_id?: string | null;
-  shirt_item_id?: string | null;
-  pants_item_id?: string | null;
-  accessory_item_id?: string | null;
+  [column: string]: string | null | undefined;
 }
 
 
@@ -150,7 +130,6 @@ const ProfilePage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("About");
-  const [currentWearingIndex, setCurrentWearingIndex] = useState(0);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [bio, setBio] = useState("");
@@ -731,21 +710,9 @@ const ProfilePage = () => {
 
   const robloxBadges: any[] = [];
 
-  const currentlyWearing = avatarState
-    ? [
-        avatarState.hat_thumbnail && { id: "hat", thumb: avatarState.hat_thumbnail, itemId: avatarState.hat_item_id ?? null },
-        avatarState.hair_thumbnail && { id: "hair", thumb: avatarState.hair_thumbnail, itemId: avatarState.hair_item_id ?? null },
-        avatarState.face_thumbnail && { id: "face", thumb: avatarState.face_thumbnail, itemId: avatarState.face_item_id ?? null },
-        avatarState.head_thumbnail && { id: "head", thumb: avatarState.head_thumbnail, itemId: avatarState.head_item_id ?? null },
-        avatarState.shirt_thumbnail && { id: "shirt", thumb: avatarState.shirt_thumbnail, itemId: avatarState.shirt_item_id ?? null },
-        avatarState.pants_thumbnail && { id: "pants", thumb: avatarState.pants_thumbnail, itemId: avatarState.pants_item_id ?? null },
-        avatarState.body_thumbnail && { id: "body", thumb: avatarState.body_thumbnail, itemId: avatarState.body_item_id ?? null },
-        avatarState.accessory_thumbnail && { id: "accessory", thumb: avatarState.accessory_thumbnail, itemId: avatarState.accessory_item_id ?? null },
-      ].filter(Boolean) as { id: string; thumb: string; itemId: string | null }[]
-    : [];
-
-  const itemsPerPage = 8;
-  const visibleWearingItems = currentlyWearing.slice(currentWearingIndex, currentWearingIndex + itemsPerPage);
+  // One tile per worn slot (hat, ears, headphones, back, front, neck, ... including the legacy accessory_3), all of them:
+  // an avatar can wear up to 16 items, so there is no page limit.
+  const visibleWearingItems = wornSlots(avatarState as Record<string, unknown> | null);
 
   const handleEditBio = () => { setEditedBio(bio); setIsEditingBio(true); };
   const handleCancelBio = () => { setEditedBio(bio); setIsEditingBio(false); };
@@ -1237,12 +1204,13 @@ const ProfilePage = () => {
                         <div className="grid grid-cols-3 gap-2">
                           {visibleWearingItems.map((item) => {
                             const tileClass = "group cursor-pointer aspect-square bg-gray-200 dark:bg-[#1a1a1a] rounded-lg overflow-hidden border border-transparent group-hover:border-gray-400 dark:group-hover:border-gray-600 transition-colors";
-                            const thumb = <img src={item.thumb} alt={item.id} className="w-full h-full object-contain p-1.5" />;
+                            const title = item.name ? `${item.name} (${item.label})` : item.label;
+                            const thumb = <img src={item.thumb} alt={title} className="w-full h-full object-contain p-1.5" />;
                             // Same URL pattern as the Catalog grid: /catalog/<catalog item id>
                             return item.itemId ? (
-                              <Link key={item.id} href={`/catalog/${item.itemId}`} className={`block ${tileClass}`}>{thumb}</Link>
+                              <Link key={item.slot} href={`/catalog/${item.itemId}`} title={title} className={`block ${tileClass}`}>{thumb}</Link>
                             ) : (
-                              <div key={item.id} className={tileClass}>{thumb}</div>
+                              <div key={item.slot} title={title} className={tileClass}>{thumb}</div>
                             );
                           })}
                         </div>
