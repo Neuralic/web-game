@@ -1,18 +1,18 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { Search, X, Loader2, ChevronRight } from "lucide-react";
+import { ChevronDown, Loader2 } from "lucide-react";
+import Footer from "../components/Footer";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
-import Footer from "../components/Footer";
-import { catalogApi } from "@/lib/api";
+import UserAdBanner from "../components/UserAdBanner";
+import AvatarPreview from "../components/AvatarPreview";
+import { catalogApi, storage } from "@/lib/api";
 
 interface CatalogItem {
   id: string;
   name: string;
-  description: string;
-  creatorName: string;
   category: string;
   subcategory: string;
   itemType: string;
@@ -20,763 +20,592 @@ interface CatalogItem {
   robloxAssetId: string;
   isAvailable: boolean;
   isFeatured: boolean;
-  tags: string[];
   favoriteCount: number;
-  salesCount: number;
-  createdAt: string;
-  updatedAt: string;
 }
 
-interface CategoryEntry {
+// An item from GET /catalog/inventory (the user's owned items)
+interface OwnedItem {
+  id: string;
+  name: string;
   category: string;
-  itemCount: string;
-}
-
-interface SubcategoryEntry {
   subcategory: string;
-  itemCount: string;
+  itemType: string;
+  thumbnailUrl: string;
+  robloxAssetId: string;
+  // The avatar slot the item is worn in (hat, ears, headphones, back, front, shoulder, waist, accessory_2 = neck, ...),
+  // decided by the server with the same rule the equip route uses. The Accessories tabs filter on it.
+  slot?: string | null;
 }
 
-const CatalogPage = () => {
+// A row of avatar_state plus `<slot>_thumbnail` / `<slot>_name` / `<slot>_asset_id` per slot (see lib/avatarSlots.ts).
+interface AvatarState {
+  skin_color: string | null;
+  roblox_user_id: string | null;
+  [column: string]: string | null | undefined;
+}
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+
+// Preset Roblox BrickColor skin tones — id is saved to avatar_state.skin_color
+const SKIN_TONES: { id: string; label: string; hex: string }[] = [
+  { id: "1", label: "Yellow", hex: "#F5C842" },
+  { id: "1003", label: "Light", hex: "#F5D0C5" },
+  { id: "36", label: "Light yellowish orange", hex: "#F3CF9B" },
+  { id: "1004", label: "Medium", hex: "#D5A66D" },
+  { id: "1005", label: "Dark", hex: "#A9744F" },
+  { id: "1006", label: "Darker", hex: "#7C4B2A" },
+  { id: "1007", label: "Darkest", hex: "#4A2C17" },
+];
+
+// What each sub-tab shows from the user's inventory. An empty entry means every owned item.
+// Sub-tabs without an entry have nothing to show and are not offered.
+// `slot` tabs list what goes in one avatar slot (the server's rule, so "Hats" does not include ears or headphones, which
+// have their own tabs and their own slots: an avatar can wear a hat, ears, headphones, a back item, a front item, ... together).
+const TAB_TO_CATEGORY: Record<string, { category?: string; subcategory?: string; slot?: string }> = {
+  "Recently Added": {},
+  "Accessories": { category: "Accessories" },
+  "Clothing": { category: "Clothing" },
+  "Body Parts": { category: "Body" },
+  "Characters": { category: "Body", subcategory: "Full Bodies" },
+  "Shirts": { category: "Clothing", subcategory: "Classic Shirts" },
+  "Pants": { category: "Clothing", subcategory: "Classic Pants" },
+  "Hats": { slot: "hat" },
+  "Ears": { slot: "ears" },
+  "Headphones": { slot: "headphones" },
+  "Back": { slot: "back" },
+  "Front": { slot: "front" },
+  "Shoulder": { slot: "shoulder" },
+  "Waist": { slot: "waist" },
+  "Neck": { category: "Accessories", subcategory: "Neck" },
+  "Hair": { category: "Body", subcategory: "Hair" },
+  "Classic Heads": { category: "Body", subcategory: "Classic Heads" },
+  "Classic Faces": { category: "Body", subcategory: "Classic Faces" },
+  "Full Bodies": { category: "Body", subcategory: "Full Bodies" },
+};
+
+const ITEMS_PER_PAGE = 24;
+
+const AvatarPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  // Filters the owned-items grid; separate from the header's searchQuery (players/groups/games).
+  const [itemSearch, setItemSearch] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [catalogSearch, setCatalogSearch] = useState("");
-  const [searchDebounce, setSearchDebounce] = useState("");
-  const [tagScrollPosition, setTagScrollPosition] = useState(0);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-
-  // Filter states
-  const [categoryFilter, setCategoryFilter] = useState("All");
-  const [subcategoryFilter, setSubcategoryFilter] = useState("");
-  const [showCategoryModal, setShowCategoryModal] = useState(false);
-  const [showSortModal, setShowSortModal] = useState(false);
-  const [showUnavailableModal, setShowUnavailableModal] = useState(false);
-
-  // Category/subcategory data from API
-  const [apiCategories, setApiCategories] = useState<CategoryEntry[]>([]);
-  const [apiSubcategories, setApiSubcategories] = useState<SubcategoryEntry[]>([]);
-  const [modalSelectedCategory, setModalSelectedCategory] = useState("All");
-  const [loadingSubcategories, setLoadingSubcategories] = useState(false);
-
-  const [sortBy, setSortBy] = useState("Relevance");
-  const [unavailableItemsFilter, setUnavailableItemsFilter] = useState(
-    "Hide Unavailable Items",
-  );
-
-  // Data states
-  const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("Recent");
+  const [activeSubTab, setActiveSubTab] = useState("Recently Added");
+  const [isTabsSticky, setIsTabsSticky] = useState(false);
+  const [ownedItems, setOwnedItems] = useState<OwnedItem[]>([]);
+  const [inventoryError, setInventoryError] = useState(false);
+  const [equippedItems, setEquippedItems] = useState<Set<string>>(new Set());
+  const [ownedItemsLoaded, setOwnedItemsLoaded] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
+  const [avatarState, setAvatarState] = useState<AvatarState | null>(null);
+  const [avatarLoading, setAvatarLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [userGender, setUserGender] = useState<string | null>(null);
+  const [updatingSkinColor, setUpdatingSkinColor] = useState(false);
+  // Bumped after the server confirms an equip/unequip/skin change so the 3D viewer refetches.
+  const [viewerRefreshKey, setViewerRefreshKey] = useState(0);
+  const [bodyType, setBodyType] = useState(0);
+  // Face section toggle: 3D "Face Accessories" (default, equippable) vs classic
+  // 2D "Classic Faces" (mostly unavailable, shown here despite that).
+  const [showClassicFaces, setShowClassicFaces] = useState(false);
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const tabsOffsetRef = useRef<number>(0);
 
-  // Fetch categories from API on mount
-  useEffect(() => {
-    catalogApi.getCategories().then((res) => {
-      if (res.success && res.data) {
-        setApiCategories(res.data.categories);
+  const mainTabs = ["Recent", "Characters", "Clothing", "Accessories", "Head & Body"];
+
+  const subTabs: { [key: string]: string[] } = {
+    Recent: ["Recently Added", "Accessories", "Clothing", "Body Parts", "Characters"],
+    Characters: ["Full Bodies"],
+    Clothing: ["Shirts", "Pants"],
+    Accessories: ["Hats", "Ears", "Headphones", "Back", "Front", "Shoulder", "Waist", "Neck"],
+    "Head & Body": ["Hair", "Classic Heads", "Classic Faces"],
+  };
+
+  const fetchAvatarState = useCallback(async () => {
+    const token = storage.getAccessToken();
+    if (!token) { setAvatarLoading(false); return; }
+    try {
+      const res = await fetch(`${API_BASE}/avatar`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success && data.data) {
+        const state = data.data.avatarState;
+        setAvatarState(state);
+        const equipped = new Set<string>(
+          data.data.equippedItems.map((i: CatalogItem) => i.id)
+        );
+        setEquippedItems(equipped);
       }
-    });
+    } catch (err) {
+      console.error("Failed to fetch avatar state:", err);
+    } finally {
+      setAvatarLoading(false);
+    }
+
+    // Fetch gender from profile
+    try {
+      const token = storage.getAccessToken();
+      if (token) {
+        const profileRes = await fetch(`${API_BASE}/users/profile`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const profileData = await profileRes.json();
+        if (profileData.success && profileData.data?.user?.gender) {
+          setUserGender(profileData.data.user.gender);
+        }
+      }
+    } catch {}
   }, []);
 
-  // Fetch the subcategories (with counts) every time the modal is opened or its category changes, using the same
-  // availability filter as the item list, so the counts are what the list shows and new subcategories appear without a reload.
   useEffect(() => {
-    if (!showCategoryModal) return;
-    if (!modalSelectedCategory || modalSelectedCategory === "All") {
-      setApiSubcategories([]);
+    fetchAvatarState();
+  }, [fetchAvatarState]);
+
+  useEffect(() => {
+    const token = storage.getAccessToken();
+    if (!token) return;
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      setCurrentUserId(payload.userId || null);
+    } catch {
+      // not logged in
+    }
+  }, []);
+
+  // Load the user's whole inventory once (paginate until exhausted, capped so a runaway inventory can't
+  // loop forever). The grid filters this list on the client; any failed request is surfaced with a retry.
+  const fetchOwnedItems = useCallback(async () => {
+    setOwnedItemsLoaded(false);
+    setInventoryError(false);
+    try {
+      const all: OwnedItem[] = [];
+      let page = 1;
+      let totalPages = 1;
+      do {
+        const response = await catalogApi.getUserInventory({ page, limit: 100 });
+        if (!response.success || !response.data) throw new Error("Inventory request failed");
+        const invData = response.data as { items: OwnedItem[]; pagination: { totalPages: number } };
+        all.push(...invData.items);
+        totalPages = invData.pagination.totalPages;
+        page++;
+      } while (page <= totalPages && page <= 20);
+      setOwnedItems(all);
+    } catch (err) {
+      console.error("Failed to fetch owned items:", err);
+      setInventoryError(true);
+    } finally {
+      setOwnedItemsLoaded(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchOwnedItems();
+  }, [fetchOwnedItems]);
+
+  // Back to the first page whenever the visible list changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeSubTab, showClassicFaces]);
+
+  const toggleEquip = async (item: OwnedItem) => {
+    const token = storage.getAccessToken();
+    if (!token) return;
+
+    const isEquipped = equippedItems.has(item.id);
+
+    if (isEquipped) {
+      try {
+        const res = await fetch(`${API_BASE}/avatar/unequip/${item.id}`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (data.success) {
+          setEquippedItems(prev => { const next = new Set(prev); next.delete(item.id); return next; });
+          setViewerRefreshKey(k => k + 1);
+          fetchAvatarState();
+        }
+      } catch (err) {
+        console.error("Failed to unequip:", err);
+      }
       return;
     }
-    let ignore = false; // a slower response for a category the user already left must not overwrite the current list
-    setLoadingSubcategories(true);
-    const available =
-      unavailableItemsFilter === "Hide Unavailable Items" ? "true" : unavailableItemsFilter === "Show Only Unavailable Items" ? "false" : "all";
-    catalogApi.getSubcategories(modalSelectedCategory, available).then((res) => {
-      if (ignore) return;
-      setApiSubcategories(res.success && res.data ? res.data.subcategories : []);
-      setLoadingSubcategories(false);
-    });
-    return () => {
-      ignore = true;
-    };
-  }, [showCategoryModal, modalSelectedCategory, unavailableItemsFilter]);
 
-  // Debounce search input
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setSearchDebounce(catalogSearch);
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [catalogSearch]);
+    let itemId = item.id;
+    const isRobloxItem = /^\d+$/.test(item.id);
 
-  // Faces quick filter: "Classic Faces" items are almost all unavailable, so
-  // the tab is merged with "Face Accessories" too or it would show nothing.
-  const FACES_SUBCATEGORIES = ["Classic Faces", "Face Accessories"];
-
-  // Fetch catalog items from API
-  const fetchItems = useCallback(async (page: number = 1) => {
-    setLoading(true);
-    try {
-      let availableParam: string | undefined;
-      if (unavailableItemsFilter === "Hide Unavailable Items") {
-        availableParam = "true";
-      } else if (unavailableItemsFilter === "Show Only Unavailable Items") {
-        availableParam = "false";
-      }
-
-      if (subcategoryFilter === "Classic Faces") {
-        const responses = await Promise.all(
-          FACES_SUBCATEGORIES.map((sub) =>
-            catalogApi.getItems({
-              category: categoryFilter !== "All" ? categoryFilter : undefined,
-              subcategory: sub,
-              search: searchDebounce || undefined,
-              sort: sortBy,
-              page,
-              limit: 30,
-              available: availableParam,
-            })
-          )
-        );
-
-        const items = responses.flatMap((r) => (r.success && r.data ? r.data.items : []));
-        const totalItems = responses.reduce((sum, r) => sum + (r.success && r.data ? r.data.pagination.totalItems : 0), 0);
-        const totalPages = Math.max(1, ...responses.map((r) => (r.success && r.data ? r.data.pagination.totalPages : 1)));
-
-        setCatalogItems(items);
-        setTotalPages(totalPages);
-        setTotalItems(totalItems);
-        setCurrentPage(page);
+    if (isRobloxItem) {
+      try {
+        const importRes = await fetch(`${API_BASE}/catalog/roblox/import/${item.robloxAssetId || item.id}`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const importData = await importRes.json();
+        if (importData.success && importData.data?.id) {
+          itemId = importData.data.id;
+        } else {
+          console.error("Failed to import Roblox item");
+          return;
+        }
+      } catch (err) {
+        console.error("Failed to import Roblox item:", err);
         return;
       }
+    }
 
-      const response = await catalogApi.getItems({
-        category: categoryFilter !== "All" ? categoryFilter : undefined,
-        subcategory: subcategoryFilter || undefined,
-        search: searchDebounce || undefined,
-        sort: sortBy,
-        page,
-        limit: 30,
-        available: availableParam,
+    try {
+      const res = await fetch(`${API_BASE}/avatar/equip/${itemId}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
       });
-
-      if (response.success && response.data) {
-        setCatalogItems(response.data.items);
-        setTotalPages(response.data.pagination.totalPages);
-        setTotalItems(response.data.pagination.totalItems);
-        setCurrentPage(response.data.pagination.page);
-      } else {
-        setCatalogItems([]);
+      const data = await res.json();
+      if (data.success) {
+        setEquippedItems(prev => { const next = new Set(prev); next.add(item.id); return next; });
+        setViewerRefreshKey(k => k + 1);
+        fetchAvatarState();
       }
-    } catch (error) {
-      console.error("Failed to fetch catalog:", error);
-      setCatalogItems([]);
+    } catch (err) {
+      console.error("Failed to equip:", err);
+    }
+  };
+
+  const handleSelectSkinColor = async (skinColor: string) => {
+    const token = storage.getAccessToken();
+    if (!token || updatingSkinColor) return;
+    setUpdatingSkinColor(true);
+    try {
+      const res = await fetch(`${API_BASE}/avatar/skin-color`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ skinColor }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setViewerRefreshKey(k => k + 1);
+        await fetchAvatarState();
+      }
+    } catch (err) {
+      console.error("Failed to update skin color:", err);
     } finally {
-      setLoading(false);
+      setUpdatingSkinColor(false);
     }
-  }, [categoryFilter, subcategoryFilter, searchDebounce, sortBy, unavailableItemsFilter]);
+  };
 
-  // Refetch when filters change
   useEffect(() => {
-    fetchItems(1);
-  }, [fetchItems]);
-
-  // Open category modal — pre-select current state
-  const openCategoryModal = () => {
-    setModalSelectedCategory(categoryFilter);
-    setShowCategoryModal(true);
-  };
-
-  // Apply category modal selection
-  const applyCategoryModal = (cat: string, sub: string) => {
-    setCategoryFilter(cat);
-    setSubcategoryFilter(sub);
-    setShowCategoryModal(false);
-  };
-
-  // Tag scrolling functions
-  const scrollTags = (direction: "left" | "right") => {
-    const container = document.getElementById("tags-container");
-    if (container) {
-      const scrollAmount = 200;
-      const newPosition =
-        direction === "left"
-          ? Math.max(0, tagScrollPosition - scrollAmount)
-          : tagScrollPosition + scrollAmount;
-
-      container.scrollTo({ left: newPosition, behavior: "smooth" });
-      setTagScrollPosition(newPosition);
+    if (tabsRef.current) {
+      tabsOffsetRef.current = tabsRef.current.offsetTop;
     }
-  };
-
-  // Tag selection handlers
-  const toggleTag = (tag: string) => {
-    if (selectedTags.includes(tag)) {
-      setSelectedTags(selectedTags.filter((t) => t !== tag));
-    } else {
-      setSelectedTags([tag, ...selectedTags]);
-      // Also search for the tag
-      setCatalogSearch(tag);
-    }
-  };
-
-  const removeTag = (tag: string) => {
-    setSelectedTags(selectedTags.filter((t) => t !== tag));
-    if (catalogSearch === tag) {
-      setCatalogSearch("");
-    }
-  };
-
-  // Get tags to display (selected tags first, then unselected)
-  const getDisplayTags = () => {
-    const tags: Array<{
-      tag: string;
-      isSelected: boolean;
-      subTags?: string[];
-    }> = [];
-
-    // Add selected tags first with their sub-tags
-    selectedTags.forEach((tag) => {
-      tags.push({ tag, isSelected: true });
-      if (tagData[tag]) {
-        tagData[tag].forEach((subTag) => {
-          tags.push({ tag: subTag, isSelected: false });
-        });
+    const handleScroll = () => {
+      if (tabsOffsetRef.current > 0) {
+        setIsTabsSticky(window.scrollY > tabsOffsetRef.current - 70);
       }
-    });
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
-    // Add unselected tags
-    popularTags.forEach((tag) => {
-      if (!selectedTags.includes(tag)) {
-        tags.push({ tag, isSelected: false });
-      }
-    });
+  const isFemale = userGender === "female";
 
-    return tags;
-  };
-
-  // Popular tags with sub-tags
-  const tagData: { [key: string]: string[] } = {
-    beard: ["white", "stubble", "brown", "black", "santa", "long", "grey", "blonde", "chin", "face", "wizard"],
-    dreads: ["white", "black", "brown", "blonde", "long", "short", "rainbow"],
-    emotes: ["dance", "wave", "laugh", "cry", "point", "sit"],
-    face: ["happy", "sad", "angry", "smile", "frown", "eyes"],
-    fedora: ["black", "brown", "white", "red", "blue"],
-    scarf: ["red", "blue", "winter", "striped", "long"],
-    beanie: ["black", "red", "blue", "winter", "warm"],
-    sunglasses: ["black", "aviator", "round", "cool"],
-    aura: ["blue", "red", "purple", "golden", "rainbow"],
-    monster: ["scary", "green", "horns", "teeth"],
-    afro: ["black", "brown", "rainbow", "big"],
-    halo: ["gold", "angel", "holy"],
-    necklace: ["gold", "silver", "chain"],
-    mustache: ["black", "brown", "curly", "handlebar"],
-    pet: ["dog", "cat", "bird", "dragon", "companion", "animal", "cute"],
-    dragon: ["mini", "fire", "ice", "mythical", "wings", "scales"],
-    hair: ["black", "brown", "blonde", "red", "messy", "curly", "long", "short"],
-    body: ["athletic", "slim", "muscular", "tall"],
-    shirt: ["classic", "graphic", "polo", "casual"],
-    pants: ["jeans", "cargo", "shorts", "classic"],
-  };
-
-  const popularTags = Object.keys(tagData);
-
-  // Quick subcategory filter tabs — label is the short display name, value is
-  // the actual subcategory stored in the DB (e.g. "Classic Shirts", not "Shirts").
-  const quickSubcategoryFilters = [
-    { label: "Shirts", value: "Classic Shirts" },
-    { label: "Pants", value: "Classic Pants" },
-    { label: "Faces", value: "Classic Faces" },
-    // Accessory slots the avatar can wear at the same time (hat, back and front never conflict). The subcategory
-    // names are the ones the importers store; the full list (shoulder, waist, ...) is in the category modal.
-    { label: "Hats", value: "Hats" },
-    { label: "Back", value: "Back Accessories" },
-    { label: "Front", value: "Front Accessories" },
-  ];
-
-  const toggleQuickSubcategory = (sub: string) => {
-    if (subcategoryFilter === sub) {
-      setCategoryFilter("All");
-      setSubcategoryFilter("");
-    } else {
-      setCategoryFilter("All");
-      setSubcategoryFilter(sub);
+  // Owned items for the active sub-tab, paginated on the client. Owned items always show (no availability filter).
+  const tabFilter = TAB_TO_CATEGORY[activeSubTab];
+  const categoryItems = ownedItems.filter((item) => {
+    if (!tabFilter) return false;
+    // Classic Faces: the toggle switches between 3D face accessories and the classic 2D faces
+    if (activeSubTab === "Classic Faces") {
+      return item.subcategory === (showClassicFaces ? "Classic Faces" : "Face Accessories");
     }
-  };
-
-  // Sort options
-  const sortOptions = [
-    "Relevance",
-    "Most Favorited",
-    "Recently Published",
-    "Most Recent",
-  ];
-
-  // Unavailable items options
-  const unavailableOptions = [
-    "Show All Items",
-    "Hide Unavailable Items",
-    "Show Only Unavailable Items",
-  ];
-
-  const CatalogItemCard = ({ item }: { item: CatalogItem }) => (
-    <Link href={`/catalog/${item.id}`} className="block group">
-      <div className="rounded-lg overflow-hidden bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] hover:shadow-lg transition-shadow">
-        <div className="relative aspect-square bg-gray-100 dark:bg-[#242424]">
-          {item.thumbnailUrl ? (
-            <img
-              src={item.thumbnailUrl}
-              alt={item.name}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-400">
-              <span className="text-4xl">🎮</span>
-            </div>
-          )}
-        </div>
-        <div className="p-3">
-          <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 mb-0.5 line-clamp-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-            {item.name}
-          </h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 truncate">{item.creatorName || "AdventureBlox"}</p>
-          <p className="text-xs font-semibold text-green-600 dark:text-green-400">Free</p>
-        </div>
-      </div>
-    </Link>
-  );
+    // Hair is recognised by its subcategory alone ("Hair", "Hair Accessories", ...), as the equip slot mapping does,
+    // so hair stored under Body or Accessories both show here.
+    if (activeSubTab === "Hair") return /hair/i.test(item.subcategory || "");
+    if (tabFilter.slot) return item.slot === tabFilter.slot;
+    return (!tabFilter.category || item.category === tabFilter.category) &&
+      (!tabFilter.subcategory || item.subcategory === tabFilter.subcategory);
+  });
+  const itemSearchTerm = itemSearch.trim().toLowerCase();
+  const tabItems = itemSearchTerm
+    ? categoryItems.filter((item) => item.name.toLowerCase().includes(itemSearchTerm))
+    : categoryItems;
+  const totalPages = Math.max(1, Math.ceil(tabItems.length / ITEMS_PER_PAGE));
+  const pageItems = tabItems.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-black flex flex-col">
-      {/* Sidebar */}
+    <div className="min-h-screen bg-white dark:bg-black flex flex-col">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} setSidebarOpen={setSidebarOpen} />
 
-      {/* Header */}
-      <Header
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        setSidebarOpen={setSidebarOpen}
-      />
+      <main className="flex-1 flex justify-center gap-4 px-4 py-6">
+        {/* Left Skyscraper Ad */}
+        <div className="hidden xl:block flex-shrink-0">
+          <UserAdBanner format="160x600" />
+        </div>
 
-      {/* Main Content */}
-      <main className="flex-1 w-full">
-        {/* Top Bar - Marketplace Header */}
-        <div className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-black">
-          <div className="px-4 py-3">
-            {/* Title + Search + Dropdown + Buy Button Row */}
-            <div className="flex items-center justify-between gap-3 mb-3">
-              {/* Left Side: Title */}
-              <div className="flex items-center gap-4">
-  <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap">
-    Catalog
-  </h1>
-</div>
-
-              {/* Right Side: Search + Dropdown + Buy Button + Cart */}
-              <div className="flex items-center gap-2 flex-1 justify-end">
-                {/* Search Bar */}
-                <div className="w-full max-w-2xl relative">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 dark:text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Search"
-                    value={catalogSearch}
-                    onChange={(e) => setCatalogSearch(e.target.value)}
-                    className="w-full bg-gray-100 dark:bg-[#1a1a1a] border border-gray-300 dark:border-[#2a2a2a] rounded-lg pl-11 pr-4 py-3 text-base text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  />
-                </div>
-
-                {/* Category Quick Dropdown */}
-                <select
-                  value={categoryFilter}
-                  onChange={(e) => { setCategoryFilter(e.target.value); setSubcategoryFilter(""); }}
-                  className="bg-white dark:bg-[#1a1a1a] border border-gray-300 dark:border-[#2a2a2a] rounded px-3 py-1.5 text-sm text-gray-900 dark:text-gray-100 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
-                >
-                  <option value="All">All</option>
-                  {apiCategories.map((cat) => (
-                    <option key={cat.category} value={cat.category}>{cat.category}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Filter Buttons Row */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <button
-                onClick={openCategoryModal}
-                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1.5 ${
-                  categoryFilter !== "All" || subcategoryFilter
-                    ? "bg-blue-600 text-white hover:bg-blue-700"
-                    : "bg-gray-200 dark:bg-[#242424] text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
-                }`}
-              >
-                {subcategoryFilter ? `${categoryFilter} › ${subcategoryFilter}` : categoryFilter}
-                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-              </button>
-              <button
-                onClick={() => setShowSortModal(true)}
-                className="px-4 py-1.5 rounded-md text-sm font-medium bg-gray-200 dark:bg-[#242424] text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors flex items-center gap-1.5"
-              >
-                Sort by {sortBy}
-                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-              </button>
-              <button
-                onClick={() => setShowUnavailableModal(true)}
-                className="px-4 py-1.5 rounded-md text-sm font-medium bg-gray-200 dark:bg-[#242424] text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors flex items-center gap-1.5"
-              >
-                {unavailableItemsFilter}
-                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-              </button>
+        <div className="max-w-[1400px] w-full">
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100">Avatar Editor</h1>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-gray-600 dark:text-gray-400">Explore the catalog to find more clothes!</span>
+              <Link href="/catalog">
+                <button className="px-4 py-2 bg-gray-900 dark:bg-gray-100 hover:bg-gray-800 dark:hover:bg-gray-200 text-white dark:text-gray-900 font-semibold rounded transition-colors">
+                  Get More
+                </button>
+              </Link>
             </div>
           </div>
-        </div>
-        {/* Popular Tags */}
-        <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-black">
-          <div className="flex items-center gap-2">
-            {/* Left Arrow */}
-            <button
-              onClick={() => scrollTags("left")}
-              className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors flex-shrink-0"
-              aria-label="Scroll tags left"
-            >
-              <svg
-                className="w-4 h-4 text-gray-600 dark:text-gray-400 rotate-180"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </button>
 
-            {/* Quick Subcategory Filter Tabs */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {quickSubcategoryFilters.map((sub) => (
-                <button
-                  key={sub.value}
-                  onClick={() => toggleQuickSubcategory(sub.value)}
-                  className={`px-4 py-1.5 text-sm font-semibold rounded-full whitespace-nowrap transition-colors flex-shrink-0 ${
-                    subcategoryFilter === sub.value
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-200 dark:bg-[#242424] hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
-                  }`}
-                >
-                  {sub.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Divider */}
-            <div className="w-px self-stretch bg-gray-200 dark:bg-[#242424] flex-shrink-0" />
-
-            {/* Tags Container */}
-            <div
-              id="tags-container"
-              className="flex items-center gap-2 overflow-x-auto scrollbar-hide scroll-smooth flex-1"
-            >
-              {getDisplayTags().map((item, index) =>
-                item.isSelected ? (
-                  // Selected tag with X button
-                  <button
-                    key={`${item.tag}-${index}`}
-                    className="px-4 py-1.5 bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 text-sm font-semibold rounded-full whitespace-nowrap transition-colors flex-shrink-0 flex items-center gap-2"
-                  >
-                    <span>{item.tag}</span>
-                    <span
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeTag(item.tag);
-                      }}
-                      className="hover:bg-gray-700 dark:hover:bg-gray-300 rounded-full p-0.5 transition-colors cursor-pointer"
-                    >
-                      <svg
-                        className="w-3.5 h-3.5"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    </span>
-                  </button>
+          <div className="flex gap-6">
+            {/* Left - Avatar Preview */}
+            <div className="w-[300px] flex-shrink-0 sticky top-24 self-start">
+              <div className="bg-[#1a1a1a] rounded-lg aspect-[3/4] flex items-end justify-center p-6 relative overflow-hidden">
+                {currentUserId ? (
+                  <AvatarPreview userId={currentUserId} refreshKey={viewerRefreshKey} variant="editor" className="absolute inset-0 w-full h-full" />
+                ) : avatarLoading ? (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+                  </div>
                 ) : (
-                  // Unselected tag
-                  <button
-                    key={`${item.tag}-${index}`}
-                    onClick={() => toggleTag(item.tag)}
-                    className="px-4 py-1.5 bg-gray-200 dark:bg-[#242424] hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-full whitespace-nowrap transition-colors flex-shrink-0"
-                  >
-                    {item.tag}
-                  </button>
-                ),
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    {(
+                      <div className="relative" style={{ width: 180, height: 270 }}>
+                        <svg width="180" height="270" viewBox="0 0 120 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          {/* Legs */}
+                          <rect x="32" y="108" width="25" height="70" rx="4" fill="#8B4513" />
+                          <rect x="63" y="108" width="25" height="70" rx="4" fill="#8B4513" />
+                          {/* Body */}
+                          <rect x="30" y="55" width="60" height="50" rx="4" fill={isFemale ? "#C4679A" : "#4A90A4"} />
+                          <rect x="30" y="65" width="60" height="6" fill={isFemale ? "#D4889B" : "#6BA8BC"} />
+                          <rect x="30" y="77" width="60" height="6" fill={isFemale ? "#D4889B" : "#6BA8BC"} />
+                          <rect x="30" y="89" width="60" height="6" fill={isFemale ? "#D4889B" : "#6BA8BC"} />
+                          {/* Arms */}
+                          <rect x="10" y="55" width="18" height="45" rx="4" fill="#F5D0C5" />
+                          <rect x="92" y="55" width="18" height="45" rx="4" fill="#F5D0C5" />
+                          {/* Head */}
+                          <rect x="35" y="2" width="50" height="50" rx="8" fill="#F5D0C5" />
+                          {/* Default hair */}
+                          {isFemale ? (
+                            <>
+                              <ellipse cx="60" cy="12" rx="28" ry="18" fill="#8B4513" />
+                              <rect x="32" y="10" width="10" height="40" rx="5" fill="#8B4513" />
+                              <rect x="78" y="10" width="10" height="40" rx="5" fill="#8B4513" />
+                              <ellipse cx="60" cy="3" rx="22" ry="14" fill="#8B4513" />
+                            </>
+                          ) : (
+                            <>
+                              <ellipse cx="60" cy="15" rx="30" ry="20" fill="#B85C38" />
+                              <ellipse cx="60" cy="5" rx="20" ry="12" fill="#B85C38" />
+                              <circle cx="75" cy="8" r="12" fill="#B85C38" />
+                            </>
+                          )}
+                          {/* Default face */}
+                          <circle cx="48" cy="30" r="3" fill="#393939" />
+                          <circle cx="72" cy="30" r="3" fill="#393939" />
+                          <path d="M52 40 Q60 48 68 40" stroke="#393939" strokeWidth="2" fill="none" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {!currentUserId && (
+                  <div className="absolute bottom-4 right-4 bg-white dark:bg-[#1a1a1a] px-3 py-1 rounded font-semibold text-sm text-gray-900 dark:text-gray-100 z-20">
+                    3D
+                  </div>
+                )}
+              </div>
+
+              {/* Skin Tone */}
+              <div className="mt-4 p-4 bg-gray-50 dark:bg-[#1a1a1a] rounded-lg border border-gray-200 dark:border-[#2a2a2a]">
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-100 block mb-3">Skin Tone</span>
+                <div className="flex gap-2.5">
+                  {SKIN_TONES.map((tone) => {
+                    const isSelected = (avatarState?.skin_color || "1") === tone.id;
+                    return (
+                      <button
+                        key={tone.id}
+                        onClick={() => handleSelectSkinColor(tone.id)}
+                        disabled={updatingSkinColor}
+                        title={tone.label}
+                        aria-label={tone.label}
+                        className={`w-8 h-8 rounded-full transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                          isSelected
+                            ? "ring-2 ring-blue-500 ring-offset-2 ring-offset-gray-50 dark:ring-offset-gray-800"
+                            : "ring-1 ring-gray-300 dark:ring-gray-600 hover:ring-gray-400 dark:hover:ring-gray-500"
+                        }`}
+                        style={{ backgroundColor: tone.hex }}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="mt-3 text-center">
+                <button className="text-sm text-gray-600 dark:text-gray-400 hover:underline">Avatar isn&apos;t loading correctly?</button>
+                <Link href="/avatar" className="text-sm text-blue-600 dark:text-blue-400 hover:underline ml-2">Redraw</Link>
+              </div>
+
+              {equippedItems.size > 0 && (
+                <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
+                  <p className="text-sm text-blue-700 dark:text-blue-400 font-medium">
+                    {equippedItems.size} item{equippedItems.size > 1 ? "s" : ""} equipped
+                  </p>
+                </div>
               )}
             </div>
 
-            {/* Right Arrow */}
-            <button
-              onClick={() => scrollTags("right")}
-              className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors flex-shrink-0"
-              aria-label="Scroll tags right"
-            >
-              <svg
-                className="w-4 h-4 text-gray-600 dark:text-gray-400"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </button>
-          </div>
-        </div>
-        {/* Catalog Items Grid */}
-<div className="px-4 py-6">
-      {loading ? (
-        <div className="flex flex-col items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-500 mb-3" />
-          <p className="text-gray-500 dark:text-gray-400 text-sm">Loading catalog...</p>
-        </div>
-      ) : catalogItems.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20">
-          <span className="text-5xl mb-4">🔍</span>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">No items found</h3>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">Try adjusting your filters or search query</p>
-        </div>
-      ) : (
-        <>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-            Showing {catalogItems.length} of {totalItems} items
-          </p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-4">
-            {catalogItems.map((item) => (
-              <CatalogItemCard key={item.id} item={item} />
-            ))}
-          </div>
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-8 pb-8">
-              <button
-                onClick={() => fetchItems(currentPage - 1)}
-                disabled={currentPage <= 1}
-                className="px-4 py-2 bg-white dark:bg-[#1a1a1a] border border-gray-300 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-100 font-medium rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Previous
-              </button>
-              <span className="text-sm text-gray-600 dark:text-gray-400 px-3">
-                Page {currentPage} of {totalPages}
-              </span>
-              <button
-                onClick={() => fetchItems(currentPage + 1)}
-                disabled={currentPage >= totalPages}
-                className="px-4 py-2 bg-white dark:bg-[#1a1a1a] border border-gray-300 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-100 font-medium rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next
-              </button>
-            </div>
-          )}
-        </>
-      )}
-</div>
-                </main>
-
-      {/* Category Modal — two-level: category then subcategory */}
-      {showCategoryModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-[#1a1a1a] rounded-lg shadow-xl w-full max-w-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Category</h3>
-              <button onClick={() => setShowCategoryModal(false)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
-                <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-              </button>
-            </div>
-
-            <div className="flex gap-4">
-              {/* Left: Categories */}
-              <div className="w-1/2 space-y-1 max-h-[60vh] overflow-y-auto">
-                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Category</p>
-                {/* All option */}
-                <button
-                  onClick={() => { setModalSelectedCategory("All"); }}
-                  className={`w-full text-left px-3 py-2 rounded text-sm flex items-center justify-between transition-colors ${
-                    modalSelectedCategory === "All"
-                      ? "bg-blue-600 text-white"
-                      : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100"
-                  }`}
-                >
-                  All
-                </button>
-                {apiCategories.map((cat) => (
-                  <button
-                    key={cat.category}
-                    onClick={() => setModalSelectedCategory(cat.category)}
-                    className={`w-full text-left px-3 py-2 rounded text-sm flex items-center justify-between transition-colors ${
-                      modalSelectedCategory === cat.category
-                        ? "bg-blue-600 text-white"
-                        : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100"
-                    }`}
-                  >
-                    <span>{cat.category}</span>
-                    <ChevronRight className="w-3.5 h-3.5 opacity-60" />
-                  </button>
-                ))}
-              </div>
-
-              {/* Right: Subcategories */}
-              <div className="w-1/2 space-y-1 max-h-[60vh] overflow-y-auto">
-                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Subcategory</p>
-                {modalSelectedCategory === "All" ? (
-                  <p className="text-sm text-gray-400 dark:text-gray-500 px-3 py-2">Select a category first</p>
-                ) : loadingSubcategories ? (
-                  <div className="flex justify-center py-4">
-                    <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
-                  </div>
-                ) : (
-                  <>
+            {/* Right - Items Grid */}
+            <div className="flex-1">
+              <div ref={tabsRef} className={`${isTabsSticky ? "fixed top-[70px] left-0 right-0 z-40 bg-white dark:bg-black border-b border-gray-200 dark:border-gray-800 px-4" : ""}`}>
+                <div className={`${isTabsSticky ? "max-w-[1400px] mx-auto" : ""} flex gap-6 border-b border-gray-200 dark:border-gray-800`}>
+                  {mainTabs.map((tab) => (
                     <button
-                      onClick={() => applyCategoryModal(modalSelectedCategory, "")}
-                      className="w-full text-left px-3 py-2 rounded text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors"
+                      key={tab}
+                      onClick={() => {
+                        setActiveTab(tab);
+                        if (subTabs[tab]) setActiveSubTab(subTabs[tab][0]);
+                      }}
+                      className={`pb-3 text-sm font-semibold transition-colors relative group ${activeTab === tab ? "text-gray-900 dark:text-gray-100" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"}`}
                     >
-                      All {modalSelectedCategory}
+                      {tab}
+                      <ChevronDown className={`w-4 h-4 inline ml-1 ${activeTab === tab ? "" : "opacity-50"}`} />
+                      {activeTab === tab && <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gray-900 dark:bg-gray-100" />}
+                      {activeTab !== tab && <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gray-400 dark:bg-gray-600 opacity-0 group-hover:opacity-100 transition-opacity" />}
                     </button>
-                    {apiSubcategories.map((sub) => (
+                  ))}
+                </div>
+
+                {subTabs[activeTab] && (
+                  <div className="flex items-center justify-between mt-4">
+                    <div className="flex gap-4">
+                      {subTabs[activeTab].map((subTab) => (
+                        <button
+                          key={subTab}
+                          onClick={() => setActiveSubTab(subTab)}
+                          className={`text-sm transition-colors ${activeSubTab === subTab ? "text-blue-600 dark:text-blue-400 font-semibold" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"}`}
+                        >
+                          {subTab}
+                        </button>
+                      ))}
+                    </div>
+
+                    {activeSubTab === "Classic Faces" && (
                       <button
-                        key={sub.subcategory}
-                        onClick={() => applyCategoryModal(modalSelectedCategory, sub.subcategory)}
-                        className="w-full text-left px-3 py-2 rounded text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors"
+                        onClick={() => setShowClassicFaces((prev) => !prev)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                          showClassicFaces
+                            ? "bg-blue-600 border-blue-600 text-white"
+                            : "bg-white dark:bg-[#1a1a1a] border-gray-300 dark:border-[#2a2a2a] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                        }`}
                       >
-                        {sub.subcategory}
-                        <span className="ml-1 text-xs text-gray-400">({sub.itemCount})</span>
+                        Classic Faces
                       </button>
-                    ))}
-                  </>
+                    )}
+                  </div>
                 )}
               </div>
-            </div>
 
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => applyCategoryModal("All", "")}
-                className="flex-1 py-2.5 border border-gray-300 dark:border-[#2a2a2a] text-gray-700 dark:text-gray-300 font-semibold rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-sm"
-              >
-                Clear
-              </button>
-              <button
-                onClick={() => applyCategoryModal(modalSelectedCategory, "")}
-                className="flex-1 py-2.5 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 font-semibold rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 text-sm"
-              >
-                Apply
-              </button>
+              {isTabsSticky && <div className="h-24"></div>}
+
+              {ownedItemsLoaded && !inventoryError && ownedItems.length > 0 && (
+                <input
+                  type="text"
+                  value={itemSearch}
+                  onChange={(e) => {
+                    setItemSearch(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  placeholder="Search your items"
+                  className="mt-4 w-full max-w-xs px-3 py-2 text-sm border border-gray-300 dark:border-[#2a2a2a] rounded-lg bg-gray-50 dark:bg-[#242424] text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              )}
+
+              {!ownedItemsLoaded ? (
+                <div className="flex items-center justify-center py-20">
+                  <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                </div>
+              ) : inventoryError ? (
+                <div className="flex flex-col items-center justify-center py-20 gap-3">
+                  <p className="text-gray-500 dark:text-gray-400 text-sm">Couldn&apos;t load your inventory.</p>
+                  <button
+                    onClick={fetchOwnedItems}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded transition-colors"
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : ownedItems.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 gap-3">
+                  <p className="text-gray-500 dark:text-gray-400 text-sm">You don&apos;t own any catalog items yet.</p>
+                  <Link
+                    href="/catalog"
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded transition-colors"
+                  >
+                    Visit Catalog
+                  </Link>
+                </div>
+              ) : categoryItems.length > 0 && tabItems.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                  <p className="text-gray-500 dark:text-gray-400 text-sm">No items match</p>
+                </div>
+              ) : tabItems.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                  <p className="text-gray-500 dark:text-gray-400 text-sm">No owned items in this category.</p>
+                  <Link href="/catalog" className="mt-3 text-blue-600 dark:text-blue-400 text-sm hover:underline">Browse Catalog</Link>
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mt-6">
+                    {pageItems.map((item) => (
+                      <div
+                        key={item.id}
+                        onClick={() => toggleEquip(item)}
+                        className="rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer relative"
+                      >
+                        {equippedItems.has(item.id) && (
+                          <div className="absolute top-2 right-2 w-6 h-6 bg-white dark:bg-[#242424] rounded flex items-center justify-center z-10 border border-gray-300 dark:border-[#2a2a2a]">
+                            <svg className="w-4 h-4 text-gray-900 dark:text-gray-100" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                        )}
+                        <div className={`aspect-square rounded-lg overflow-hidden border-2 transition-colors ${equippedItems.has(item.id) ? "border-blue-500" : "border-gray-200 dark:border-[#2a2a2a]"} bg-gray-100 dark:bg-[#1a1a1a]`}>
+                          {item.thumbnailUrl ? (
+                            <img src={item.thumbnailUrl} alt={item.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-400">
+                              <span className="text-3xl">🎨</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="pt-2">
+                          <p className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">{item.name}</p>
+                          <p className="text-[10px] text-gray-500 dark:text-gray-400">{item.subcategory || item.category}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-2 mt-8">
+                      <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage <= 1} className="px-4 py-2 bg-white dark:bg-[#1a1a1a] border border-gray-300 dark:border-[#2a2a2a] rounded text-sm disabled:opacity-50">Previous</button>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Page {currentPage} of {totalPages}</span>
+                      <button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage >= totalPages} className="px-4 py-2 bg-white dark:bg-[#1a1a1a] border border-gray-300 dark:border-[#2a2a2a] rounded text-sm disabled:opacity-50">Next</button>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </div>
-      )}
 
-      {/* Sort By Modal */}
-      {showSortModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-[#1a1a1a] rounded-lg shadow-xl max-w-md w-full p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                Sort By
-              </h3>
-              <button
-                onClick={() => setShowSortModal(false)}
-                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-              >
-                <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-              </button>
-            </div>
-            <div className="space-y-2">
-              {sortOptions.map((option) => (
-                <label
-                  key={option}
-                  className="flex items-center gap-3 cursor-pointer p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded"
-                >
-                  <input
-                    type="radio"
-                    name="sort"
-                    checked={sortBy === option}
-                    onChange={() => setSortBy(option)}
-                    className="w-5 h-5"
-                  />
-                  <span className="text-sm text-gray-900 dark:text-gray-100">
-                    {option}
-                  </span>
-                </label>
-              ))}
-            </div>
-            <button
-              onClick={() => setShowSortModal(false)}
-              className="w-full mt-6 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 font-semibold py-2.5 rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200"
-            >
-              Apply
-            </button>
-          </div>
+        {/* Right Skyscraper Ad */}
+        <div className="hidden xl:block flex-shrink-0">
+          <UserAdBanner format="160x600" />
         </div>
-      )}
+      </main>
 
-      {/* Unavailable Items Modal */}
-      {showUnavailableModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-[#1a1a1a] rounded-lg shadow-xl max-w-md w-full p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                Unavailable Items
-              </h3>
-              <button
-                onClick={() => setShowUnavailableModal(false)}
-                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-              >
-                <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-              </button>
-            </div>
-            <div className="space-y-2">
-              {unavailableOptions.map((option) => (
-                <label
-                  key={option}
-                  className="flex items-center gap-3 cursor-pointer p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded"
-                >
-                  <input
-                    type="radio"
-                    name="unavailable"
-                    checked={unavailableItemsFilter === option}
-                    onChange={() => setUnavailableItemsFilter(option)}
-                    className="w-5 h-5"
-                  />
-                  <span className="text-sm text-gray-900 dark:text-gray-100">
-                    {option}
-                  </span>
-                </label>
-              ))}
-            </div>
-            <button
-              onClick={() => setShowUnavailableModal(false)}
-              className="w-full mt-6 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 font-semibold py-2.5 rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200"
-            >
-              Apply
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Footer */}
       <Footer />
     </div>
   );
 };
 
-export default CatalogPage;
+export default AvatarPage;
