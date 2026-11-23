@@ -10,8 +10,6 @@ import {
   ExternalLink,
   Monitor,
   LayoutGrid,
-  Heart,
-  History,
 } from "lucide-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faGamepad } from "@fortawesome/free-solid-svg-icons";
@@ -333,9 +331,6 @@ const ProfilePage = () => {
   const tabs = ["About", "Creations", "Wall"];
   const [favoriteGames, setFavoriteGames] = useState<UserGame[]>([]);
   const [loadingFavorites, setLoadingFavorites] = useState(true);
-  // Recently Played is only loaded and shown on your own profile (as on Roblox, other people's play history is not public)
-  const [recentlyPlayed, setRecentlyPlayed] = useState<UserGame[]>([]);
-  const [loadingRecentlyPlayed, setLoadingRecentlyPlayed] = useState(false);
 
   // Statistics section: all numbers come from one server query (GET /users/:id/stats). Kept with the id they belong to,
   // so moving between profiles never shows the previous person's numbers.
@@ -568,29 +563,6 @@ const ProfilePage = () => {
 
     fetchFavoriteGames();
   }, [profileUser?.id]);
-
-  useEffect(() => {
-    if (!profileUser?.id || !isOwnProfile) {
-      setRecentlyPlayed([]);
-      return;
-    }
-    let ignore = false;
-    const fetchRecentlyPlayed = async () => {
-      setLoadingRecentlyPlayed(true);
-      try {
-        const res = await fetch(`${API_BASE}/games/recently-played/${profileUser.id}`);
-        const data = await res.json();
-        if (!ignore && data.success && data.data?.games) setRecentlyPlayed(data.data.games);
-      } catch (error) {
-        console.error('Error fetching recently played games:', error);
-      } finally {
-        if (!ignore) setLoadingRecentlyPlayed(false);
-      }
-    };
-
-    fetchRecentlyPlayed();
-    return () => { ignore = true; };
-  }, [profileUser?.id, isOwnProfile]);
 
   useEffect(() => {
     const fetchWallPosts = async () => {
@@ -1336,8 +1308,8 @@ const ProfilePage = () => {
                 <div className="py-6 border-b border-gray-200 dark:border-gray-800">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                      <Heart className="w-5 h-5 text-red-500 fill-red-500" />
-                      Favorite Games
+                      <span aria-hidden="true">⭐</span>
+                      My Favorite Games
                     </h2>
                     {isOwnProfile && (
                       <Link href="/favorites" className="flex items-center gap-1 text-sm text-gray-900 dark:text-gray-100 hover:underline">See All<ChevronRight className="w-4 h-4" /></Link>
@@ -1357,31 +1329,6 @@ const ProfilePage = () => {
                     </div>
                   )}
                 </div>
-
-                {isOwnProfile && (
-                  <div className="py-6 border-b border-gray-200 dark:border-gray-800">
-                    <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                        <History className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                        Recently Played
-                      </h2>
-                      <Link href="/continue" className="flex items-center gap-1 text-sm text-gray-900 dark:text-gray-100 hover:underline">See All<ChevronRight className="w-4 h-4" /></Link>
-                    </div>
-                    {loadingRecentlyPlayed ? (
-                      <div className="flex justify-center py-8">
-                        <div className="w-6 h-6 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-                      </div>
-                    ) : recentlyPlayed.length === 0 ? (
-                      <p className="text-sm text-gray-500 dark:text-gray-400 py-4">No recently played games yet.</p>
-                    ) : (
-                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
-                        {recentlyPlayed.slice(0, 4).map((game) => (
-                          <GameGridCard key={game.id} game={game} />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
 
                 <div className="py-6 border-b border-gray-200 dark:border-gray-800">
                   <div className="flex items-center justify-between mb-4">
