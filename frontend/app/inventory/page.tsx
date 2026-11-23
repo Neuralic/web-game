@@ -8,6 +8,7 @@ import Sidebar from "../components/Sidebar";
 import Footer from "../components/Footer";
 import ProtectedRoute from "../components/ProtectedRoute";
 import { catalogApi } from "@/lib/api";
+import { AVATAR_SLOT_LABELS } from "@/lib/avatarSlots";
 
 interface InventoryItem {
   id: string;
@@ -19,6 +20,8 @@ interface InventoryItem {
   robloxAssetId: string;
   // Layered clothing (decided on the server from the item's Roblox asset type): cannot be worn, so it is not listed
   isLayered?: boolean;
+  // The avatar slot the item is worn in (see lib/avatarSlots.ts); null for items that are not wearable
+  slot?: string | null;
   acquired_at: string;
 }
 
@@ -192,6 +195,7 @@ const InventoryPage = () => {
                           </h3>
                           <p className="text-xs text-gray-500 dark:text-gray-400">
                             {item.category}
+                            {item.category === "Accessories" && item.slot && AVATAR_SLOT_LABELS[item.slot] ? ` · ${AVATAR_SLOT_LABELS[item.slot]}` : ""}
                           </p>
                         </div>
                       </div>
