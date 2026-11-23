@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ChevronRight, Plus, Loader2, ImagePlus, X, Heart, History } from "lucide-react";
+import { ChevronRight, Plus, Loader2, ImagePlus, X } from "lucide-react";
 import Footer from "../components/Footer";
 import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
@@ -272,7 +272,7 @@ const HomePage = () => {
             <section className="mb-10">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                  <History className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                  <span aria-hidden="true">🎮</span>
                   Recently Played
                 </h2>
                 <Link href="/continue" className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-full transition-colors">See All</Link>
@@ -296,8 +296,8 @@ const HomePage = () => {
             <section className="mb-10">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                  <Heart className="w-5 h-5 text-red-500 fill-red-500" />
-                  Favorite Games
+                  <span aria-hidden="true">⭐</span>
+                  My Favorite Games
                 </h2>
                 <Link href="/favorites" className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-full transition-colors">See All</Link>
               </div>
