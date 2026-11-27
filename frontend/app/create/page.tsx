@@ -8,6 +8,7 @@ import ProtectedRoute from "../components/ProtectedRoute";
 import { storage } from "@/lib/api";
 import UserAdBanner from "../components/UserAdBanner";
 import { Plus, Trash2, ExternalLink, Gamepad2, Download } from "lucide-react";
+import OptimizedImage from "../components/OptimizedImage";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
@@ -266,7 +267,7 @@ export default function CreatePage() {
                 <div key={game.id} className="bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded-xl overflow-hidden hover:shadow-lg transition-shadow">
                   <div className="aspect-video bg-gradient-to-br from-blue-500 to-purple-600 relative">
                     {game.thumbnailUrl ? (
-                      <img src={game.thumbnailUrl} alt={game.title} className="w-full h-full object-cover" />
+                      <OptimizedImage src={game.thumbnailUrl} alt={game.title} responsive sizes="(min-width: 1024px) 30vw, 100vw" className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <span className="text-white font-bold text-2xl">AB</span>
