@@ -212,7 +212,10 @@ function headFrontPoint(x: number, y: number, offset: number): [number, number, 
 // below the head keeps its length, and meshes with a deliberately large standoff (afro, bun) are not touched.
 const HAIR_FIT_EDGE = 0.01;     // standoff kept between the fitted hair and the skin (the decal floats at 0.004)
 const HAIR_FIT_KEEP = 0.06;     // share of the standoff above the edge that is kept (the pull is local, see fitHairMesh)
-const HAIR_FIT_PASSES = 10;     // relaxation passes before giving up on a mesh
+const HAIR_FIT_PASSES = 14;     // relaxation passes before giving up on a mesh
+const HAIR_COVER_STEP = 6;      // degrees between the rays that check the fit left no bare head (see hairCoverage)
+const HAIR_COVER_MAX_GAP = 0.45; // a hair surface standing further off the head than this does not count as covering it
+const HAIR_COVER_RELAX_RADIUS = 0.3; // the pull is relaxed this far round a spot the fit left bare
 const HAIR_FIT_MAX_GAP = 0.3;   // measured standoff above this is deliberate volume: no fit
 const HAIR_FIT_MIN_RAYS = 8;    // fewer hair hits than this over the back/sides: not a head-hugging mesh, no fit
 const HAIR_FIT_BLEND = 0.3;     // standoff range over which the fit fades out above the measured gap
@@ -278,6 +281,82 @@ function hairSurfaceBeyondHead(mesh: THREE.Mesh, rays: HeadRay[]): Array<number 
     rc.set(origin, dir);
     const hit = rc.intersectObject(mesh, false).find((h) => h.distance >= r);
     return hit ? hit.distance : null;
+  });
+}
+
+// Rays over the whole head (every direction from straight below the ears to the crown), used to check that pulling the hair
+// onto the head does not leave bare patches. A hair that stands off the head hides the holes between its strands, because a
+// viewer looks through them at an angle; pulled flush, the same holes show the skin, and flat triangles between points on
+// the curved head sink below its surface. Only the directions the hair covered before the fit have to stay covered.
+const HAIR_COVER_RAYS = headRays(
+  Array.from({ length: 360 / HAIR_COVER_STEP }, (_, i) => i * HAIR_COVER_STEP),
+  Array.from({ length: Math.floor(106 / HAIR_COVER_STEP) + 1 }, (_, i) => -20 + i * HAIR_COVER_STEP),
+);
+
+/**
+ * Per ray of HAIR_COVER_RAYS: does a hair triangle cross it between the head surface and HAIR_COVER_MAX_GAP beyond it?
+ * `geo` is in head-local space. This runs after every pass of the fit, so it is a purpose-built test instead of the generic
+ * raycaster: each triangle gets a cone (as seen from the head centre) that rays outside it skip, and a covered ray stops at
+ * its first hit.
+ */
+function hairCoverage(geo: THREE.BufferGeometry): boolean[] {
+  const pos = geo.getAttribute("position") as THREE.BufferAttribute;
+  const index = geo.getIndex();
+  const count = (index ? index.count : pos.count) / 3;
+  const tri = new Float32Array(count * 9);   // v0, e1, e2
+  const cone = new Float32Array(count * 4);  // unit direction to the centroid, cosine of the cone's half angle
+  const dirOf = (x: number, y: number, z: number, out: number[]) => {
+    const len = Math.hypot(x, y, z);
+    if (len < 1e-6) return false;
+    out[0] = x / len; out[1] = y / len; out[2] = z / len;
+    return true;
+  };
+  const u = [0, 0, 0], w = [0, 0, 0];
+  for (let t = 0; t < count; t++) {
+    const p: number[] = [];
+    for (let c = 0; c < 3; c++) {
+      const i = index ? index.getX(t * 3 + c) : t * 3 + c;
+      p.push(pos.getX(i), pos.getY(i), pos.getZ(i));
+    }
+    for (let k = 0; k < 3; k++) {
+      tri[t * 9 + k] = p[k];
+      tri[t * 9 + 3 + k] = p[3 + k] - p[k];
+      tri[t * 9 + 6 + k] = p[6 + k] - p[k];
+    }
+    let cos = -1; // -1: the cone is the whole sphere (the head centre is on or inside this triangle)
+    if (dirOf((p[0] + p[3] + p[6]) / 3, (p[1] + p[4] + p[7]) / 3, (p[2] + p[5] + p[8]) / 3, u)) {
+      cos = 1;
+      for (let c = 0; c < 3; c++) {
+        if (!dirOf(p[c * 3], p[c * 3 + 1], p[c * 3 + 2], w)) { cos = -1; break; }
+        cos = Math.min(cos, u[0] * w[0] + u[1] * w[1] + u[2] * w[2]);
+      }
+      cos -= 1e-4;
+      cone[t * 4] = u[0]; cone[t * 4 + 1] = u[1]; cone[t * 4 + 2] = u[2];
+    }
+    cone[t * 4 + 3] = cos;
+  }
+
+  return HAIR_COVER_RAYS.map(({ dir, r }) => {
+    const dx = dir.x, dy = dir.y, dz = dir.z, far = r + HAIR_COVER_MAX_GAP;
+    for (let t = 0; t < count; t++) {
+      if (cone[t * 4 + 3] > -1 && cone[t * 4] * dx + cone[t * 4 + 1] * dy + cone[t * 4 + 2] * dz < cone[t * 4 + 3]) continue;
+      const o = t * 9;
+      const e1x = tri[o + 3], e1y = tri[o + 4], e1z = tri[o + 5], e2x = tri[o + 6], e2y = tri[o + 7], e2z = tri[o + 8];
+      // Moller-Trumbore from the origin (both faces count)
+      const hx = dy * e2z - dz * e2y, hy = dz * e2x - dx * e2z, hz = dx * e2y - dy * e2x;
+      const a = e1x * hx + e1y * hy + e1z * hz;
+      if (Math.abs(a) < 1e-12) continue;
+      const f = 1 / a;
+      const sx = -tri[o], sy = -tri[o + 1], sz = -tri[o + 2];
+      const bu = f * (sx * hx + sy * hy + sz * hz);
+      if (bu < 0 || bu > 1) continue;
+      const qx = sy * e1z - sz * e1y, qy = sz * e1x - sx * e1z, qz = sx * e1y - sy * e1x;
+      const bv = f * (dx * qx + dy * qy + dz * qz);
+      if (bv < 0 || bu + bv > 1) continue;
+      const d = f * (e2x * qx + e2y * qy + e2z * qz);
+      if (d >= r && d <= far) return true;
+    }
+    return false;
   });
 }
 
@@ -374,6 +453,25 @@ function fitHairMesh(geo: THREE.BufferGeometry, mat: THREE.Material): boolean {
   }
   const keep = new Float32Array(groups.size).fill(HAIR_FIT_KEEP);
   const before = hairTriangleMargins(geo);
+  const coveredBefore = hairCoverage(geo); // the mesh as placed, before any pull
+
+  // Stop pulling round the head-surface points of `rays`: the hair there returns toward where it was.
+  const relaxAround = (rays: number[], amount: number) => {
+    const reach = HAIR_COVER_RELAX_RADIUS * HAIR_COVER_RELAX_RADIUS;
+    for (const r of rays) {
+      const px = HAIR_COVER_RAYS[r].dir.x * HAIR_COVER_RAYS[r].r, py = HAIR_COVER_RAYS[r].dir.y * HAIR_COVER_RAYS[r].r, pz = HAIR_COVER_RAYS[r].dir.z * HAIR_COVER_RAYS[r].r;
+      for (let i = 0; i < pos.count; i++) {
+        const dx = original[i * 3] - px, dy = original[i * 3 + 1] - py, dz = original[i * 3 + 2] - pz;
+        if (dx * dx + dy * dy + dz * dz <= reach) keep[groupOf[i]] += (1 - keep[groupOf[i]]) * amount;
+      }
+    }
+  };
+  const lostRays = () => {
+    const covered = hairCoverage(geo);
+    const lost: number[] = [];
+    for (let r = 0; r < covered.length; r++) if (coveredBefore[r] && !covered[r]) lost.push(r);
+    return lost;
+  };
 
   for (let pass = 0; pass < HAIR_FIT_PASSES; pass++) {
     pos.array.set(original);
@@ -391,9 +489,22 @@ function fitHairMesh(geo: THREE.BufferGeometry, mat: THREE.Material): boolean {
       }
     }
     if (!buried) {
-      geo.computeBoundingSphere();
-      geo.computeBoundingBox();
-      return true;
+      // Fitted without cutting into the head. It must also leave no bare patch where the hair covered the head before.
+      const lost = lostRays();
+      if (lost.length === 0) {
+        geo.computeBoundingSphere();
+        geo.computeBoundingBox();
+        return true;
+      }
+      // Out of passes: no pull at all round what is still bare (the hair there is as it was), then accept.
+      relaxAround(lost, pass === HAIR_FIT_PASSES - 1 ? 1 : 0.5);
+      if (pass === HAIR_FIT_PASSES - 1) {
+        pos.array.set(original);
+        fitHairToHead(pos, Math.max(standoff, 0), keep, groupOf);
+        geo.computeBoundingSphere();
+        geo.computeBoundingBox();
+        return true;
+      }
     }
   }
   pos.array.set(original);
