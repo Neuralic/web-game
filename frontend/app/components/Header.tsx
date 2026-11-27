@@ -1,15 +1,16 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Search, Menu, Bell, Settings as SettingsIcon, UserPlus, Check, Users, Gamepad2 } from "lucide-react";
+import { Search, Menu, Bell, Settings as SettingsIcon } from "lucide-react";
 import VerifiedBadge from "./VerifiedBadge";
 import { logout, isAuthenticated } from "@/lib/auth";
-import { usersApi, searchApi, friendsApi } from "@/lib/api";
+import { usersApi } from "@/lib/api";
 import UserAvatar from "./UserAvatar";
 import SwitchAccountsModal from "./SwitchAccountsModal";
 import NotificationDropdown from "./NotificationDropdown";
+import SearchBox from "./search/SearchBox";
 import { useNotifications } from "@/contexts/NotificationContext";
 
 interface HeaderProps {
@@ -18,33 +19,6 @@ interface HeaderProps {
   setSidebarOpen: (open: boolean) => void;
   isVerified?: boolean;
 }
-
-interface SearchResult {
-  id: string;
-  username: string;
-  display_name: string;
-  is_verified?: boolean;
-  friendship_status?: 'friend' | 'request_sent' | 'request_received' | 'none';
-}
-
-interface GroupSearchResult {
-  id: string;
-  name: string;
-  icon_url?: string;
-  member_count: number;
-  is_verified?: boolean;
-}
-
-interface GameSearchResult {
-  id: string;
-  title: string;
-  thumbnail_url?: string;
-  icon_url?: string;
-  visits: number;
-  current_players: number;
-}
-
-type SearchCategory = 'Players' | 'Groups' | 'Games';
 
 export default function Header({
   searchQuery,
@@ -63,14 +37,7 @@ export default function Header({
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showSwitchAccountsModal, setShowSwitchAccountsModal] = useState(false);
   const [switchSuccess, setSwitchSuccess] = useState(false);
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [groupSearchResults, setGroupSearchResults] = useState<GroupSearchResult[]>([]);
-  const [gameSearchResults, setGameSearchResults] = useState<GameSearchResult[]>([]);
-  const [searchCategory, setSearchCategory] = useState<SearchCategory>('Players');
-  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const searchDropdownRef = useRef<HTMLDivElement>(null);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const { unreadCount } = useNotifications();
 
@@ -108,77 +75,6 @@ useEffect(() => {
     checkAuth();
   }, []);
 
-  // Handle search with debouncing
-  useEffect(() => {
-    const performSearch = async () => {
-      if (searchQuery.trim().length === 0) {
-        setSearchResults([]);
-        setShowSearchDropdown(false);
-        return;
-      }
-
-      if (searchQuery.trim().length < 2) {
-        return; // Don't search until at least 2 characters
-      }
-
-      // Clear existing timeout
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
-
-      // Set new timeout for debouncing
-      searchTimeoutRef.current = setTimeout(async () => {
-        setIsSearching(true);
-        try {
-          const [usersRes, groupsRes, gamesRes] = await Promise.all([
-            searchApi.searchUsers(searchQuery, 8),
-            searchApi.searchGroups(searchQuery, 8),
-            searchApi.searchGames(searchQuery, 8),
-          ]);
-          if (usersRes.success && usersRes.data) {
-            setSearchResults((usersRes.data.users as SearchResult[]) || []);
-          }
-          if (groupsRes.success && groupsRes.data) {
-            setGroupSearchResults((groupsRes.data.groups as GroupSearchResult[]) || []);
-          }
-          if (gamesRes.success && gamesRes.data) {
-            setGameSearchResults((gamesRes.data.games as GameSearchResult[]) || []);
-          }
-          setShowSearchDropdown(true);
-        } catch (error) {
-          console.error("Search error:", error);
-        } finally {
-          setIsSearching(false);
-        }
-      }, 300); // 300ms debounce
-    };
-
-    performSearch();
-
-    return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
-    };
-  }, [searchQuery]);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        searchDropdownRef.current &&
-        !searchDropdownRef.current.contains(event.target as Node)
-      ) {
-        setShowSearchDropdown(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
   const handleLogout = () => {
     setSettingsOpen(false);
     logout();
@@ -196,25 +92,6 @@ useEffect(() => {
 
     // Refresh user data and page
     window.location.href = "/home";
-  };
-
-  const handleAddFriend = async (userId: string) => {
-    try {
-      const response = await friendsApi.sendFriendRequest(userId);
-      if (response.success) {
-        // Update search results to show request sent
-        setSearchResults((prev) =>
-          prev.map((u) =>
-            u.id === userId ? { ...u, friendship_status: "request_sent" } : u
-          )
-        );
-      } else {
-        alert(response.message || "Failed to send friend request");
-      }
-    } catch (error) {
-      console.error("Add friend error:", error);
-      alert("Failed to send friend request");
-    }
   };
 
   // Display user data immediately without loading states
@@ -300,200 +177,18 @@ useEffect(() => {
               */}
             </nav>
 
-            {/* Search Bar with Dropdown */}
-            <div className="hidden md:flex items-center gap-2 relative flex-1 min-w-0" ref={searchDropdownRef}>
-              <div className="flex items-center gap-2 bg-gray-100 dark:bg-[#1a1a1a] rounded-full px-4 py-2 w-full max-w-[500px]">
-                <Search className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
-                <input
-                  type="text"
-                  placeholder="Search"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onFocus={() => searchResults.length > 0 && setShowSearchDropdown(true)}
-                  className="bg-transparent text-gray-700 dark:text-gray-300 placeholder:text-gray-500 dark:placeholder:text-gray-400 text-sm focus:outline-none w-full"
-                />
-              </div>
-
-              {/* Search Results Dropdown */}
-              {showSearchDropdown && (searchResults.length > 0 || groupSearchResults.length > 0 || gameSearchResults.length > 0 || isSearching) && (
-                <div className="absolute top-full left-0 mt-2 w-96 bg-white dark:bg-[#1a1a1a] rounded-lg shadow-xl border border-gray-200 dark:border-[#2a2a2a] max-h-[28rem] overflow-hidden z-50">
-                  {/* Category Tabs */}
-                  <div className="flex border-b border-gray-200 dark:border-[#2a2a2a]">
-                    {(['Players', 'Groups', 'Games'] as SearchCategory[]).map((cat) => {
-                      const count = cat === 'Players' ? searchResults.length : cat === 'Groups' ? groupSearchResults.length : gameSearchResults.length;
-                      return (
-                        <button
-                          key={cat}
-                          onClick={() => setSearchCategory(cat)}
-                          className={`flex-1 px-3 py-2.5 text-xs font-semibold transition-colors relative ${
-                            searchCategory === cat
-                              ? 'text-blue-600 dark:text-blue-400'
-                              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-                          }`}
-                        >
-                          {cat} {count > 0 && <span className="ml-1 text-[10px] opacity-70">({count})</span>}
-                          {searchCategory === cat && (
-                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400" />
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <div className="max-h-80 overflow-y-auto">
-                  {isSearching ? (
-                    <div className="p-4 text-center text-gray-500 dark:text-gray-400">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900 dark:border-gray-100 mx-auto"></div>
-                    </div>
-                  ) : (
-                    <>
-                      {/* Players Tab */}
-                      {searchCategory === 'Players' && (
-                        searchResults.length > 0 ? (
-                          searchResults.map((result) => (
-                            <div
-                              key={result.id}
-                              className="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-[#2a2a2a] last:border-b-0 flex items-center gap-3"
-                            >
-                              <Link
-                                href={`/profile/${result.username}`}
-                                className="flex items-center gap-3 flex-1 min-w-0"
-                                onClick={() => {
-                                  setShowSearchDropdown(false);
-                                  setSearchQuery("");
-                                }}
-                              >
-                                <div className="w-10 h-10 bg-gray-300 dark:bg-gray-600 rounded-full flex-shrink-0"></div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-1">
-                                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
-                                      {result.display_name}
-                                    </span>
-                                    {result.is_verified && <VerifiedBadge size="sm" />}
-                                  </div>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                                    @{result.username}
-                                  </p>
-                                </div>
-                              </Link>
-                              
-                              {/* Friend Action Button */}
-                              {isLoggedIn && result.id !== user?.id && (
-                                <div className="flex-shrink-0">
-                                  {result.friendship_status === "friend" ? (
-                                    <span className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
-                                      <Check className="w-3 h-3" /> Friends
-                                    </span>
-                                  ) : result.friendship_status === "request_sent" ? (
-                                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                                      Requested
-                                    </span>
-                                  ) : result.friendship_status === "request_received" ? (
-                                    <span className="text-xs text-blue-600 dark:text-blue-400">
-                                      Accept
-                                    </span>
-                                  ) : (
-                                    <button
-                                      onClick={() => handleAddFriend(result.id)}
-                                      className="p-1.5 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-lg transition-colors"
-                                      title="Add Friend"
-                                    >
-                                      <UserPlus className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                                    </button>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          ))
-                        ) : (
-                          <div className="p-4 text-center text-gray-500 dark:text-gray-400 text-sm">
-                            No players found
-                          </div>
-                        )
-                      )}
-
-                      {/* Groups Tab */}
-                      {searchCategory === 'Groups' && (
-                        groupSearchResults.length > 0 ? (
-                          groupSearchResults.map((group) => (
-                            <Link
-                              key={group.id}
-                              href={`/groups/${group.id}`}
-                              onClick={() => {
-                                setShowSearchDropdown(false);
-                                setSearchQuery("");
-                              }}
-                              className="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-[#2a2a2a] last:border-b-0 flex items-center gap-3"
-                            >
-                              <div className="w-10 h-10 bg-gray-300 dark:bg-gray-600 rounded flex-shrink-0 overflow-hidden relative">
-                                {group.icon_url ? (
-                                  <Image src={group.icon_url} alt={group.name} fill className="object-cover" sizes="40px" />
-                                ) : (
-                                  <Users className="w-5 h-5 text-gray-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-                                )}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-1">
-                                  <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
-                                    {group.name}
-                                  </span>
-                                  {group.is_verified && <VerifiedBadge size="sm" />}
-                                </div>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
-                                  {group.member_count?.toLocaleString()} members
-                                </p>
-                              </div>
-                            </Link>
-                          ))
-                        ) : (
-                          <div className="p-4 text-center text-gray-500 dark:text-gray-400 text-sm">
-                            No groups found
-                          </div>
-                        )
-                      )}
-
-                      {/* Games Tab */}
-                      {searchCategory === 'Games' && (
-                        gameSearchResults.length > 0 ? (
-                          gameSearchResults.map((game) => (
-                            <Link
-                              key={game.id}
-                              href={`/games/${game.id}`}
-                              onClick={() => {
-                                setShowSearchDropdown(false);
-                                setSearchQuery("");
-                              }}
-                              className="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-[#2a2a2a] last:border-b-0 flex items-center gap-3"
-                            >
-                              <div className="w-10 h-10 bg-gray-300 dark:bg-gray-600 rounded flex-shrink-0 overflow-hidden relative">
-                                {game.thumbnail_url || game.icon_url ? (
-                                  <Image src={game.thumbnail_url || game.icon_url || ''} alt={game.title} fill className="object-cover" sizes="40px" />
-                                ) : (
-                                  <Gamepad2 className="w-5 h-5 text-gray-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-                                )}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate block">
-                                  {game.title}
-                                </span>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
-                                  {game.visits?.toLocaleString() || 0} visits · {game.current_players || 0} playing
-                                </p>
-                              </div>
-                            </Link>
-                          ))
-                        ) : (
-                          <div className="p-4 text-center text-gray-500 dark:text-gray-400 text-sm">
-                            No games found
-                          </div>
-                        )
-                      )}
-                    </>
-                  )}
-                  </div>
-                </div>
-              )}
+            {/* Search: suggestions dropdown on desktop, full-screen overlay on phones */}
+            <div className="hidden md:flex items-center flex-1 min-w-0">
+              <SearchBox value={searchQuery} onChange={setSearchQuery} />
             </div>
+            <button
+              type="button"
+              onClick={() => setMobileSearchOpen(true)}
+              aria-label="Search"
+              className="md:hidden ml-auto p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg flex-shrink-0"
+            >
+              <Search className="w-6 h-6 text-gray-700 dark:text-gray-300" />
+            </button>
           </div>
 
           {/* Right Section - Dynamic based on auth state */}
@@ -652,6 +347,11 @@ useEffect(() => {
           </div>
         </div>
       </header>
+
+      {/* Phone search: full-screen, opened by the search icon in the header */}
+      {mobileSearchOpen && (
+        <SearchBox variant="overlay" value={searchQuery} onChange={setSearchQuery} onClose={() => setMobileSearchOpen(false)} />
+      )}
     </>
   );
 }
