@@ -13,6 +13,10 @@ import { supabase } from "@/lib/supabase";
 import { messagesApi } from "@/lib/api";
 import { markMessagesAsRead } from "@/lib/realtime";
 import { canPlayChatSound, initChatSound, playChatSound } from "@/lib/chatSound";
+import { isConversationViewed, isTabActive, viewing } from "@/lib/chatViewing";
+
+// Re-exported: callers keep importing it from here.
+export { isConversationViewed };
 
 interface UnreadSnapshot {
   counts: Record<string, number>;
@@ -31,7 +35,6 @@ let channel: RealtimeChannel | null = null;
 let teardownTabListeners: (() => void) | null = null;
 let updateRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 const seenMessageIds: string[] = [];
-const viewing = new Map<string, number>();
 
 const emit = () => listeners.forEach((l) => l());
 
@@ -51,13 +54,6 @@ const adjust = (senderId: string, delta: number) => {
   next[senderId] = Math.max(0, (next[senderId] || 0) + delta);
   setCounts(next);
 };
-
-const isTabActive = () =>
-  typeof document !== "undefined" && document.visibilityState === "visible" && document.hasFocus();
-
-/** True while a chat window / thread with this user is open and the tab is in front. */
-export const isConversationViewed = (otherUserId: string | null | undefined): boolean =>
-  !!otherUserId && (viewing.get(otherUserId) ?? 0) > 0 && isTabActive();
 
 /** Clears the badge at once and tells the server (which also clears the matching bell notifications). */
 export const markConversationRead = async (otherUserId: string): Promise<void> => {
