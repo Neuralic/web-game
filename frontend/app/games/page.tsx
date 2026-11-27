@@ -6,6 +6,7 @@ import Sidebar from "../components/Sidebar";
 import Footer from "../components/Footer";
 import UserAdBanner from "../components/UserAdBanner";
 import PlayButton from "../components/PlayButton";
+import OptimizedImage from "../components/OptimizedImage";
 
 interface Game {
   id: string;
@@ -78,7 +79,7 @@ const GamesPage = () => {
         <Link href={`/games/${game.id}`} className="block">
           <div className="rounded-lg overflow-hidden bg-gray-200 dark:bg-[#242424] aspect-video mb-1.5 relative">
             {game.thumbnailUrl ? (
-              <img src={game.thumbnailUrl} alt={game.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
+              <OptimizedImage src={game.thumbnailUrl} alt={game.title} responsive sizes="260px" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600">
                 <span className="text-white font-bold text-2xl">AB</span>
@@ -198,7 +199,8 @@ const GamesPage = () => {
           <UserAdBanner format="160x600" />
         </div>
       </main>
-      <Footer />
+      {/* Not shown while the list loads: the page is short then, so the footer sat at the bottom of the screen and was pushed away when the list arrived (that jump was the whole layout-shift score). */}
+      {!loading && <Footer />}
     </div>
   );
 };
