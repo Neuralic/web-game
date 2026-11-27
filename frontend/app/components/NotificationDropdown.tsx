@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { friendsApi } from '@/lib/api';
-import { openChatWithUser } from './ChatWidget';
+import { openChatWithUser } from '@/lib/chatOpen';
 
 interface NotificationDropdownProps {
   isOpen: boolean;
