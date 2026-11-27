@@ -7,6 +7,7 @@ import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
 import Footer from "../components/Footer";
 import { catalogApi } from "@/lib/api";
+import OptimizedImage from "../components/OptimizedImage";
 
 interface CatalogItem {
   id: string;
@@ -79,22 +80,27 @@ const CatalogPage = () => {
     });
   }, []);
 
-  // Fetch subcategories when modal category selection changes
+  // Fetch the subcategories (with counts) every time the modal is opened or its category changes, using the same
+  // availability filter as the item list, so the counts are what the list shows and new subcategories appear without a reload.
   useEffect(() => {
-    if (modalSelectedCategory && modalSelectedCategory !== "All") {
-      setLoadingSubcategories(true);
-      catalogApi.getSubcategories(modalSelectedCategory).then((res) => {
-        if (res.success && res.data) {
-          setApiSubcategories(res.data.subcategories);
-        } else {
-          setApiSubcategories([]);
-        }
-        setLoadingSubcategories(false);
-      });
-    } else {
+    if (!showCategoryModal) return;
+    if (!modalSelectedCategory || modalSelectedCategory === "All") {
       setApiSubcategories([]);
+      return;
     }
-  }, [modalSelectedCategory]);
+    let ignore = false; // a slower response for a category the user already left must not overwrite the current list
+    setLoadingSubcategories(true);
+    const available =
+      unavailableItemsFilter === "Hide Unavailable Items" ? "true" : unavailableItemsFilter === "Show Only Unavailable Items" ? "false" : "all";
+    catalogApi.getSubcategories(modalSelectedCategory, available).then((res) => {
+      if (ignore) return;
+      setApiSubcategories(res.success && res.data ? res.data.subcategories : []);
+      setLoadingSubcategories(false);
+    });
+    return () => {
+      ignore = true;
+    };
+  }, [showCategoryModal, modalSelectedCategory, unavailableItemsFilter]);
 
   // Debounce search input
   useEffect(() => {
@@ -282,6 +288,11 @@ const CatalogPage = () => {
     { label: "Shirts", value: "Classic Shirts" },
     { label: "Pants", value: "Classic Pants" },
     { label: "Faces", value: "Classic Faces" },
+    // Accessory slots the avatar can wear at the same time (hat, back and front never conflict). The subcategory
+    // names are the ones the importers store; the full list (shoulder, waist, ...) is in the category modal.
+    { label: "Hats", value: "Hats" },
+    { label: "Back", value: "Back Accessories" },
+    { label: "Front", value: "Front Accessories" },
   ];
 
   const toggleQuickSubcategory = (sub: string) => {
@@ -314,7 +325,7 @@ const CatalogPage = () => {
       <div className="rounded-lg overflow-hidden bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] hover:shadow-lg transition-shadow">
         <div className="relative aspect-square bg-gray-100 dark:bg-[#242424]">
           {item.thumbnailUrl ? (
-            <img
+            <OptimizedImage
               src={item.thumbnailUrl}
               alt={item.name}
               className="w-full h-full object-cover"
@@ -596,7 +607,7 @@ const CatalogPage = () => {
 
             <div className="flex gap-4">
               {/* Left: Categories */}
-              <div className="w-1/2 space-y-1">
+              <div className="w-1/2 space-y-1 max-h-[60vh] overflow-y-auto">
                 <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Category</p>
                 {/* All option */}
                 <button
@@ -626,7 +637,7 @@ const CatalogPage = () => {
               </div>
 
               {/* Right: Subcategories */}
-              <div className="w-1/2 space-y-1">
+              <div className="w-1/2 space-y-1 max-h-[60vh] overflow-y-auto">
                 <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Subcategory</p>
                 {modalSelectedCategory === "All" ? (
                   <p className="text-sm text-gray-400 dark:text-gray-500 px-3 py-2">Select a category first</p>
@@ -764,7 +775,8 @@ const CatalogPage = () => {
       )}
 
       {/* Footer */}
-      <Footer />
+      {/* Not shown while the list loads: the page is short then, so the footer sat at the bottom of the screen and was pushed away when the list arrived (that jump was the whole layout-shift score). */}
+      {!loading && <Footer />}
     </div>
   );
 };
