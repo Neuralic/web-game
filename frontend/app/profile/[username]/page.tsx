@@ -28,11 +28,12 @@ import UserAdBanner from "../../components/UserAdBanner";
 import ReportModal from "@/components/modals/ReportModal";
 import SuccessModal from "@/components/modals/SuccessModal";
 import { usersApi, friendsApi, groupsApi, storage, type UserStats } from "@/lib/api";
-import { openChatWithUser } from "@/app/components/ChatWidget";
+import { openChatWithUser } from "@/lib/chatOpen";
 import { useParams, useRouter } from "next/navigation";
 import { useUserPresence } from "@/hooks/useUserPresence";
 import { supabase } from "@/lib/supabase";
 import { wornSlots } from "@/lib/avatarSlots";
+import OptimizedImage from "../../components/OptimizedImage";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
@@ -1177,7 +1178,7 @@ const ProfilePage = () => {
                           {visibleWearingItems.map((item) => {
                             const tileClass = "group cursor-pointer aspect-square bg-gray-200 dark:bg-[#1a1a1a] rounded-lg overflow-hidden border border-transparent group-hover:border-gray-400 dark:group-hover:border-gray-600 transition-colors";
                             const title = item.name ? `${item.name} (${item.label})` : item.label;
-                            const thumb = <img src={item.thumb} alt={title} className="w-full h-full object-contain p-1.5" />;
+                            const thumb = <OptimizedImage src={item.thumb} alt={title} className="w-full h-full object-contain p-1.5" />;
                             // Same URL pattern as the Catalog grid: /catalog/<catalog item id>
                             return item.itemId ? (
                               <Link key={item.slot} href={`/catalog/${item.itemId}`} title={title} className={`block ${tileClass}`}>{thumb}</Link>
