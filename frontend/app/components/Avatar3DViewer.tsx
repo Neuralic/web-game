@@ -6,6 +6,7 @@ import {
   buildAvatar, createAvatarScene, disposeScene, fitDistance, orbitCamera, DEG,
   type AvatarModel, type CustomAvatarData,
 } from "./avatar3d/avatarScene";
+import { publishAvatarData } from "./avatarDataBus";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
@@ -283,6 +284,8 @@ export default function Avatar3DViewer({
         setupAndRender(null, 30, model);
         setFailed(false);
         setLoading(false);
+        // The user's own outfit (not a try-on preview): lets the 2D head be drawn from this very data (AvatarThumbnailSync).
+        if (!tryOnItemId) publishAvatarData(userId, customData);
       } catch (error) {
         console.error("Avatar3DViewer load error:", error);
         if (stale()) return;
