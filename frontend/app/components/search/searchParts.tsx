@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import UserAvatar from "../UserAvatar";
 import type { SiteSearchGame, SiteSearchPerson } from "@/lib/api";
+import OptimizedImage from "../OptimizedImage";
 
 const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -31,7 +32,7 @@ export function Highlight({ text, query }: { text: string; query: string }) {
 export function Thumb({ src, alt, fallback, className = "" }: { src?: string | null; alt: string; fallback: ReactNode; className?: string }) {
   return (
     <div className={`flex-shrink-0 overflow-hidden bg-gray-200 dark:bg-[#242424] flex items-center justify-center text-gray-500 ${className}`}>
-      {src ? <img src={src} alt={alt} loading="lazy" className="w-full h-full object-cover" /> : fallback}
+      {src ? <OptimizedImage src={src} alt={alt} small className="w-full h-full object-cover" /> : fallback}
     </div>
   );
 }
