@@ -1,7 +1,11 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
-import { initializePresence, disconnectPresence, cleanupRealtimeChannels, refreshPresenceHeartbeat, hasActivePlayingGame, PresenceData } from '@/lib/realtime';
+import type { PresenceData } from '@/lib/realtime';
+
+// The realtime module pulls in the whole Supabase client (~50 KB gzipped). Visitors who are not logged in never need it, so it is
+// only loaded once there is a signed-in user to track.
+type RealtimeModule = typeof import('@/lib/realtime');
 import { isAuthenticated } from '@/lib/auth';
 import { storage } from '@/lib/api';
 
@@ -49,6 +53,9 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
       return;
     }
 
+    let cancelled = false;
+    let rt: RealtimeModule | null = null;
+    let started = false;
     let heartbeat: ReturnType<typeof setInterval> | null = null;
     const stopHeartbeat = () => {
       if (heartbeat) {
@@ -59,19 +66,21 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
     const startHeartbeat = () => {
       stopHeartbeat();
       heartbeat = setInterval(() => {
+        if (!rt) return;
         // A backgrounded tab is only kept alive for someone who pressed Play; once that has expired it goes offline as usual.
-        if (document.visibilityState === 'hidden' && !hasActivePlayingGame()) {
+        if (document.visibilityState === 'hidden' && !rt.hasActivePlayingGame()) {
           stopHeartbeat();
-          disconnectPresence();
+          rt.disconnectPresence();
           return;
         }
-        refreshPresenceHeartbeat().catch(() => {});
+        rt.refreshPresenceHeartbeat().catch(() => {});
       }, PRESENCE_HEARTBEAT_MS);
     };
 
     const initPresence = async () => {
+      if (!rt) return;
       try {
-        await initializePresence(userId, username, handlePresenceUpdate);
+        await rt.initializePresence(userId, username, handlePresenceUpdate);
         setIsConnected(true);
         if (document.visibilityState === 'visible') startHeartbeat();
       } catch (error) {
@@ -80,15 +89,14 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
       }
     };
 
-    initPresence();
-
     // Mark offline when tab is hidden / closed
     const handleVisibilityChange = () => {
+      if (!rt) return;
       if (document.visibilityState === 'hidden') {
         // Someone who just pressed Play is in the Roblox app with this tab in the background: keep showing them as in-game.
-        if (hasActivePlayingGame()) return;
+        if (rt.hasActivePlayingGame()) return;
         stopHeartbeat();
-        disconnectPresence();
+        rt.disconnectPresence();
       } else if (document.visibilityState === 'visible') {
         // Re-join when tab becomes visible again
         initPresence();
@@ -97,17 +105,28 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
 
     const handleBeforeUnload = () => {
       stopHeartbeat();
-      disconnectPresence();
+      rt?.disconnectPresence();
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('beforeunload', handleBeforeUnload);
+    import('@/lib/realtime')
+      .then((module) => {
+        if (cancelled) return;
+        rt = module;
+        started = true;
+        initPresence();
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('beforeunload', handleBeforeUnload);
+      })
+      .catch((error) => console.error('Failed to load realtime:', error));
 
     return () => {
+      cancelled = true;
       stopHeartbeat();
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      cleanupRealtimeChannels();
+      if (started) {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+        rt?.cleanupRealtimeChannels();
+      }
       setIsConnected(false);
     };
   }, [handlePresenceUpdate]);
