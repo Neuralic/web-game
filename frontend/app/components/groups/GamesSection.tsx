@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight, Loader2, ThumbsUp, Users } from "lucide-react";
 import Link from "next/link";
 import PlayButton from "../PlayButton";
+import OptimizedImage from "../OptimizedImage";
 
 interface Game {
   id: string;
@@ -88,13 +89,15 @@ export default function GamesSection({ groupId }: GamesSectionProps) {
                   className="group block"
                 >
                   <div className="aspect-square border border-gray-200 dark:border-[#2a2a2a] rounded overflow-hidden bg-gray-100 dark:bg-[#1a1a1a] relative">
-                    <img
+                    <OptimizedImage
                       src={
                         game.thumbnailUrl ||
                         game.iconUrl ||
                         `https://robohash.org/${game.id}?set=set4`
                       }
                       alt={game.title}
+                      responsive
+                      sizes="(min-width: 1024px) 15vw, 30vw"
                       className="w-full h-full object-cover group-hover:opacity-90 transition-opacity"
                     />
                   </div>
