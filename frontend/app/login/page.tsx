@@ -159,8 +159,7 @@ const LoginPage = () => {
   return (
     <PublicRoute>
       <div
-        className="min-h-screen bg-gray-900 bg-cover bg-center bg-no-repeat relative dark"
-        style={{ backgroundImage: `url(/gaming-bg.jpg)` }}
+        className="auth-bg min-h-screen bg-gray-900 bg-cover bg-center bg-no-repeat relative dark"
       >
         {/* Dark overlay */}
         <div className="absolute inset-0 bg-black/40" />
