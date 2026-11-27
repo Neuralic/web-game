@@ -2186,6 +2186,10 @@ export interface SiteSearchGroup {
   icon_url: string | null;
   member_count: number | null;
   is_verified: boolean;
+  /** One-line snippet of the description (absent from an older backend). */
+  description?: string | null;
+  /** Anyone can join; false = manual approval (absent from an older backend). */
+  is_public?: boolean;
 }
 export interface SiteSearchSection<T> {
   items: T[];
@@ -2371,10 +2375,11 @@ export const catalogApi = {
     });
   },
 
-  getCategories: async () => {
+  // `available` mirrors the item list's filter ("true" | "false" | "all"); each category's count then matches the list.
+  getCategories: async (available?: "true" | "false" | "all") => {
     return apiCall<{
       categories: Array<{ category: string; itemCount: string }>;
-    }>("/catalog/categories");
+    }>(`/catalog/categories${available ? `?available=${available}` : ""}`);
   },
 
   // `available` mirrors the item list's filter ("true" | "false" | "all"); the counts then match what the list shows.
