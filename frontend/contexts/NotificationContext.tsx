@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { notificationsApi } from '@/lib/api';
 import { isAuthenticated } from '@/lib/auth';
-import { isConversationViewed } from '@/lib/chatUnread';
+import { isConversationViewed } from '@/lib/chatViewing';
 
 interface Notification {
   id: string;
@@ -142,10 +142,11 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       return;
     }
 
-    // TEMP: Wrap supabase in try/catch for local testing — RESTORE BEFORE PUSHING TO REPO
+    // The Supabase client is loaded here, for signed-in users only (a require() at the top of this effect made it part of every
+    // page's JavaScript, for logged-out visitors too). Missing Supabase settings (local testing) just turn live notifications off.
     let channel: any = null;
-    try {
-      const { supabase } = require('@/lib/supabase');
+    let cancelled = false;
+    const subscribe = (supabase: typeof import('@/lib/supabase').supabase) => {
       channel = supabase
         .channel(`notifications:${userId}`)
         .on(
@@ -203,11 +204,19 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         .subscribe((status: string) => {
           console.log('🔔 Notification channel status:', status);
         });
-    } catch (err) {
-      console.warn('Supabase not available, real-time notifications disabled for local testing');
-    }
+    };
+
+    import('@/lib/supabase')
+      .then(({ supabase }) => {
+        if (cancelled) return;
+        subscribe(supabase);
+      })
+      .catch(() => {
+        console.warn('Supabase not available, real-time notifications disabled for local testing');
+      });
 
     return () => {
+      cancelled = true;
       if (channel) channel.unsubscribe();
     };
   }, []);
