@@ -10,6 +10,7 @@ import { sendChatMessage, subscribeToMessages, unsubscribeFromMessages, subscrib
 import { startChatUnread, stopChatUnread, registerConversationViewing, useChatUnread } from "@/lib/chatUnread";
 import ChatSoundToggle from "./ChatSoundToggle";
 import { useRealtime } from "@/contexts/RealtimeContext";
+import { openChatWithUser, setOpenChatHandler } from "@/lib/chatOpen";
 import type { ChatMessage } from "@/lib/realtime";
 
 interface Friend {
@@ -40,14 +41,8 @@ interface ChatWindow {
   isLoadingMessages: boolean;
 }
 
-// Global function to open chat from external components
-let globalOpenChat: ((userId: string, username: string, displayName?: string, avatarUrl?: string) => void) | null = null;
-
-export const openChatWithUser = (userId: string, username: string, displayName?: string, avatarUrl?: string) => {
-  if (globalOpenChat) {
-    globalOpenChat(userId, username, displayName, avatarUrl);
-  }
-};
+// Opening a chat from other components goes through lib/chatOpen (re-exported here so existing imports keep working).
+export { openChatWithUser };
 
 const CHAT_WINDOW_WIDTH = 384; // w-96
 const GAP = 16;
@@ -90,7 +85,7 @@ export default function ChatWidget() {
 
   // Register global chat opener
   useEffect(() => {
-    globalOpenChat = (userId: string, username: string, displayName?: string, avatarUrl?: string) => {
+    setOpenChatHandler((userId: string, username: string, displayName?: string, avatarUrl?: string) => {
       showChat({
         id: userId,
         name: displayName || username,
@@ -99,10 +94,10 @@ export default function ChatWidget() {
         messages: [],
         isLoadingMessages: false,
       });
-    };
+    });
 
     return () => {
-      globalOpenChat = null;
+      setOpenChatHandler(null);
     };
   }, []);
 
