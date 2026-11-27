@@ -2,7 +2,8 @@
 
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { invalidateAvatarRender, subscribeAvatarChanged } from "./useAvatarRender";
+import { invalidateAvatarRender, setLocalAvatarImages, subscribeAvatarChanged } from "./useAvatarRender";
+import { waitForAvatarData } from "./avatarDataBus";
 import { AVATAR_SCENE_VERSION } from "./avatar3d/sceneVersion";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
@@ -20,7 +21,8 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v
 const MIN_GAP_MS = 30_000; // between the passive checks (load / navigation); outfit-change checks ignore it
 const MAX_TRIES_PER_HASH = 3; // a failing upload is not retried forever
 const FIRST_CHECK_DELAY_MS = 4_000;
-const AFTER_CHANGE_DELAY_MS = 800;
+const AFTER_CHANGE_DELAY_MS = 300;
+const PREVIEW_WAIT_MS = 8_000; // how long the editor's viewer gets to deliver the new outfit for the instant preview
 
 function readUserId(): { token: string; userId: string } | null {
   try {
@@ -55,6 +57,26 @@ function noteTry(userId: string, hash: string) {
 let running = false;
 let lastRun = 0;
 let ignoreChangesUntil = 0;
+let previewToken = 0;
+
+/**
+ * The outfit just changed in this browser (editor): draw the new 2D head from the 3D data the viewer is loading anyway and show
+ * it everywhere at once, before the normal path below has checked the server, uploaded and had the picture served back.
+ * Nothing is stored from here; the upload still comes from sync(), with the server's own copy of the outfit.
+ */
+async function previewFromViewer(userId: string, since: number): Promise<void> {
+  const token = ++previewToken;
+  try {
+    const data = await waitForAvatarData(userId, since, PREVIEW_WAIT_MS);
+    if (!data || token !== previewToken) return;
+    const { captureAvatarImages } = await import("./avatar3d/avatarSnapshots");
+    const images = await captureAvatarImages(data);
+    if (token !== previewToken) return; // changed again while drawing: that change draws its own
+    setLocalAvatarImages(userId, images);
+  } catch (error) {
+    console.warn("Avatar preview skipped:", error);
+  }
+}
 
 async function sync(force: boolean): Promise<void> {
   if (running) return;
@@ -86,6 +108,7 @@ async function sync(force: boolean): Promise<void> {
 
       const { captureAvatarImages } = await import("./avatar3d/avatarSnapshots"); // three.js only loads when needed
       const images = await captureAvatarImages(data);
+      setLocalAvatarImages(who.userId, images); // visible now; the upload below makes it permanent
 
       const form = new FormData();
       form.append("outfitHash", status.outfitHash);
@@ -119,8 +142,9 @@ export default function AvatarThumbnailSync() {
     let unsubscribe: (() => void) | undefined;
     let afterChange: ReturnType<typeof setTimeout> | undefined;
     if (who) {
-      unsubscribe = subscribeAvatarChanged(who.userId, () => {
+      unsubscribe = subscribeAvatarChanged(who.userId, (changedAt) => {
         if (Date.now() < ignoreChangesUntil) return;
+        void previewFromViewer(who.userId, changedAt);
         clearTimeout(afterChange);
         afterChange = setTimeout(() => void sync(true), AFTER_CHANGE_DELAY_MS);
       });
