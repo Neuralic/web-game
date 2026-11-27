@@ -85,6 +85,12 @@ async function silentRefresh(): Promise<boolean> {
   return _refreshPromise;
 }
 
+// A JSON Content-Type only belongs on a request that has a JSON body. Putting it on a GET makes the browser treat the call as a
+// "non-simple" cross-origin request and send an OPTIONS preflight first, which on this API is a whole serverless invocation
+// (about as slow as the GET itself). So plain GETs now go out without it.
+const jsonHeader = (options: RequestInit): Record<string, string> =>
+  typeof options.body === "string" ? { "Content-Type": "application/json" } : {};
+
 // Helper function to handle API calls
 async function apiCall<T>(
   endpoint: string,
@@ -95,7 +101,7 @@ async function apiCall<T>(
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
       headers: {
-        "Content-Type": "application/json",
+        ...jsonHeader(options),
         ...options.headers,
       },
     });
@@ -109,7 +115,7 @@ async function apiCall<T>(
         const newOptions: RequestInit = {
           ...options,
           headers: {
-            'Content-Type': 'application/json',
+            ...jsonHeader(options),
             ...options.headers,
             ...(newToken ? { Authorization: `Bearer ${newToken}` } : {}),
           },
@@ -2358,8 +2364,9 @@ export const catalogApi = {
         createdAt: string;
         updatedAt: string;
       };
-    }>(`/catalog/items/${id}`, {
-      // Sent when logged in so an owner can open an item that is hidden from the catalog.
+    }>(`/catalog/items/${id}${storage.getAccessToken() ? '?viewer=1' : ''}`, {
+      // Sent when logged in so an owner can open an item that is hidden from the catalog. `?viewer=1` gives that request its own URL:
+      // the anonymous answer is cached at the edge, and a signed-in answer must never be mixed up with it.
       headers: storage.getAccessToken() ? { Authorization: `Bearer ${storage.getAccessToken()}` } : {},
     });
   },
