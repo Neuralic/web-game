@@ -16,6 +16,7 @@ import PlayButton from "../components/PlayButton";
 import PresenceBadge from "../components/PresenceBadge";
 import UserAdBanner from "../components/UserAdBanner";
 import AnnouncementBanner from "../components/AnnouncementBanner";
+import OptimizedImage from "../components/OptimizedImage";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
@@ -25,7 +26,7 @@ const GameCard = ({ game }: { game: any }) => (
     <Link href={`/games/${game.id}`} className="block">
       <div className="rounded-lg overflow-hidden bg-gray-200 dark:bg-[#242424] aspect-video mb-1.5 relative">
         {game.thumbnailUrl ? (
-          <img src={game.thumbnailUrl} alt={game.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
+          <OptimizedImage src={game.thumbnailUrl} alt={game.title} responsive sizes="260px" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600">
             <span className="text-white font-bold text-2xl">AB</span>
@@ -63,6 +64,9 @@ const HomePage = () => {
 
   useEffect(() => {
     const fetchData = async () => {
+      // A visitor who is not logged in is about to be sent to /login by ProtectedRoute: do not spend three requests (the feed alone
+      // took ~2 s) on a page they will never see.
+      if (!storage.getAccessToken()) return;
       try {
         const [userResponse, friendsResponse, feedResponse] = await Promise.all([
           usersApi.getCurrentUser(),
