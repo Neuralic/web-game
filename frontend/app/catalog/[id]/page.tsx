@@ -9,6 +9,7 @@ import dynamic from "next/dynamic";
 import { catalogApi, usersApi } from "@/lib/api";
 import { isAuthenticated } from "@/lib/auth";
 import type { TryOnResult } from "../../components/Avatar3DViewer";
+import OptimizedImage from "../../components/OptimizedImage";
 
 const Avatar3DViewer = dynamic(() => import("../../components/Avatar3DViewer"), { ssr: false });
 
@@ -57,6 +58,9 @@ export default function CatalogItemPage() {
 
   useEffect(() => {
     const checkInventoryAndAvatar = async () => {
+      // Both calls are about "my" inventory / avatar. For a logged-out visitor they could only answer 401 (and the second one costs a
+      // CORS preflight too), so they are not sent.
+      if (!localStorage.getItem('accessToken')) return;
       try {
         const [inventoryRes, avatarRes] = await Promise.all([
           catalogApi.getUserInventory(),
@@ -224,9 +228,10 @@ export default function CatalogItemPage() {
           {/* Left - Item Image */}
           <div className="bg-white dark:bg-[#1a1a1a] rounded-xl overflow-hidden border border-gray-200 dark:border-[#2a2a2a]">
             {item.thumbnailUrl ? (
-              <img
+              <OptimizedImage
                 src={item.thumbnailUrl}
                 alt={item.name}
+                priority
                 className="w-full aspect-square object-cover"
               />
             ) : (
