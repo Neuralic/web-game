@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Heart, ThumbsUp, ThumbsDown, Bell, BellOff, Users, Eye, Gamepad2 } from "lucide-react";
+import { Star, ThumbsUp, ThumbsDown, Bell, BellOff, Users, Eye, Gamepad2 } from "lucide-react";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import Footer from "../../components/Footer";
@@ -593,11 +593,11 @@ const GameDetailPage = () => {
                     title="Favorite"
                     className={`flex items-center gap-2 px-4 py-3 rounded-lg text-base font-bold border transition-colors ${
                       game.userFavorited
-                        ? "bg-red-50 dark:bg-red-900/20 border-red-400 text-red-600 dark:text-red-400"
+                        ? "bg-yellow-50 dark:bg-yellow-900/20 border-yellow-400 text-yellow-600 dark:text-yellow-400"
                         : "border-gray-300 dark:border-[#2a2a2a] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                     }`}
                   >
-                    <Heart className="w-5 h-5" fill={game.userFavorited ? "currentColor" : "none"} />
+                    <Star className={`w-5 h-5 ${game.userFavorited ? "" : "text-yellow-500"}`} fill={game.userFavorited ? "currentColor" : "none"} />
                     {favoriteCount.toLocaleString()}
                   </button>
 
@@ -668,7 +668,7 @@ const GameDetailPage = () => {
                 <Eye className="w-4 h-4" /> {visitCount.toLocaleString()} visits
               </span>
               <span className="flex items-center gap-1.5">
-                <Heart className="w-4 h-4" /> {favoriteCount.toLocaleString()} favorites
+                <Star className="w-4 h-4 text-yellow-500" /> {favoriteCount.toLocaleString()} favorites
               </span>
               <span className="flex items-center gap-1.5">
                 <Users className="w-4 h-4" /> Max {game.maxPlayers ?? "—"} players
