@@ -12,6 +12,7 @@ import VerifiedBadge from "../../components/VerifiedBadge";
 import UserAdBanner from "../../components/UserAdBanner";
 import { storage } from "@/lib/api";
 import { isMobileBrowser, onGameLaunched } from "@/lib/gameLaunch";
+import OptimizedImage from "../../components/OptimizedImage";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
@@ -151,7 +152,8 @@ const GameDetailPage = () => {
       setNotFound(false);
       try {
         const token = storage.getAccessToken();
-        const res = await fetch(`${API_BASE}/games/${gameId}`, {
+        // A signed-in request gets its own URL (?viewer=1): the anonymous answer is cached at the edge and must never be shared.
+        const res = await fetch(`${API_BASE}/games/${gameId}${token ? "?viewer=1" : ""}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         });
         const data = await res.json();
@@ -507,7 +509,7 @@ const GameDetailPage = () => {
               <div className="lg:w-[60%] flex-shrink-0">
                 <div className="rounded-xl overflow-hidden bg-gray-200 dark:bg-[#242424] aspect-video relative">
                   {game.thumbnailUrl ? (
-                    <img src={game.thumbnailUrl} alt={game.title} className="w-full h-full object-cover" />
+                    <OptimizedImage src={game.thumbnailUrl} alt={game.title} priority className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600">
                       <span className="text-white font-bold text-4xl">AB</span>
@@ -528,7 +530,7 @@ const GameDetailPage = () => {
                 <div className="flex items-start gap-3 mb-5">
                   <div className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 bg-gray-200 dark:bg-[#242424]">
                     {game.iconUrl ? (
-                      <img src={game.iconUrl} alt={game.title} className="w-full h-full object-cover" />
+                      <OptimizedImage src={game.iconUrl} alt={game.title} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600">
                         <Gamepad2 className="w-6 h-6 text-white" />
@@ -1033,8 +1035,9 @@ const GameDetailPage = () => {
         </div>
       </main>
 
-      <Footer />
+      {/* Not shown until the game has loaded: before that the page is short and the footer sat at the bottom of the screen, then jumped away (layout shift). */}
 
+      {!loading && <Footer />}
       {/* Mobile Play Modal */}
       {showMobileModal && game && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4" onClick={() => setShowMobileModal(false)}>
