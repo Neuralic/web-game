@@ -2139,8 +2139,89 @@ export const messagesApi = {
   },
 };
 
+// Site search (GET /search): games, catalog items, people and groups in one request
+export type SiteSearchType = "games" | "catalog" | "people" | "groups";
+
+export interface SiteSearchGame {
+  id: string;
+  title: string;
+  thumbnail_url: string | null;
+  icon_url: string | null;
+  visits: number | null;
+  likes: number | null;
+  dislikes: number | null;
+  current_players: number | null;
+  place_id: string | number | null;
+}
+export interface SiteSearchCatalogItem {
+  id: string;
+  name: string;
+  creator_name: string | null;
+  category: string | null;
+  subcategory: string | null;
+  item_type: string | null;
+  thumbnail_url: string | null;
+  is_available: boolean;
+}
+export interface SiteSearchPerson {
+  id: string;
+  username: string;
+  display_name: string | null;
+  is_verified: boolean;
+  can_receive_requests: string;
+  /** Our own head image, when the person has one; otherwise the avatar component fetches their render. */
+  head_url?: string | null;
+  /** Only present when signed in; null for yourself. */
+  friendship_status?: "friend" | "request_sent" | "request_received" | "none" | null;
+}
+export interface SiteSearchGroup {
+  id: string;
+  name: string;
+  icon_url: string | null;
+  member_count: number | null;
+  is_verified: boolean;
+}
+export interface SiteSearchSection<T> {
+  items: T[];
+  hasMore: boolean;
+  /** Every item is a typo-tolerant guess rather than a direct match. */
+  approximate: boolean;
+}
+export interface SiteSearchResult {
+  query: string;
+  /** The text itself is not allowed (word filter): nothing was searched. */
+  filtered: boolean;
+  games: SiteSearchSection<SiteSearchGame>;
+  catalog: SiteSearchSection<SiteSearchCatalogItem>;
+  people: SiteSearchSection<SiteSearchPerson>;
+  groups: SiteSearchSection<SiteSearchGroup>;
+}
+
 // Search API
 export const searchApi = {
+  // The site search. `limit` is per section; `type` + `offset` page one section. Pass a signal to cancel a stale request.
+  searchAll: async (
+    query: string,
+    options: { type?: SiteSearchType | "all"; limit?: number; offset?: number; signal?: AbortSignal } = {},
+  ): Promise<ApiResponse<SiteSearchResult> & { aborted?: boolean }> => {
+    const params = new URLSearchParams({ q: query });
+    if (options.type && options.type !== "all") params.set("type", options.type);
+    if (options.limit) params.set("limit", String(options.limit));
+    if (options.offset) params.set("offset", String(options.offset));
+    const token = storage.getAccessToken();
+    try {
+      const response = await fetch(`${API_BASE_URL}/search?${params.toString()}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        signal: options.signal,
+      });
+      return await response.json();
+    } catch (error) {
+      // A cancelled request is normal while typing, not an error worth logging.
+      if (error instanceof DOMException && error.name === "AbortError") return { success: false, aborted: true };
+      return { success: false, error: "Network error. Please try again." };
+    }
+  },
+
   // Search users
   searchUsers: async (query: string, limit = 10): Promise<ApiResponse<{ users: unknown[]; query: string }>> => {
     const token = storage.getAccessToken();
