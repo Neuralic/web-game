@@ -71,14 +71,21 @@ const CatalogPage = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
 
-  // Fetch categories from API on mount
+  // Fetch the categories (with counts) on mount and whenever the availability filter changes or the modal opens, with the same
+  // availability filter as the item list, so every category's count is the number of items the list shows for it.
   useEffect(() => {
-    catalogApi.getCategories().then((res) => {
-      if (res.success && res.data) {
+    let ignore = false;
+    const available =
+      unavailableItemsFilter === "Hide Unavailable Items" ? "true" : unavailableItemsFilter === "Show Only Unavailable Items" ? "false" : "all";
+    catalogApi.getCategories(available).then((res) => {
+      if (!ignore && res.success && res.data) {
         setApiCategories(res.data.categories);
       }
     });
-  }, []);
+    return () => {
+      ignore = true;
+    };
+  }, [unavailableItemsFilter, showCategoryModal]);
 
   // Fetch the subcategories (with counts) every time the modal is opened or its category changes, using the same
   // availability filter as the item list, so the counts are what the list shows and new subcategories appear without a reload.
@@ -630,7 +637,10 @@ const CatalogPage = () => {
                         : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100"
                     }`}
                   >
-                    <span>{cat.category}</span>
+                    <span>
+                      {cat.category}
+                      <span className={`ml-1 text-xs ${modalSelectedCategory === cat.category ? "text-blue-100" : "text-gray-400"}`}>({cat.itemCount})</span>
+                    </span>
                     <ChevronRight className="w-3.5 h-3.5 opacity-60" />
                   </button>
                 ))}
@@ -652,6 +662,9 @@ const CatalogPage = () => {
                       className="w-full text-left px-3 py-2 rounded text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors"
                     >
                       All {modalSelectedCategory}
+                      {apiCategories.find((c) => c.category === modalSelectedCategory) && (
+                        <span className="ml-1 text-xs text-gray-400">({apiCategories.find((c) => c.category === modalSelectedCategory)!.itemCount})</span>
+                      )}
                     </button>
                     {apiSubcategories.map((sub) => (
                       <button
