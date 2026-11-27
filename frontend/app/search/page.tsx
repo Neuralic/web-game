@@ -170,13 +170,24 @@ function SearchResults() {
       href={`/groups/${group.id}`}
       className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] hover:border-gray-400 dark:hover:border-gray-500 transition-colors"
     >
-      <Thumb src={group.icon_url} alt={group.name} className="w-14 h-14 rounded-lg" fallback={<Users className="w-6 h-6" />} />
-      <span className="min-w-0">
+      <Thumb src={group.icon_url} alt={group.name} className="w-16 h-16 rounded-lg self-start" fallback={<Users className="w-6 h-6" />} />
+      <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1 font-semibold text-gray-900 dark:text-gray-100">
           <span className="truncate"><Highlight text={group.name} query={query} /></span>
           {group.is_verified && <VerifiedBadge size="sm" />}
         </span>
-        <span className="block text-sm text-gray-500 dark:text-gray-400">{(group.member_count ?? 0).toLocaleString()} members</span>
+        {group.description && (
+          <span className="line-clamp-2 text-sm text-gray-600 dark:text-gray-400 break-words">{group.description}</span>
+        )}
+        <span className="mt-0.5 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+          <span>{(group.member_count ?? 0).toLocaleString()} {group.member_count === 1 ? "member" : "members"}</span>
+          {group.is_public !== undefined && (
+            <>
+              <span aria-hidden="true">·</span>
+              <span>{group.is_public ? "Public" : "Private"}</span>
+            </>
+          )}
+        </span>
       </span>
     </Link>
   );
@@ -218,7 +229,7 @@ function SearchResults() {
   const GAMES_GRID = "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4";
   const CATALOG_GRID = "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4";
   const PEOPLE_GRID = "grid grid-cols-1 md:grid-cols-2 gap-3";
-  const GROUPS_GRID = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3";
+  const GROUPS_GRID = "grid grid-cols-1 lg:grid-cols-2 gap-3";
 
   const wanted = (type: SiteSearchType) => tab === "all" || tab === type;
   const sections = result && [
