@@ -16,7 +16,7 @@ module.exports = {
     },
     extend: {
       fontFamily: {
-        sans: ["Nunito", "sans-serif"],
+        sans: ["var(--font-nunito)", "Nunito", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",
