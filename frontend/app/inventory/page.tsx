@@ -9,6 +9,7 @@ import Footer from "../components/Footer";
 import ProtectedRoute from "../components/ProtectedRoute";
 import { catalogApi } from "@/lib/api";
 import { AVATAR_SLOT_LABELS } from "@/lib/avatarSlots";
+import OptimizedImage from "../components/OptimizedImage";
 
 interface InventoryItem {
   id: string;
@@ -178,7 +179,7 @@ const InventoryPage = () => {
                       <div className="rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
                         <div className="relative aspect-square bg-gray-100 dark:bg-[#242424]">
                           {item.thumbnailUrl ? (
-                            <img
+                            <OptimizedImage
                               src={item.thumbnailUrl}
                               alt={item.name}
                               className="w-full h-full object-cover"
