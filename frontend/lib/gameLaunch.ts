@@ -1,6 +1,5 @@
 // Launching a game, shared by every Play button (game page, cards on home / profile / groups / games list).
 import { storage } from './api';
-import { startPlayingGame } from './realtime';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
 
@@ -22,5 +21,9 @@ export function onGameLaunched(game: { id: string; title: string }): void {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
   }).catch((error) => console.error('Failed to record game play:', error));
-  startPlayingGame({ id: game.id, title: game.title }).catch(() => {});
+  // Loaded on demand: this is a click handler, and the realtime/Supabase code is not worth shipping to every page that has a Play
+  // button just for this (for a signed-in user it is already loaded by the presence connection, so this costs nothing).
+  import("./realtime")
+    .then((realtime) => realtime.startPlayingGame({ id: game.id, title: game.title }))
+    .catch(() => {});
 }
